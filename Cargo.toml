@@ -2,5 +2,13 @@
 name = "anthem"
 version = "0.1.0-dev"
 edition = "2021"
+authors = ["Zach Hansen <zachhansen@unomaha.edu>", "Tobias Stolzmann <tobias.stolzmann@gmail.com>"]
+description = "A translator between answer set programs and first-order logic"
+categories = ["compilers"]
+keywords = ["translator", "answer set programming", "first-order logic"]
+repository = "https://github.com/teiesti/anthem-next"
+documentation = "https://docs.rs/anthem"
+readme = "README.md"
+license = "MIT"
 
 [dependencies]
