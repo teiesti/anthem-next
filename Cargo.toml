@@ -13,3 +13,5 @@ readme = "README.md"
 license = "MIT"
 
 [dependencies]
+pest = "2"
+pest_derive = "2"
