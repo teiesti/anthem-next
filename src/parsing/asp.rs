@@ -1,5 +1,5 @@
 #[derive(pest_derive::Parser)]
-#[grammar = "syntax/asp/grammar.pest"]
+#[grammar = "parsing/asp.pest"]
 pub struct Parser;
 
 #[cfg(test)]
