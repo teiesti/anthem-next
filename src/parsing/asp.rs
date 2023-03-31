@@ -4,20 +4,22 @@ pub struct Parser;
 
 #[cfg(test)]
 mod tests {
-    use super::{Parser, Rule};
-    use pest::Parser as _;
+    use {
+        super::{Parser, Rule},
+        crate::parsing::CompleteParser as _,
+    };
 
     fn recognize(rule: Rule, accept: Vec<&str>, reject: Vec<&str>) {
         for example in accept {
             assert!(
-                Parser::parse(rule, example).is_ok(),
+                Parser::parse_complete(rule, example).is_ok(),
                 "assertion failed: rule {rule:?} rejects '{example}'"
             );
         }
 
         for example in reject {
             assert!(
-                Parser::parse(rule, example).is_err(),
+                Parser::parse_complete(rule, example).is_err(),
                 "assertion failed: rule {rule:?} accepts '{example}'"
             );
         }
@@ -25,18 +27,18 @@ mod tests {
 
     #[test]
     fn recognize_infimum() {
-        recognize(Rule::test_infimum, vec!["#inf", "#infimum"], vec![])
+        recognize(Rule::infimum, vec!["#inf", "#infimum"], vec![])
     }
 
     #[test]
     fn recognize_supremum() {
-        recognize(Rule::test_supremum, vec!["#sup", "#supremum"], vec![])
+        recognize(Rule::supremum, vec!["#sup", "#supremum"], vec![])
     }
 
     #[test]
     fn recognize_numeral() {
         recognize(
-            Rule::test_numeral,
+            Rule::numeral,
             vec!["0", "1", "42", "4711"],
             vec!["a", "A", "4 2", "00"],
         )
@@ -45,7 +47,7 @@ mod tests {
     #[test]
     fn recognize_constant() {
         recognize(
-            Rule::test_constant,
+            Rule::constant,
             vec!["a", "aa", "aA", "_a", "'a", "_'x'_'x'_", "noto"],
             vec!["A", "1", "a a", "a-a", "'", "not"],
         )
@@ -54,7 +56,7 @@ mod tests {
     #[test]
     fn recognize_variable() {
         recognize(
-            Rule::test_variable,
+            Rule::variable,
             vec!["A", "AA", "Aa", "_A", "'A", "_'X'_'X'_"],
             vec!["a", "1", "A A", "A-A", "'"],
         )
@@ -63,7 +65,7 @@ mod tests {
     #[test]
     fn recognize_term() {
         recognize(
-            Rule::test_term,
+            Rule::term,
             vec![
                 "#inf",
                 "1",
