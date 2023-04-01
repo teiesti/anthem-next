@@ -11,6 +11,7 @@ use {
 };
 
 pub trait CompleteParser<R: RuleType>: Parser<R> {
+    #[allow(clippy::result_large_err)] // to match Parser::parse
     fn parse_complete(rule: R, input: &str) -> Result<Pairs<'_, R>, Error<R>> {
         Self::parse(rule, input).and_then(|pairs| {
             if pairs.as_str() == input {
@@ -57,7 +58,7 @@ impl<P: CompleteParser<R>, R: RuleType> TestedRule<P, R> {
                 self.rule
             );
         }
-        &self
+        self
     }
 
     pub fn should_reject<'a>(&self, examples: impl IntoIterator<Item = &'a str>) -> &Self {
@@ -68,6 +69,6 @@ impl<P: CompleteParser<R>, R: RuleType> TestedRule<P, R> {
                 self.rule
             );
         }
-        &self
+        self
     }
 }
