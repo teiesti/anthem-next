@@ -1,33 +1,14 @@
 WHITESPACE = _{ " " | NEWLINE }
 
-basic_term = _{ infimum | supremum | numeral | constant | variable }
+constant = _{ infimum | integer | symbol | supremum }
     infimum = @{ "#infimum" | "#inf" }
-    supremum = @{ "#supremum" | "#sup" }
-    numeral = @{ "0" | ASCII_NONZERO_DIGIT ~ ASCII_DIGIT* }
-    constant = @{
+    integer = @{ "0" | "-"? ~ ASCII_NONZERO_DIGIT ~ ASCII_DIGIT* }
+    symbol = @{
         (!"not" | &("not" ~ ANY))
         ~ ("_" | "'")*
         ~ ASCII_ALPHA_LOWER
         ~ (ASCII_ALPHANUMERIC | "_" | "'")*
     }
-    variable = @{
-        ("_" | "'")*
-        ~ ASCII_ALPHA_UPPER
-        ~ (ASCII_ALPHANUMERIC | "_" | "'")*
-    }
-
-unary_operation = _{ negative }
-    negative = { "-" }
-
-binary_operation = _{ add | subtract | multiply | divide | modulo | interval }
-    add = { "+" }
-    subtract = { "-" }
-    multiply = { "*" }
-    divide = { "/" }
-    modulo = { "\\" }
-    interval = { ".." }
-
-term = { primary_term ~ (binary_operation ~ term)? | unary_operation ~ term }
-    primary_term = _{ basic_term | "(" ~ term ~ ")"}
+    supremum = @{ "#supremum" | "#sup" }
 
 // TODO Tobias: Add rules for remaining syntax of ASP
