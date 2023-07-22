@@ -1,3 +1,0 @@
-WHITESPACE = _{ " " | NEWLINE }
-
-// TODO Zach: Add the parsing expression grammar for first-order logic here
