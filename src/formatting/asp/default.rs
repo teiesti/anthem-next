@@ -5,6 +5,7 @@ use {
     },
     std::fmt::{self, Display, Formatter},
 };
+
 pub struct Format<'a, N: Node>(pub &'a N);
 
 impl Display for Format<'_, Constant> {
