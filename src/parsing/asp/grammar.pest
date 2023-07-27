@@ -1,0 +1,14 @@
+WHITESPACE = _{ " " | NEWLINE }
+
+constant = { infimum | integer | symbol | supremum }
+    infimum = @{ "#infimum" | "#inf" }
+    integer = @{ "0" | "-"? ~ ASCII_NONZERO_DIGIT ~ ASCII_DIGIT* }
+    symbol = @{
+        (!"not" | &("not" ~ ANY))
+        ~ ("_" | "'")*
+        ~ ASCII_ALPHA_LOWER
+        ~ (ASCII_ALPHANUMERIC | "_" | "'")*
+    }
+    supremum = @{ "#supremum" | "#sup" }
+
+// TODO Tobias: Add rules for remaining syntax of ASP
