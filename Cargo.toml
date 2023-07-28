@@ -13,5 +13,6 @@ readme = "README.md"
 license = "MIT"
 
 [dependencies]
+lazy_static = "1"
 pest = "2"
 pest_derive = "2"
