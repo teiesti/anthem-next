@@ -18,4 +18,23 @@ pub enum Variable {
 
 impl Node for Variable {}
 
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub enum UnaryOperator {
+    Negative,
+}
+
+impl Node for UnaryOperator {}
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub enum BinaryOperator {
+    Add,
+    Subtract,
+    Multiply,
+    Divide,
+    Modulo,
+    Interval,
+}
+
+impl Node for BinaryOperator {}
+
 // TODO Tobias: Continue implementing the abstract syntax tree for ASP here
