@@ -8,4 +8,4 @@ pub enum Primitive {
 
 impl Node for Primitive {}
 
-// TODO Zach: Implement the abstract syntax tree for first-order logic here
+// TODO Zach: Continue implementing the abstract syntax tree for first-order logic here

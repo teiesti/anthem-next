@@ -1,6 +1,6 @@
 // Grammar for two-sorted target language (specifications, lemmas, user guides, etc.)
 // i$X denotes variable X of sort integer, X denotes variable of sort general
-// Distinguishes between integer and general terms, variables, etc. 
+// Distinguishes between integer and general terms, variables, etc.
 // Both of these are distinct from program terms, variables, etc.
 // This language is NOT a subset of TPTP BNF, but formulas written in this language
 // can be transformed into TPTP formulas (Vampire-compatible input).
@@ -10,4 +10,3 @@ WHITESPACE = _{ " " | NEWLINE }
 primitive = _{ infimum | supremum }
     infimum  = { "#inf" }
     supremum = { "#sup" }
-
