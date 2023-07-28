@@ -1,12 +1,27 @@
 use crate::{
     parsing::PestParser,
-    syntax_tree::asp::{Constant, Variable, UnaryOperator, BinaryOperator},
+    syntax_tree::asp::{BinaryOperator, Constant, Term, UnaryOperator, Variable},
 };
 
 mod internal {
+    use pest::pratt_parser::PrattParser;
+
     #[derive(pest_derive::Parser)]
     #[grammar = "parsing/asp/grammar.pest"]
     pub struct Parser;
+
+    lazy_static::lazy_static! {
+        pub static ref PRATT_PARSER: PrattParser<Rule> = {
+            use pest::pratt_parser::{Assoc::*, Op};
+            use Rule::*;
+
+            PrattParser::new()
+                .op(Op::infix(interval, Left))
+                .op(Op::infix(add, Left) | Op::infix(subtract, Left))
+                .op(Op::infix(multiply, Left) | Op::infix(divide, Left) | Op::infix(modulo, Left))
+                .op(Op::prefix(negative))
+        };
+    }
 }
 
 pub struct ConstantParser;
@@ -88,6 +103,35 @@ impl PestParser for BinaryOperatorParser {
     }
 }
 
+pub struct TermParser;
+
+impl PestParser for TermParser {
+    type Node = Term;
+
+    type InternalParser = internal::Parser;
+    type Rule = internal::Rule;
+    const RULE: internal::Rule = internal::Rule::term;
+
+    fn translate_pair(pair: pest::iterators::Pair<'_, Self::Rule>) -> Self::Node {
+        internal::PRATT_PARSER
+            .map_primary(|primary| match primary.as_rule() {
+                internal::Rule::term => TermParser::translate_pair(primary),
+                internal::Rule::constant => Term::Constant(ConstantParser::translate_pair(primary)),
+                internal::Rule::variable => Term::Variable(VariableParser::translate_pair(primary)),
+                _ => Self::report_unexpected_pair(primary),
+            })
+            .map_prefix(|op, arg| Term::UnaryOperation {
+                op: UnaryOperatorParser::translate_pair(op),
+                arg: Box::new(arg),
+            })
+            .map_infix(|lhs, op, rhs| Term::BinaryOperation {
+                op: BinaryOperatorParser::translate_pair(op),
+                lhs: Box::new(lhs),
+                rhs: Box::new(rhs),
+            })
+            .parse(pair.into_inner())
+    }
+}
 
 // TODO Tobias: Continue implementing pest parsing for ASP here
 
