@@ -1,6 +1,6 @@
 use crate::{
     parsing::PestParser,
-    syntax_tree::asp::{Constant, Variable},
+    syntax_tree::asp::{Constant, Variable, UnaryOperator, BinaryOperator},
 };
 
 mod internal {
@@ -48,6 +48,46 @@ impl PestParser for VariableParser {
         }
     }
 }
+
+pub struct UnaryOperatorParser;
+
+impl PestParser for UnaryOperatorParser {
+    type Node = UnaryOperator;
+
+    type InternalParser = internal::Parser;
+    type Rule = internal::Rule;
+    const RULE: internal::Rule = internal::Rule::unary_operator;
+
+    fn translate_pair(pair: pest::iterators::Pair<'_, Self::Rule>) -> Self::Node {
+        match pair.as_rule() {
+            internal::Rule::negative => UnaryOperator::Negative,
+            _ => Self::report_unexpected_pair(pair),
+        }
+    }
+}
+
+pub struct BinaryOperatorParser;
+
+impl PestParser for BinaryOperatorParser {
+    type Node = BinaryOperator;
+
+    type InternalParser = internal::Parser;
+    type Rule = internal::Rule;
+    const RULE: internal::Rule = internal::Rule::binary_operator;
+
+    fn translate_pair(pair: pest::iterators::Pair<'_, Self::Rule>) -> Self::Node {
+        match pair.as_rule() {
+            internal::Rule::add => BinaryOperator::Add,
+            internal::Rule::subtract => BinaryOperator::Subtract,
+            internal::Rule::multiply => BinaryOperator::Multiply,
+            internal::Rule::divide => BinaryOperator::Divide,
+            internal::Rule::modulo => BinaryOperator::Modulo,
+            internal::Rule::interval => BinaryOperator::Interval,
+            _ => Self::report_unexpected_pair(pair),
+        }
+    }
+}
+
 
 // TODO Tobias: Continue implementing pest parsing for ASP here
 

@@ -19,4 +19,15 @@ variable = { named_variable | anonymous_variable }
     }
     anonymous_variable = @{ "_" }
 
+unary_operator = _{ negative }
+    negative = { !integer ~ "-" }
+
+binary_operator = _{ add | subtract | multiply | divide | modulo | interval }
+    add = { "+" }
+    subtract = { "-" }
+    multiply = { "*" }
+    divide = { "/" }
+    modulo = { "\\" }
+    interval = { ".." }
+
 // TODO Tobias: Add rules for remaining syntax of ASP
