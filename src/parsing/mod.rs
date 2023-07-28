@@ -63,3 +63,51 @@ impl<T: PestParser> Parser for T {
         Ok(Self::translate_pairs(pairs))
     }
 }
+
+trait TestedParser: Parser {
+    fn should_parse_into<'a>(
+        &self,
+        examples: impl IntoIterator<Item = (&'a str, <Self as Parser>::Node)>,
+    ) -> &Self {
+        for (input, expected) in examples {
+            match Self::parse(input) {
+                Ok(output) => {
+                    assert!(
+                        output == expected,
+                        "assertion failed: {} parses '{input}' into {output:?} instead of {expected:?}",
+                        type_name::<Self>()
+                    )
+                }
+                Err(_) => panic!(
+                    "assertion failed: {} rejects '{input}'",
+                    type_name::<Self>()
+                ),
+            }
+        }
+        self
+    }
+
+    fn should_accept<'a>(&self, examples: impl IntoIterator<Item = &'a str>) -> &Self {
+        for example in examples {
+            assert!(
+                Self::parse(example).is_ok(),
+                "assertion failed: {} rejects '{example}'",
+                type_name::<Self>()
+            )
+        }
+        self
+    }
+
+    fn should_reject<'a>(&self, examples: impl IntoIterator<Item = &'a str>) -> &Self {
+        for example in examples {
+            assert!(
+                Self::parse(example).is_err(),
+                "assertion failed: {} accepts '{example}'",
+                type_name::<Self>()
+            )
+        }
+        self
+    }
+}
+
+impl<T: Parser> TestedParser for T {}

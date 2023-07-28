@@ -25,4 +25,28 @@ impl PestParser for PrimitiveParser {
     }
 }
 
-// TODO Zach: Implement the parsing for first-order logic here
+// TODO Zach: Continue implementing pest parsing for first-order logic here
+
+#[cfg(test)]
+mod tests {
+    use {
+        super::PrimitiveParser,
+        crate::{parsing::TestedParser, syntax_tree::fol::Primitive},
+    };
+
+    #[test]
+    fn parse_primitive() {
+        PrimitiveParser
+            .should_parse_into([
+                ("#inf", Primitive::Infimum),
+                // ("#infimum", Primitive::Infimum),
+                ("#sup", Primitive::Supremum),
+                // ("#supremum", Primitive::Supremum),
+            ])
+            .should_reject([
+                // TODO Zach: Add examples
+            ]);
+    }
+
+    // TODO Zach: Add tests for the remaining parsers
+}
