@@ -1,5 +1,6 @@
 // Grammar for two-sorted target language (specifications, lemmas, user guides, etc.)
-// i$X denotes variable X of sort integer, X denotes variable of sort general
+// i$X denotes variable X of sort integer, g$X denotes variable of sort general
+// Unsorted variables are assumed to be of sort general.
 // Distinguishes between integer and general terms, variables, etc.
 // Both of these are distinct from program terms, variables, etc.
 // This language is NOT a subset of TPTP BNF, but formulas written in this language
@@ -7,6 +8,29 @@
 
 WHITESPACE = _{ " " | NEWLINE }
 
+sort_declaration = { integer_declaration | general_declaration }
+    integer_declaration = { "i$" }
+    general_declaration = { "g$" }
+
 primitive = _{ infimum | supremum }
     infimum  = { "#inf" }
     supremum = { "#sup" }
+
+unsorted_variable = @{ "_"? ~ ASCII_ALPHA_UPPER ~ (ASCII_ALPHANUMERIC | "_" | "'")* }
+
+n_basic_term = _{ numeral | n_variable | infimum | supremum }
+    numeral    = @{ ("0") | ("-"? ~ ASCII_NONZERO_DIGIT ~ ASCII_DIGIT*) }
+    n_variable = @{ integer_declaration ~ unsorted_variable }
+
+formula_unary_operator = _{ unary_minus }
+    unary_minus = { "-" }
+
+formula_binary_operator = _{ add | subtract | multiply }
+    add      = { "+" }
+    subtract = { "-" }
+    multiply = { "*" }
+
+n_term = { binary_operation | unary_operation | n_basic_term }
+    n_primary = _{ n_basic_term | "(" ~ n_term ~ ")"}
+    binary_operation = { n_primary ~ formula_binary_operator ~ n_term }
+    unary_operation  = { formula_unary_operator ~ n_term }
