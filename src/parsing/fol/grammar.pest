@@ -8,18 +8,35 @@
 
 WHITESPACE = _{ " " | NEWLINE }
 
-sort = { integer_sort | general_sort }
-    integer_sort = { "i" }
-    general_sort = { "g" }
+keyword = _{ primitive | nonassociative_binary_connective | associative_binary_connective | unary_connective | quantifier | sort }
 
-primitive = _{ infimum | supremum }
-    infimum  = { "#inf" }
-    supremum = { "#sup" }
+    primitive = _{ infimum | supremum }
+        infimum  = { "#inf" }
+        supremum = { "#sup" }
 
-unsorted_variable = @{ "_"? ~ ASCII_ALPHA_UPPER ~ (ASCII_ALPHANUMERIC | "_" | "'")* }
+    nonassociative_binary_connective = _{ implication | reverse_implication | equivalence }
+        implication         = { "=>"  }
+        reverse_implication = { "<="  }
+        equivalence         = { "<=>" }
+
+    associative_binary_connective = _{ conjunction | disjunction }
+        conjunction = { "and" }
+        disjunction = { "or"  }
+
+    unary_connective = _{ negation }
+        negation = { "not" }
+
+    quantifier = _{ universal | existential }
+        universal   = { "forall" }
+        existential = { "exists" }
+
+    sort = { integer_sort | general_sort }
+        integer_sort = { "i" }
+        general_sort = { "g" }
 
 n_basic_term = _{ numeral | n_variable | infimum | supremum }
     numeral    = @{ ("0") | ("-"? ~ ASCII_NONZERO_DIGIT ~ ASCII_DIGIT*) }
+    unsorted_variable = @{ "_"? ~ ASCII_ALPHA_UPPER ~ (ASCII_ALPHANUMERIC | "_" | "'")* }
     n_variable = @{ unsorted_variable ~ "$" ~ integer_sort }
 
 unary_operator = _{ negative }
@@ -34,3 +51,7 @@ n_term = { binary_operation | unary_operation | n_basic_term }
     n_primary = _{ n_basic_term | "(" ~ n_term ~ ")"}
     unary_operation  = { unary_operator ~ n_term }
     binary_operation = { n_primary ~ binary_operator ~ n_term }
+
+g_term = { n_term | symbolic_constant | g_variable }
+    symbolic_constant = @{ !(keyword) ~ "_"? ~ ASCII_ALPHA_LOWER ~ (ASCII_ALPHANUMERIC | "_" | "'")* }
+    g_variable = @{ unsorted_variable ~ "$" ~ general_sort | unsorted_variable }
