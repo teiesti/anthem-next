@@ -19,7 +19,7 @@ impl Display for Format<'_, BasicIntegerTerm> {
 impl Display for Format<'_, IntegerTerm> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "todo\n");
-        todo();
+        todo!();
     }
 }
 

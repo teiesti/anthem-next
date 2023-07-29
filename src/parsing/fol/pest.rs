@@ -18,11 +18,29 @@ impl PestParser for BasicIntegerTermParser {
 
     fn translate_pair(pair: pest::iterators::Pair<'_, Self::Rule>) -> Self::Node {
         match pair.as_rule() {
-            internal::Rule::n_basic_term => Self::translate_pairs(pair.into_inner()), // Recurse
+            internal::Rule::n_basic_term => Self::translate_pairs(pair.into_inner()), // Recurse inward
             internal::Rule::infimum => BasicIntegerTerm::Infimum,
             internal::Rule::supremum => BasicIntegerTerm::Supremum,
             internal::Rule::numeral => BasicIntegerTerm::Numeral(pair.as_str().parse().unwrap()),
-            internal::Rule::n_variable => BasicIntegerTerm::IntegerVariable(pair.as_str().into()), // It would be better to break this into sort + var
+            // TODO: Add reference to unsorted variable (if added as node)
+            internal::Rule::n_variable => BasicIntegerTerm::IntegerVariable(pair.into_inner().next().unwrap().as_str().into()), // Get variable name
+            _ => Self::report_unexpected_pair(pair),
+        }
+    }
+}
+
+pub struct UnaryOperatorParser;
+
+impl PestParser for UnaryOperatorParser {
+    type Node = UnaryOperator;
+
+    type InternalParser = internal::Parser;
+    type Rule = internal::Rule;
+    const RULE: internal::Rule = internal::Rule::n_term;
+
+    fn translate_pair(pair: pest::iterators::Pair<'_, Self::Rule>) -> Self::Node {
+        match pair.as_rule() {          // No need for translate_pairs into_inner since triggering rule is silent
+            internal::Rule::negative => UnaryOperator::Negative,
             _ => Self::report_unexpected_pair(pair),
         }
     }
@@ -37,15 +55,7 @@ impl PestParser for IntegerTermParser {
     type Rule = internal::Rule;
     const RULE: internal::Rule = internal::Rule::n_term;
 
-    fn translate_pair(pair: pest::iterators::Pair<'_, Self::Rule>) -> Self::Node {
-        match pair.as_rule() {
-            internal::Rule::n_term => Self::translate_pairs(pair.into_inner()),
-            internal::Rule::binary_operation => IntegerTerm::BinaryOperation(pair.into_inner()),
-            internal::Rule::unary_operation => IntegerTerm::UnaryOperation(pair.into_inner()),
-            internal::Rule::n_basic_term => IntegerTerm::BasicIntegerTerm(pair.into_inner()),
-            _ => Self::report_unexpected_pair(pair),
-        }
-    }
+
 }
 
 // TODO Zach: Continue implementing pest parsing for first-order logic here
