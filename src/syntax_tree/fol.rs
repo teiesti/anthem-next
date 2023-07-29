@@ -1,9 +1,11 @@
 use super::Node;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct UnaryOperator {
-    UnaryMinus: String,
+pub enum UnaryOperator {
+    Negative,
 }
+
+impl Node for UnaryOperator {}
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum BinaryOperator {
@@ -11,6 +13,8 @@ pub enum BinaryOperator {
     Subtract,
     Multiply,
 }
+
+impl Node for BinaryOperator {}
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum BasicIntegerTerm {
@@ -24,6 +28,7 @@ impl Node for BasicIntegerTerm {}
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum IntegerTerm {
+    BasicIntegerTerm(BasicIntegerTerm),
     BinaryOperation {
         op: BinaryOperator,
         lhs: Box<IntegerTerm>,
@@ -33,7 +38,6 @@ pub enum IntegerTerm {
         op: UnaryOperator,
         arg: Box<IntegerTerm>,
     },
-    BasicIntegerTerm,
 }
 
 impl Node for IntegerTerm {}
