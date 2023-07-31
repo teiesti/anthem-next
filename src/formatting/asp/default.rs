@@ -1,6 +1,6 @@
 use {
     crate::syntax_tree::{
-        asp::{Constant, Variable},
+        asp::{Constant, Variable, UnaryOperator, BinaryOperator, Term},
         Node,
     },
     std::fmt::{self, Display, Formatter},
@@ -25,6 +25,33 @@ impl Display for Format<'_, Variable> {
             Variable::Anonymous => write!(f, "_"),
             Variable::Named(s) => write!(f, "{s}"),
         }
+    }
+}
+
+impl Display for Format<'_, UnaryOperator> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self.0 {
+            UnaryOperator::Negative => write!(f, "-"),
+        }
+    }
+}
+
+impl Display for Format<'_, BinaryOperator> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self.0 {
+            BinaryOperator::Add => write!(f, "+"),
+            BinaryOperator::Subtract => write!(f, "-"),
+            BinaryOperator::Multiply => write!(f, "*"),
+            BinaryOperator::Divide => write!(f, "/"),
+            BinaryOperator::Modulo => write!(f, "\\"),
+            BinaryOperator::Interval => write!(f, "*"),
+        }
+    }
+}
+
+impl Display for Format<'_, Term> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        todo!()
     }
 }
 
