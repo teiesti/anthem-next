@@ -163,20 +163,6 @@ mod tests {
     };
 
     #[test]
-    fn parse_unary_operator() {
-        UnaryOperatorParser.should_parse_into([("-", UnaryOperator::Negative)]);
-    }
-
-    #[test]
-    fn parse_binary_operator() {
-        BinaryOperatorParser.should_parse_into([
-            ("+", BinaryOperator::Add),
-            ("-", BinaryOperator::Subtract),
-            ("*", BinaryOperator::Multiply),
-        ]);
-    }
-
-    #[test]
     fn parse_basic_integer_term() {
         BasicIntegerTermParser
             .should_parse_into([
@@ -190,6 +176,20 @@ mod tests {
                 ("A$i", BasicIntegerTerm::IntegerVariable("A".into())),
             ])
             .should_reject(["00", "-0", "#", "#infi", "#supa", "_", "1_", "A"]);
+    }
+
+    #[test]
+    fn parse_unary_operator() {
+        UnaryOperatorParser.should_parse_into([("-", UnaryOperator::Negative)]);
+    }
+
+    #[test]
+    fn parse_binary_operator() {
+        BinaryOperatorParser.should_parse_into([
+            ("+", BinaryOperator::Add),
+            ("-", BinaryOperator::Subtract),
+            ("*", BinaryOperator::Multiply),
+        ]);
     }
 
     #[test]
@@ -225,7 +225,9 @@ mod tests {
                     IntegerTerm::UnaryOperation {
                         op: UnaryOperator::Negative,
                         arg: IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::IntegerVariable(
-                            "X".into())).into(),
+                            "X".into(),
+                        ))
+                        .into(),
                     },
                 ),
                 (
