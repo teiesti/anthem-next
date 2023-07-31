@@ -1,5 +1,15 @@
 use super::Node;
 
+impl Node for BinaryOperator {}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum BasicIntegerTerm {
+    Infimum,
+    Supremum,
+    Numeral(isize),
+    IntegerVariable(String),
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum UnaryOperator {
     Negative,
@@ -12,16 +22,6 @@ pub enum BinaryOperator {
     Add,
     Subtract,
     Multiply,
-}
-
-impl Node for BinaryOperator {}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum BasicIntegerTerm {
-    Infimum,
-    Supremum,
-    Numeral(isize),
-    IntegerVariable(String),
 }
 
 impl Node for BasicIntegerTerm {}
