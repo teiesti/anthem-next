@@ -49,9 +49,70 @@ impl Display for Format<'_, BinaryOperator> {
     }
 }
 
+impl Format<'_, Term> {
+    fn precedence(&self) -> usize {
+        match self.0 {
+            Term::Constant(Constant::Integer(1..)) => 1,
+            Term::UnaryOperation {
+                op: UnaryOperator::Negative,
+                ..
+            }
+            | Term::Constant(_)
+            | Term::Variable(_) => 0,
+            Term::BinaryOperation {
+                op: BinaryOperator::Multiply | BinaryOperator::Divide | BinaryOperator::Modulo,
+                ..
+            } => 2,
+            Term::BinaryOperation {
+                op: BinaryOperator::Add | BinaryOperator::Subtract,
+                ..
+            } => 3,
+            Term::BinaryOperation {
+                op: BinaryOperator::Interval,
+                ..
+            } => 4,
+        }
+    }
+}
+
 impl Display for Format<'_, Term> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        todo!()
+        match self.0 {
+            Term::Constant(c) => Format(c).fmt(f),
+            Term::Variable(v) => Format(v).fmt(f),
+            Term::UnaryOperation { op, arg } => {
+                let op = Format(op);
+                let arg = Format(&**arg);
+
+                op.fmt(f)?;
+                if self.precedence() < arg.precedence() {
+                    write!(f, "(arg)")
+                } else {
+                    arg.fmt(f)
+                }
+            }
+            Term::BinaryOperation { op, lhs, rhs } => {
+                let op = Format(op);
+                let lhs = Format(&**lhs);
+                let rhs = Format(&**rhs);
+
+                if self.precedence() < lhs.precedence() {
+                    write!(f, "({lhs})")
+                } else {
+                    lhs.fmt(f)
+                }?;
+                if *op.0 == BinaryOperator::Interval {
+                    op.fmt(f)
+                } else {
+                    write!(f, " {op} ")
+                }?;
+                if self.precedence() <= rhs.precedence() {
+                    write!(f, "({rhs})")
+                } else {
+                    rhs.fmt(f)
+                }
+            }
+        }
     }
 }
 
@@ -61,7 +122,7 @@ impl Display for Format<'_, Term> {
 mod tests {
     use crate::{
         formatting::asp::default::Format,
-        syntax_tree::asp::{BinaryOperator, Constant, UnaryOperator, Variable},
+        syntax_tree::asp::{BinaryOperator, Constant, Term, UnaryOperator, Variable},
     };
 
     #[test]
@@ -93,5 +154,78 @@ mod tests {
         assert_eq!(Format(&BinaryOperator::Divide).to_string(), "/");
         assert_eq!(Format(&BinaryOperator::Modulo).to_string(), "\\");
         assert_eq!(Format(&BinaryOperator::Interval).to_string(), "..");
+    }
+
+    #[test]
+    fn format_term() {
+        assert_eq!(
+            Format(&Term::Constant(Constant::Integer(42))).to_string(),
+            "42"
+        );
+
+        assert_eq!(
+            Format(&Term::Variable(Variable::Named("A".into()))).to_string(),
+            "A"
+        );
+
+        assert_eq!(
+            Format(&Term::BinaryOperation {
+                op: BinaryOperator::Add,
+                lhs: Term::Constant(Constant::Integer(1)).into(),
+                rhs: Term::BinaryOperation {
+                    op: BinaryOperator::Multiply,
+                    lhs: Term::Constant(Constant::Integer(2)).into(),
+                    rhs: Term::Constant(Constant::Integer(3)).into(),
+                }
+                .into(),
+            })
+            .to_string(),
+            "1 + 2 * 3"
+        );
+
+        assert_eq!(
+            Format(&Term::BinaryOperation {
+                op: BinaryOperator::Multiply,
+                lhs: Term::Constant(Constant::Integer(1)).into(),
+                rhs: Term::BinaryOperation {
+                    op: BinaryOperator::Add,
+                    lhs: Term::Constant(Constant::Integer(2)).into(),
+                    rhs: Term::Constant(Constant::Integer(3)).into(),
+                }
+                .into(),
+            })
+            .to_string(),
+            "1 * (2 + 3)"
+        );
+
+        assert_eq!(
+            Format(&Term::BinaryOperation {
+                op: BinaryOperator::Add,
+                lhs: Term::Constant(Constant::Integer(1)).into(),
+                rhs: Term::BinaryOperation {
+                    op: BinaryOperator::Add,
+                    lhs: Term::Constant(Constant::Integer(2)).into(),
+                    rhs: Term::Constant(Constant::Integer(3)).into(),
+                }
+                .into(),
+            })
+            .to_string(),
+            "1 + (2 + 3)"
+        );
+
+        assert_eq!(
+            Format(&Term::BinaryOperation {
+                op: BinaryOperator::Add,
+                lhs: Term::BinaryOperation {
+                    op: BinaryOperator::Add,
+                    lhs: Term::Constant(Constant::Integer(1)).into(),
+                    rhs: Term::Constant(Constant::Integer(2)).into(),
+                }
+                .into(),
+                rhs: Term::Constant(Constant::Integer(3)).into(),
+            })
+            .to_string(),
+            "1 + 2 + 3"
+        );
     }
 }
