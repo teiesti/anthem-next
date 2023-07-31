@@ -86,9 +86,9 @@ impl Display for Format<'_, Term> {
 
                 op.fmt(f)?;
                 if self.precedence() < arg.precedence() {
-                    write!(f, "(arg)")
+                    write!(f, "({arg})")
                 } else {
-                    arg.fmt(f)
+                    write!(f, "{arg}")
                 }
             }
             Term::BinaryOperation { op, lhs, rhs } => {
@@ -99,17 +99,17 @@ impl Display for Format<'_, Term> {
                 if self.precedence() < lhs.precedence() {
                     write!(f, "({lhs})")
                 } else {
-                    lhs.fmt(f)
+                    write!(f, "{lhs}")
                 }?;
                 if *op.0 == BinaryOperator::Interval {
-                    op.fmt(f)
+                    write!(f, "{op}")
                 } else {
                     write!(f, " {op} ")
                 }?;
                 if self.precedence() <= rhs.precedence() {
                     write!(f, "({rhs})")
                 } else {
-                    rhs.fmt(f)
+                    write!(f, "{rhs}")
                 }
             }
         }
