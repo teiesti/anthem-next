@@ -221,6 +221,14 @@ mod tests {
                     IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(-48)),
                 ),
                 (
+                    "-X$i",
+                    IntegerTerm::UnaryOperation {
+                        op: UnaryOperator::Negative,
+                        arg: IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::IntegerVariable(
+                            "X".into())).into(),
+                    },
+                ),
+                (
                     "(301)",
                     IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(301)),
                 ),
@@ -238,7 +246,7 @@ mod tests {
                     },
                 ),
             ])
-            .should_reject(["00", "#", "#infi", "#supa", "_", "1_", "(1"]);
+            .should_reject(["00", "#", "#infi", "#supa", "_", "1_", "(1", "X$", "X"]);
     }
 
     #[test]
