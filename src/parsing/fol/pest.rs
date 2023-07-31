@@ -30,15 +30,15 @@ impl PestParser for BasicIntegerTermParser {
 
     type InternalParser = internal::Parser;
     type Rule = internal::Rule;
-    const RULE: internal::Rule = internal::Rule::n_basic_term;
+    const RULE: internal::Rule = internal::Rule::basic_integer_term;
 
     fn translate_pair(pair: pest::iterators::Pair<'_, Self::Rule>) -> Self::Node {
         match pair.as_rule() {
-            internal::Rule::n_basic_term => Self::translate_pairs(pair.into_inner()),
+            internal::Rule::basic_integer_term => Self::translate_pairs(pair.into_inner()),
             internal::Rule::infimum => BasicIntegerTerm::Infimum,
             internal::Rule::supremum => BasicIntegerTerm::Supremum,
             internal::Rule::numeral => BasicIntegerTerm::Numeral(pair.as_str().parse().unwrap()),
-            internal::Rule::n_variable => match pair.into_inner().next() {
+            internal::Rule::integer_variable => match pair.into_inner().next() {
                 Some(pair) if pair.as_rule() == internal::Rule::unsorted_variable => {
                     BasicIntegerTerm::IntegerVariable(pair.as_str().into())
                 }
@@ -93,13 +93,13 @@ impl PestParser for IntegerTermParser {
 
     type InternalParser = internal::Parser;
     type Rule = internal::Rule;
-    const RULE: internal::Rule = internal::Rule::n_term;
+    const RULE: internal::Rule = internal::Rule::integer_term;
 
     fn translate_pair(pair: pest::iterators::Pair<'_, Self::Rule>) -> Self::Node {
         internal::PRATT_PARSER
             .map_primary(|primary| match primary.as_rule() {
-                internal::Rule::n_term => IntegerTermParser::translate_pair(primary),
-                internal::Rule::n_basic_term => {
+                internal::Rule::integer_term => IntegerTermParser::translate_pair(primary),
+                internal::Rule::basic_integer_term => {
                     IntegerTerm::BasicIntegerTerm(BasicIntegerTermParser::translate_pair(primary))
                 }
                 _ => Self::report_unexpected_pair(primary),
@@ -124,16 +124,16 @@ impl PestParser for GeneralTermParser {
 
     type InternalParser = internal::Parser;
     type Rule = internal::Rule;
-    const RULE: internal::Rule = internal::Rule::g_term;
+    const RULE: internal::Rule = internal::Rule::general_term;
 
     fn translate_pair(pair: pest::iterators::Pair<'_, Self::Rule>) -> Self::Node {
         match pair.as_rule() {
-            internal::Rule::g_term => Self::translate_pairs(pair.into_inner()),
+            internal::Rule::general_term => Self::translate_pairs(pair.into_inner()),
             internal::Rule::symbolic_constant => GeneralTerm::Symbol(pair.as_str().into()),
-            internal::Rule::n_term => {
+            internal::Rule::integer_term => {
                 GeneralTerm::IntegerTerm(IntegerTermParser::translate_pair(pair))
             }
-            internal::Rule::g_variable => match pair.into_inner().next() {
+            internal::Rule::general_variable => match pair.into_inner().next() {
                 Some(pair) if pair.as_rule() == internal::Rule::unsorted_variable => {
                     GeneralTerm::GeneralVariable(pair.as_str().into())
                 }
@@ -151,11 +151,14 @@ impl PestParser for GeneralTermParser {
 mod tests {
     use {
         super::{
-            BasicIntegerTermParser, BinaryOperatorParser, IntegerTermParser, UnaryOperatorParser,
+            BasicIntegerTermParser, BinaryOperatorParser, GeneralTermParser, IntegerTermParser,
+            UnaryOperatorParser,
         },
         crate::{
             parsing::TestedParser,
-            syntax_tree::fol::{BasicIntegerTerm, BinaryOperator, IntegerTerm, UnaryOperator},
+            syntax_tree::fol::{
+                BasicIntegerTerm, BinaryOperator, GeneralTerm, IntegerTerm, UnaryOperator,
+            },
         },
     };
 
@@ -236,5 +239,169 @@ mod tests {
                 ),
             ])
             .should_reject(["00", "#", "#infi", "#supa", "_", "1_", "(1"]);
+    }
+
+    #[test]
+    fn parse_general_term() {
+        GeneralTermParser
+            .should_parse_into([
+                (
+                    "#inf",
+                    GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(
+                        BasicIntegerTerm::Infimum,
+                    )),
+                ),
+                (
+                    "#sup",
+                    GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(
+                        BasicIntegerTerm::Supremum,
+                    )),
+                ),
+                (
+                    "1",
+                    GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(
+                        BasicIntegerTerm::Numeral(1),
+                    )),
+                ),
+                (
+                    "(1)",
+                    GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(
+                        BasicIntegerTerm::Numeral(1),
+                    )),
+                ),
+                (
+                    "-1",
+                    GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(
+                        BasicIntegerTerm::Numeral(-1),
+                    )),
+                ),
+                (
+                    "-(1)",
+                    GeneralTerm::IntegerTerm(IntegerTerm::UnaryOperation {
+                        op: UnaryOperator::Negative,
+                        arg: IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(1)).into(),
+                    }),
+                ),
+                (
+                    "--1",
+                    GeneralTerm::IntegerTerm(IntegerTerm::UnaryOperation {
+                        op: UnaryOperator::Negative,
+                        arg: IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(-1)).into(),
+                    }),
+                ),
+                (
+                    "1 + 2",
+                    GeneralTerm::IntegerTerm(IntegerTerm::BinaryOperation {
+                        op: BinaryOperator::Add,
+                        lhs: IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(1)).into(),
+                        rhs: IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(2)).into(),
+                    }),
+                ),
+                ("a", GeneralTerm::Symbol("a".into())),
+                ("ca_12", GeneralTerm::Symbol("ca_12".into())),
+                ("_b12A", GeneralTerm::Symbol("_b12A".into())),
+                ("A", GeneralTerm::GeneralVariable("A".into())),
+                (
+                    "1 + A$i",
+                    GeneralTerm::IntegerTerm(IntegerTerm::BinaryOperation {
+                        op: BinaryOperator::Add,
+                        lhs: IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(1)).into(),
+                        rhs: IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::IntegerVariable(
+                            "A".into(),
+                        ))
+                        .into(),
+                    }),
+                ),
+                (
+                    "(1 + Nx$i) * (Y$i - B1$i)",
+                    GeneralTerm::IntegerTerm(IntegerTerm::BinaryOperation {
+                        op: BinaryOperator::Multiply,
+                        lhs: IntegerTerm::BinaryOperation {
+                            op: BinaryOperator::Add,
+                            lhs: IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(1)).into(),
+                            rhs: IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::IntegerVariable(
+                                "Nx".into(),
+                            ))
+                            .into(),
+                        }
+                        .into(),
+                        rhs: IntegerTerm::BinaryOperation {
+                            op: BinaryOperator::Subtract,
+                            lhs: IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::IntegerVariable(
+                                "Y".into(),
+                            ))
+                            .into(),
+                            rhs: IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::IntegerVariable(
+                                "B1".into(),
+                            ))
+                            .into(),
+                        }
+                        .into(),
+                    }),
+                ),
+                (
+                    "((1 + 2) - -3) * 4",
+                    GeneralTerm::IntegerTerm(IntegerTerm::BinaryOperation {
+                        op: BinaryOperator::Multiply,
+                        lhs: IntegerTerm::BinaryOperation {
+                            op: BinaryOperator::Subtract,
+                            lhs: IntegerTerm::BinaryOperation {
+                                op: BinaryOperator::Add,
+                                lhs: IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(1))
+                                    .into(),
+                                rhs: IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(2))
+                                    .into(),
+                            }
+                            .into(),
+                            rhs: IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(-3))
+                                .into(),
+                        }
+                        .into(),
+                        rhs: IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(4)).into(),
+                    }),
+                ),
+                (
+                    "1 + 2 * 3",
+                    GeneralTerm::IntegerTerm(IntegerTerm::BinaryOperation {
+                        op: BinaryOperator::Add,
+                        lhs: IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(1)).into(),
+                        rhs: IntegerTerm::BinaryOperation {
+                            op: BinaryOperator::Multiply,
+                            lhs: IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(2)).into(),
+                            rhs: IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(3)).into(),
+                        }
+                        .into(),
+                    }),
+                ),
+                (
+                    "1 * 2 + 3",
+                    GeneralTerm::IntegerTerm(IntegerTerm::BinaryOperation {
+                        op: BinaryOperator::Add,
+                        lhs: IntegerTerm::BinaryOperation {
+                            op: BinaryOperator::Multiply,
+                            lhs: IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(1)).into(),
+                            rhs: IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(2)).into(),
+                        }
+                        .into(),
+                        rhs: IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(3)).into(),
+                    }),
+                ),
+            ])
+            .should_reject([
+                "(a)",
+                "-a",
+                "(A)",
+                "1 + A",
+                "1 + a",
+                "1-",
+                "1 +",
+                "+1",
+                "+ 1",
+                "1..",
+                "..1",
+                "(1 + a",
+                "1 + a)",
+                "(1 (+ a +) 1)",
+            ]);
     }
 }
