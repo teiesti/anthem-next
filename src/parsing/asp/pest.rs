@@ -392,6 +392,32 @@ mod tests {
                         rhs: Term::Constant(Constant::Integer(2)).into(),
                     },
                 ),
+                (
+                    "1 + 2 * 3",
+                    Term::BinaryOperation {
+                        op: BinaryOperator::Add,
+                        lhs: Term::Constant(Constant::Integer(1)).into(),
+                        rhs: Term::BinaryOperation {
+                            op: BinaryOperator::Multiply,
+                            lhs: Term::Constant(Constant::Integer(2)).into(),
+                            rhs: Term::Constant(Constant::Integer(3)).into(),
+                        }
+                        .into(),
+                    },
+                ),
+                (
+                    "1 * 2 + 3",
+                    Term::BinaryOperation {
+                        op: BinaryOperator::Add,
+                        lhs: Term::BinaryOperation {
+                            op: BinaryOperator::Multiply,
+                            lhs: Term::Constant(Constant::Integer(1)).into(),
+                            rhs: Term::Constant(Constant::Integer(2)).into(),
+                        }
+                        .into(),
+                        rhs: Term::Constant(Constant::Integer(3)).into(),
+                    },
+                ),
             ])
             .should_reject([
                 "1-",
