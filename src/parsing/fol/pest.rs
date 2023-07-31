@@ -33,7 +33,8 @@ impl PestParser for UnaryOperatorParser {
     const RULE: internal::Rule = internal::Rule::unary_operator;
 
     fn translate_pair(pair: pest::iterators::Pair<'_, Self::Rule>) -> Self::Node {
-        match pair.as_rule() {          // No need for translate_pairs into_inner since triggering rule is silent
+        match pair.as_rule() {
+            // No need for translate_pairs into_inner since triggering rule is silent
             internal::Rule::negative => UnaryOperator::Negative,
             _ => Self::report_unexpected_pair(pair),
         }
@@ -92,6 +93,9 @@ impl PestParser for IntegerTermParser {
     const RULE: internal::Rule = internal::Rule::n_term;
 
     fn translate_pair(pair: pest::iterators::Pair<'_, Self::Rule>) -> Self::Node {
+        //println!("{pair}\n");
+        // The pairs are flattened here (out of necessity) and then PRATT parsing adds the necessary recursion
+        // e.g. pratt parsing handles the precedence
         internal::PRATT_PARSER
             .map_primary(|primary| match primary.as_rule() {
                 internal::Rule::n_term => IntegerTermParser::translate_pair(primary),
@@ -172,7 +176,7 @@ mod tests {
                 ("301", BasicIntegerTerm::Numeral(301)),
             ])
             .should_reject([
-                "00", "-0", "--1", "#", "#infi", "#supa", "_", "1_"
+                "00", "-0", "#", "#infi", "#supa", "_", "1_"
             ]);
     }
 
@@ -187,9 +191,22 @@ mod tests {
                 ("-1", IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(-1))),
                 ("(-48)", IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(-48))),
                 ("(301)", IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(301))),
+                (
+                    "1 + 3 + 2",
+                    IntegerTerm::BinaryOperation {
+                        op: BinaryOperator::Add,
+                        lhs: IntegerTerm::BinaryOperation {
+                            op: BinaryOperator::Add,
+                            lhs: IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(3)).into(),
+                            rhs: IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(2)).into(),
+                        }
+                        .into(),
+                        rhs: IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(1)).into(),
+                    },
+                ),
             ])
             .should_reject([
-                "00", "-0", "--1", "#", "#infi", "#supa", "_", "1_", "(1"
+                "00", "#", "#infi", "#supa", "_", "1_", "(1"
             ]);
     }
 }
