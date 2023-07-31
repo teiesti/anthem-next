@@ -37,7 +37,7 @@ keyword = _{ primitive | nonassociative_binary_connective | associative_binary_c
 n_basic_term = { numeral | n_variable | infimum | supremum }
     numeral           = @{ ("0") | ("-"? ~ ASCII_NONZERO_DIGIT ~ ASCII_DIGIT*) }
     unsorted_variable = @{ "_"? ~ ASCII_ALPHA_UPPER ~ (ASCII_ALPHANUMERIC | "_" | "'")* }
-    n_variable        = @{ unsorted_variable ~ "$" ~ integer_sort }
+    n_variable        = ${ unsorted_variable ~ "$" ~ integer_sort }
 
 unary_operator = _{ negative }
     negative = { !numeral ~ "-" }
@@ -52,4 +52,4 @@ n_term = { unary_operator* ~ n_primary ~ (binary_operator ~ unary_operator* ~ n_
 
 g_term = { n_term | symbolic_constant | g_variable }
     symbolic_constant = @{ !(keyword) ~ "_"? ~ ASCII_ALPHA_LOWER ~ (ASCII_ALPHANUMERIC | "_" | "'")* }
-    g_variable        = @{ unsorted_variable ~ "$" ~ general_sort | unsorted_variable }
+    g_variable        = ${ unsorted_variable ~ ("$" ~ general_sort)?}

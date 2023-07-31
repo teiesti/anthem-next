@@ -1,6 +1,8 @@
 use {
-    crate::syntax_tree::Node,
-    crate::syntax_tree::fol::{UnaryOperator, BinaryOperator, BasicIntegerTerm, IntegerTerm, GeneralTerm},
+    crate::syntax_tree::{
+        fol::{BasicIntegerTerm, GeneralTerm, IntegerTerm, UnaryOperator},
+        Node,
+    },
     std::fmt::{self, Display, Formatter},
 };
 
@@ -27,10 +29,7 @@ impl Display for Format<'_, BasicIntegerTerm> {
 
 impl Display for Format<'_, IntegerTerm> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self.0 {
-            IntegerTerm::BasicIntegerTerm(t) => write!(f,"temp"),
-            _ => write!(f, "temp2"),
-        }
+        todo!();
     }
 }
 
@@ -39,6 +38,5 @@ impl Display for Format<'_, GeneralTerm> {
         todo!();
     }
 }
-
 
 // TODO Zach: Implement the default formatting for first-order logic here
