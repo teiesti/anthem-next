@@ -186,7 +186,7 @@ mod tests {
                 ("301", BasicIntegerTerm::Numeral(301)),
                 ("A$i", BasicIntegerTerm::IntegerVariable("A".into())),
             ])
-            .should_reject(["00", "-0", "#", "#infi", "#supa", "_", "1_"]);
+            .should_reject(["00", "-0", "#", "#infi", "#supa", "_", "1_", "A"]);
     }
 
     #[test]
