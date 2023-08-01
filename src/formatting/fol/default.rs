@@ -108,10 +108,7 @@ impl Display for Format<'_, GeneralTerm> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        formatting::fol::default::Format,
-        syntax_tree::fol::BasicIntegerTerm,
-    };
+    use crate::{formatting::fol::default::Format, syntax_tree::fol::BasicIntegerTerm};
 
     #[test]
     fn format_basic_integer_term() {
@@ -119,7 +116,10 @@ mod tests {
         assert_eq!(Format(&BasicIntegerTerm::Numeral(-1)).to_string(), "-1");
         assert_eq!(Format(&BasicIntegerTerm::Numeral(0)).to_string(), "0");
         assert_eq!(Format(&BasicIntegerTerm::Numeral(42)).to_string(), "42");
-        assert_eq!(Format(&BasicIntegerTerm::IntegerVariable("A".into())).to_string(), "A$i");
+        assert_eq!(
+            Format(&BasicIntegerTerm::IntegerVariable("A".into())).to_string(),
+            "A$i"
+        );
         assert_eq!(Format(&BasicIntegerTerm::Supremum).to_string(), "#sup");
     }
 
