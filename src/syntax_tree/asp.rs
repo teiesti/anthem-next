@@ -54,4 +54,87 @@ pub enum Term {
 
 impl Node for Term {}
 
-// TODO Tobias: Continue implementing the abstract syntax tree for ASP here
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Atom {
+    pub predicate: String,
+    pub terms: Vec<Term>,
+}
+
+impl Node for Atom {}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum Sign {
+    NoSign,
+    Negation,
+    DoubleNegation,
+}
+
+impl Node for Sign {}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Literal {
+    pub sign: Sign,
+    pub atom: Atom,
+}
+
+impl Node for Literal {}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum Relation {
+    Equal,
+    NotEqual,
+    Less,
+    LessEqual,
+    Greater,
+    GreaterEqual,
+}
+
+impl Node for Relation {}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Comparison {
+    relation: Relation,
+    lhs: Term,
+    rhs: Term,
+}
+
+impl Node for Comparison {}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AtomicFormula {
+    Literal(Literal),
+    Comparison(Comparison)
+}
+
+impl Node for AtomicFormula {}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum Head {
+    Basic(Atom),
+    Choice(Atom),
+    Constrait,
+}
+
+impl Node for Head {}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Body {
+    pub formulas: Vec<AtomicFormula>,
+}
+
+impl Node for Body {}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Rule {
+    pub head: Head,
+    pub body: Body,
+}
+
+impl Node for Rule {}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Program {
+    pub rules: Vec<Rule>,
+}
+
+impl Node for Program {}
