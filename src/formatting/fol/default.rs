@@ -104,7 +104,7 @@ impl Display for Format<'_, GeneralTerm> {
     }
 }
 
-// TODO Zach: Implement the default formatting for first-order logic here
+// TODO Zach: Continue implementing the default formatting for first-order logic here
 
 #[cfg(test)]
 mod tests {
