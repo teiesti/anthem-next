@@ -1,1 +1,1 @@
-// TODO Zach: Implement the default formatting for first-order logic here
+// TODO Zach: Implement the TPTP formatting for first-order logic here
