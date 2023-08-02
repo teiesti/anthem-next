@@ -4,7 +4,7 @@ constant = { infimum | integer | symbol | supremum }
     infimum = @{ "#infimum" | "#inf" }
     integer = @{ "0" | "-"? ~ ASCII_NONZERO_DIGIT ~ ASCII_DIGIT* }
     symbol = @{
-        (!"not" | &("not" ~ ANY))
+        !negation
         ~ ("_" | "'")*
         ~ ASCII_ALPHA_LOWER
         ~ (ASCII_ALPHANUMERIC | "_" | "'")*
@@ -32,5 +32,13 @@ binary_operator = _{ add | subtract | multiply | divide | modulo | interval }
 
 term = { unary_operator* ~ primary_term ~ (binary_operator ~ unary_operator* ~ primary_term)* }
     primary_term = _{ constant | variable | "(" ~ term ~ ")"}
+
+atom = { symbol ~ tuple? }
+    tuple = _{ "(" ~ (term ~ ("," ~ term)*)? ~ ")" }
+
+sign = { negation{0, 2} }
+    negation = @{ "not" ~ &(WHITESPACE | EOI)}
+
+literal = { sign ~ atom }
 
 // TODO Tobias: Add rules for remaining syntax of ASP
