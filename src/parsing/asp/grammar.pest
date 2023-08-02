@@ -63,5 +63,3 @@ body = { (atomic_formula ~ (("," | ";") ~ atomic_formula)*)? }
 rule = { (!"." ~ head ~ (":-" ~ body)?) ~ "." }
 
 program = { rule* }
-
-// TODO Tobias: Add rules for remaining syntax of ASP
