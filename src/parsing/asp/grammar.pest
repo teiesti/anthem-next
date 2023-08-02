@@ -53,10 +53,10 @@ comparison = { term ~ relation ~ term }
 
 atomic_formula = { literal | comparison }
 
-head = { basic_head | choice_head | constraint }
+head = { basic_head | choice_head | falsity }
     basic_head = { atom }
     choice_head = { "{" ~ atom ~ "}" }
-    constraint = { "#false"? }
+    falsity = { "#false"? }
 
 body = { (atomic_formula ~ (("," | ";") ~ atomic_formula)*)? }
 

@@ -112,7 +112,7 @@ impl Node for AtomicFormula {}
 pub enum Head {
     Basic(Atom),
     Choice(Atom),
-    Constrait,
+    Falsity,
 }
 
 impl Node for Head {}
