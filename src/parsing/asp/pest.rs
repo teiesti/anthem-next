@@ -1,6 +1,8 @@
 use crate::{
     parsing::PestParser,
-    syntax_tree::asp::{BinaryOperator, Constant, Term, UnaryOperator, Variable},
+    syntax_tree::asp::{
+        Atom, BinaryOperator, Constant, Literal, Sign, Term, UnaryOperator, Variable,
+    },
 };
 
 mod internal {
@@ -133,17 +135,118 @@ impl PestParser for TermParser {
     }
 }
 
+pub struct AtomParser;
+
+impl PestParser for AtomParser {
+    type Node = Atom;
+
+    type InternalParser = internal::Parser;
+    type Rule = internal::Rule;
+    const RULE: Self::Rule = internal::Rule::atom;
+
+    fn translate_pair(pair: pest::iterators::Pair<'_, Self::Rule>) -> Self::Node {
+        if pair.as_rule() != internal::Rule::atom {
+            Self::report_unexpected_pair(pair)
+        }
+
+        let mut pairs = pair.into_inner();
+
+        let predicate = pairs
+            .next()
+            .unwrap_or_else(|| Self::report_missing_pair())
+            .as_str()
+            .into();
+        let terms: Vec<_> = pairs.map(TermParser::translate_pair).collect();
+
+        Atom { predicate, terms }
+    }
+}
+
+pub struct SignParser;
+
+impl PestParser for SignParser {
+    type Node = Sign;
+
+    type InternalParser = internal::Parser;
+    type Rule = internal::Rule;
+    const RULE: Self::Rule = internal::Rule::sign;
+
+    fn translate_pair(pair: pest::iterators::Pair<'_, Self::Rule>) -> Self::Node {
+        if pair.as_rule() != internal::Rule::sign {
+            Self::report_unexpected_pair(pair)
+        }
+
+        println!("{pair}");
+
+        let mut pairs = pair.into_inner();
+        let mut result = Sign::NoSign;
+
+        match pairs.next() {
+            None => return result,
+            Some(pair) if pair.as_rule() == internal::Rule::negation => {
+                result = Sign::Negation;
+            }
+            Some(pair) => Self::report_unexpected_pair(pair),
+        }
+
+        match pairs.next() {
+            None => return result,
+            Some(pair) if pair.as_rule() == internal::Rule::negation => {
+                result = Sign::DoubleNegation;
+            }
+            Some(pair) => Self::report_unexpected_pair(pair),
+        }
+
+        match pairs.next() {
+            None => return result,
+            Some(pair) => Self::report_unexpected_pair(pair),
+        }
+    }
+}
+
+struct LiteralParser;
+
+impl PestParser for LiteralParser {
+    type Node = Literal;
+
+    type InternalParser = internal::Parser;
+    type Rule = internal::Rule;
+    const RULE: Self::Rule = internal::Rule::literal;
+
+    fn translate_pair(pair: pest::iterators::Pair<'_, Self::Rule>) -> Self::Node {
+        if pair.as_rule() != internal::Rule::literal {
+            Self::report_unexpected_pair(pair)
+        }
+
+        let mut pairs = pair.into_inner();
+
+        let sign =
+            SignParser::translate_pair(pairs.next().unwrap_or_else(|| Self::report_missing_pair()));
+        let atom =
+            AtomParser::translate_pair(pairs.next().unwrap_or_else(|| Self::report_missing_pair()));
+
+        if let Some(pair) = pairs.next() {
+            Self::report_unexpected_pair(pair)
+        }
+
+        Literal { sign, atom }
+    }
+}
+
 // TODO Tobias: Continue implementing pest parsing for ASP here
 
 #[cfg(test)]
 mod tests {
     use {
         super::{
-            BinaryOperatorParser, ConstantParser, TermParser, UnaryOperatorParser, VariableParser,
+            AtomParser, BinaryOperatorParser, ConstantParser, LiteralParser, SignParser,
+            TermParser, UnaryOperatorParser, VariableParser,
         },
         crate::{
             parsing::TestedParser,
-            syntax_tree::asp::{BinaryOperator, Constant, Term, UnaryOperator, Variable},
+            syntax_tree::asp::{
+                Atom, BinaryOperator, Constant, Literal, Sign, Term, UnaryOperator, Variable,
+            },
         },
     };
 
@@ -429,6 +532,102 @@ mod tests {
                 "1 + a)",
                 "(1 (+ a +) 1)",
             ]);
+    }
+
+    #[test]
+    fn parse_atom() {
+        AtomParser
+            .should_parse_into([
+                (
+                    "p",
+                    Atom {
+                        predicate: "p".into(),
+                        terms: vec![],
+                    },
+                ),
+                (
+                    "p()",
+                    Atom {
+                        predicate: "p".into(),
+                        terms: vec![],
+                    },
+                ),
+                (
+                    "p(1)",
+                    Atom {
+                        predicate: "p".into(),
+                        terms: vec![Term::Constant(Constant::Integer(1))],
+                    },
+                ),
+                (
+                    "p(1, 2)",
+                    Atom {
+                        predicate: "p".into(),
+                        terms: vec![
+                            Term::Constant(Constant::Integer(1)),
+                            Term::Constant(Constant::Integer(2)),
+                        ],
+                    },
+                ),
+            ])
+            .should_reject(["p(1,)", "1", "P", "p("]);
+    }
+
+    #[test]
+    fn parse_sign() {
+        SignParser
+            .should_parse_into([
+                ("", Sign::NoSign),
+                ("not", Sign::Negation),
+                ("not  not", Sign::DoubleNegation),
+            ])
+            .should_reject(["notnot", "noto"]);
+    }
+
+    #[test]
+    fn parse_literal() {
+        LiteralParser.should_parse_into([
+            (
+                "p",
+                Literal {
+                    sign: Sign::NoSign,
+                    atom: Atom {
+                        predicate: "p".into(),
+                        terms: vec![],
+                    },
+                },
+            ),
+            (
+                "not p",
+                Literal {
+                    sign: Sign::Negation,
+                    atom: Atom {
+                        predicate: "p".into(),
+                        terms: vec![],
+                    },
+                },
+            ),
+            (
+                "not not p",
+                Literal {
+                    sign: Sign::DoubleNegation,
+                    atom: Atom {
+                        predicate: "p".into(),
+                        terms: vec![],
+                    },
+                },
+            ),
+            (
+                "notp",
+                Literal {
+                    sign: Sign::NoSign,
+                    atom: Atom {
+                        predicate: "notp".into(),
+                        terms: vec![],
+                    },
+                },
+            ),
+        ]);
     }
 
     // TODO Tobias: Add tests for the remaining parsers

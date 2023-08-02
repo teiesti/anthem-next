@@ -103,7 +103,7 @@ impl Node for Comparison {}
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum AtomicFormula {
     Literal(Literal),
-    Comparison(Comparison)
+    Comparison(Comparison),
 }
 
 impl Node for AtomicFormula {}
