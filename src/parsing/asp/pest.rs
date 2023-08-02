@@ -327,7 +327,7 @@ impl PestParser for HeadParser {
             internal::Rule::choice_head => {
                 Head::Choice(AtomParser::translate_pairs(pair.into_inner()))
             }
-            internal::Rule::constraint => Head::Constrait,
+            internal::Rule::falsity => Head::Falsity,
             _ => Self::report_unexpected_pair(pair),
         }
     }
@@ -872,7 +872,7 @@ mod tests {
                     terms: vec![],
                 }),
             ),
-            ("", Head::Constrait),
+            ("", Head::Falsity),
         ]);
     }
 
@@ -921,7 +921,7 @@ mod tests {
                 (
                     ":-.",
                     Rule {
-                        head: Head::Constrait,
+                        head: Head::Falsity,
                         body: Body { formulas: vec![] },
                     },
                 ),
