@@ -1,7 +1,8 @@
 use crate::{
     parsing::PestParser,
     syntax_tree::asp::{
-        Atom, BinaryOperator, Constant, Literal, Sign, Term, UnaryOperator, Variable,
+        Atom, AtomicFormula, BinaryOperator, Body, Comparison, Constant, Head, Literal, Program,
+        Relation, Rule, Sign, Term, UnaryOperator, Variable,
     },
 };
 
@@ -204,7 +205,7 @@ impl PestParser for SignParser {
     }
 }
 
-struct LiteralParser;
+pub struct LiteralParser;
 
 impl PestParser for LiteralParser {
     type Node = Literal;
@@ -233,19 +234,195 @@ impl PestParser for LiteralParser {
     }
 }
 
-// TODO Tobias: Continue implementing pest parsing for ASP here
+pub struct RelationParser;
 
+impl PestParser for RelationParser {
+    type Node = Relation;
+
+    type InternalParser = internal::Parser;
+    type Rule = internal::Rule;
+    const RULE: internal::Rule = internal::Rule::relation;
+
+    fn translate_pair(pair: pest::iterators::Pair<'_, Self::Rule>) -> Self::Node {
+        match pair.as_rule() {
+            internal::Rule::equal => Relation::Equal,
+            internal::Rule::not_equal => Relation::NotEqual,
+            internal::Rule::less => Relation::Less,
+            internal::Rule::less_equal => Relation::LessEqual,
+            internal::Rule::greater => Relation::Greater,
+            internal::Rule::greater_equal => Relation::GreaterEqual,
+            _ => Self::report_unexpected_pair(pair),
+        }
+    }
+}
+
+pub struct ComparisonParser;
+
+impl PestParser for ComparisonParser {
+    type Node = Comparison;
+
+    type InternalParser = internal::Parser;
+    type Rule = internal::Rule;
+    const RULE: Self::Rule = internal::Rule::comparison;
+
+    fn translate_pair(pair: pest::iterators::Pair<'_, Self::Rule>) -> Self::Node {
+        if pair.as_rule() != internal::Rule::comparison {
+            Self::report_unexpected_pair(pair)
+        }
+
+        let mut pairs = pair.into_inner();
+
+        let lhs =
+            TermParser::translate_pair(pairs.next().unwrap_or_else(|| Self::report_missing_pair()));
+        let relation = RelationParser::translate_pair(
+            pairs.next().unwrap_or_else(|| Self::report_missing_pair()),
+        );
+        let rhs =
+            TermParser::translate_pair(pairs.next().unwrap_or_else(|| Self::report_missing_pair()));
+
+        if let Some(pair) = pairs.next() {
+            Self::report_unexpected_pair(pair)
+        }
+
+        Comparison { relation, lhs, rhs }
+    }
+}
+
+pub struct AtomicFormulaParser;
+
+impl PestParser for AtomicFormulaParser {
+    type Node = AtomicFormula;
+
+    type InternalParser = internal::Parser;
+    type Rule = internal::Rule;
+    const RULE: internal::Rule = internal::Rule::atomic_formula;
+
+    fn translate_pair(pair: pest::iterators::Pair<'_, Self::Rule>) -> Self::Node {
+        match pair.as_rule() {
+            internal::Rule::atomic_formula => {
+                AtomicFormulaParser::translate_pairs(pair.into_inner())
+            }
+            internal::Rule::literal => AtomicFormula::Literal(LiteralParser::translate_pair(pair)),
+            internal::Rule::comparison => {
+                AtomicFormula::Comparison(ComparisonParser::translate_pair(pair))
+            }
+            _ => Self::report_unexpected_pair(pair),
+        }
+    }
+}
+
+pub struct HeadParser;
+
+impl PestParser for HeadParser {
+    type Node = Head;
+
+    type InternalParser = internal::Parser;
+    type Rule = internal::Rule;
+    const RULE: internal::Rule = internal::Rule::head;
+
+    fn translate_pair(pair: pest::iterators::Pair<'_, Self::Rule>) -> Self::Node {
+        match pair.as_rule() {
+            internal::Rule::head => HeadParser::translate_pairs(pair.into_inner()),
+            internal::Rule::basic_head => {
+                Head::Basic(AtomParser::translate_pairs(pair.into_inner()))
+            }
+            internal::Rule::choice_head => {
+                Head::Choice(AtomParser::translate_pairs(pair.into_inner()))
+            }
+            internal::Rule::constraint => Head::Constrait,
+            _ => Self::report_unexpected_pair(pair),
+        }
+    }
+}
+
+pub struct BodyParser;
+
+impl PestParser for BodyParser {
+    type Node = Body;
+
+    type InternalParser = internal::Parser;
+    type Rule = internal::Rule;
+    const RULE: Self::Rule = internal::Rule::body;
+
+    fn translate_pair(pair: pest::iterators::Pair<'_, Self::Rule>) -> Self::Node {
+        if pair.as_rule() != internal::Rule::body {
+            Self::report_unexpected_pair(pair)
+        }
+
+        Body {
+            formulas: pair
+                .into_inner()
+                .map(AtomicFormulaParser::translate_pair)
+                .collect(),
+        }
+    }
+}
+
+pub struct RuleParser;
+
+impl PestParser for RuleParser {
+    type Node = Rule;
+
+    type InternalParser = internal::Parser;
+    type Rule = internal::Rule;
+    const RULE: Self::Rule = internal::Rule::rule;
+
+    fn translate_pair(pair: pest::iterators::Pair<'_, Self::Rule>) -> Self::Node {
+        if pair.as_rule() != internal::Rule::rule {
+            Self::report_unexpected_pair(pair)
+        }
+
+        let mut pairs = pair.into_inner();
+
+        let head = pairs
+            .next()
+            .map(HeadParser::translate_pair)
+            .unwrap_or_else(|| Self::report_missing_pair());
+        let body = pairs
+            .next()
+            .map(BodyParser::translate_pair)
+            .unwrap_or_else(|| Body { formulas: vec![] });
+
+        if let Some(pair) = pairs.next() {
+            Self::report_unexpected_pair(pair)
+        }
+
+        Rule { head, body }
+    }
+}
+
+pub struct ProgramParser;
+
+impl PestParser for ProgramParser {
+    type Node = Program;
+
+    type InternalParser = internal::Parser;
+    type Rule = internal::Rule;
+    const RULE: Self::Rule = internal::Rule::program;
+
+    fn translate_pair(pair: pest::iterators::Pair<'_, Self::Rule>) -> Self::Node {
+        if pair.as_rule() != internal::Rule::program {
+            Self::report_unexpected_pair(pair)
+        }
+
+        Program {
+            rules: pair.into_inner().map(RuleParser::translate_pair).collect(),
+        }
+    }
+}
 #[cfg(test)]
 mod tests {
     use {
         super::{
-            AtomParser, BinaryOperatorParser, ConstantParser, LiteralParser, SignParser,
-            TermParser, UnaryOperatorParser, VariableParser,
+            AtomParser, AtomicFormulaParser, BinaryOperatorParser, BodyParser, ComparisonParser,
+            ConstantParser, HeadParser, LiteralParser, ProgramParser, RelationParser, RuleParser,
+            SignParser, TermParser, UnaryOperatorParser, VariableParser,
         },
         crate::{
             parsing::TestedParser,
             syntax_tree::asp::{
-                Atom, BinaryOperator, Constant, Literal, Sign, Term, UnaryOperator, Variable,
+                Atom, AtomicFormula, BinaryOperator, Body, Comparison, Constant, Head, Literal,
+                Program, Relation, Rule, Sign, Term, UnaryOperator, Variable,
             },
         },
     };
@@ -630,5 +807,201 @@ mod tests {
         ]);
     }
 
-    // TODO Tobias: Add tests for the remaining parsers
+    #[test]
+    fn parse_relation() {
+        RelationParser
+            .should_parse_into([
+                ("=", Relation::Equal),
+                ("!=", Relation::NotEqual),
+                ("<", Relation::Less),
+                ("<=", Relation::LessEqual),
+                (">", Relation::Greater),
+                (">=", Relation::GreaterEqual),
+            ])
+            .should_reject(["! =", "< =", "> ="]);
+    }
+
+    #[test]
+    fn parse_comparison() {
+        ComparisonParser.should_parse_into([(
+            "1 < N",
+            Comparison {
+                relation: Relation::Less,
+                lhs: Term::Constant(Constant::Integer(1)),
+                rhs: Term::Variable(Variable::Named("N".into())),
+            },
+        )]);
+    }
+
+    #[test]
+    fn parse_atomic_formula() {
+        AtomicFormulaParser.should_parse_into([
+            (
+                "1 < N",
+                AtomicFormula::Comparison(Comparison {
+                    relation: Relation::Less,
+                    lhs: Term::Constant(Constant::Integer(1)),
+                    rhs: Term::Variable(Variable::Named("N".into())),
+                }),
+            ),
+            (
+                "not p",
+                AtomicFormula::Literal(Literal {
+                    sign: Sign::Negation,
+                    atom: Atom {
+                        predicate: "p".into(),
+                        terms: vec![],
+                    },
+                }),
+            ),
+        ]);
+    }
+
+    #[test]
+    fn parse_head() {
+        HeadParser.should_parse_into([
+            (
+                "p",
+                Head::Basic(Atom {
+                    predicate: "p".into(),
+                    terms: vec![],
+                }),
+            ),
+            (
+                "{p}",
+                Head::Choice(Atom {
+                    predicate: "p".into(),
+                    terms: vec![],
+                }),
+            ),
+            ("", Head::Constrait),
+        ]);
+    }
+
+    #[test]
+    fn parse_body() {
+        BodyParser.should_parse_into([
+            ("", Body { formulas: vec![] }),
+            (
+                "p",
+                Body {
+                    formulas: vec![AtomicFormula::Literal(Literal {
+                        sign: Sign::NoSign,
+                        atom: Atom {
+                            predicate: "p".into(),
+                            terms: vec![],
+                        },
+                    })],
+                },
+            ),
+            (
+                "p, N < 1",
+                Body {
+                    formulas: vec![
+                        AtomicFormula::Literal(Literal {
+                            sign: Sign::NoSign,
+                            atom: Atom {
+                                predicate: "p".into(),
+                                terms: vec![],
+                            },
+                        }),
+                        AtomicFormula::Comparison(Comparison {
+                            relation: Relation::Less,
+                            lhs: Term::Variable(Variable::Named("N".into())),
+                            rhs: Term::Constant(Constant::Integer(1)),
+                        }),
+                    ],
+                },
+            ),
+        ]);
+    }
+
+    #[test]
+    fn parse_rule() {
+        RuleParser
+            .should_parse_into([
+                (
+                    ":-.",
+                    Rule {
+                        head: Head::Constrait,
+                        body: Body { formulas: vec![] },
+                    },
+                ),
+                (
+                    "a :- b.",
+                    Rule {
+                        head: Head::Basic(Atom {
+                            predicate: "a".into(),
+                            terms: vec![],
+                        }),
+                        body: Body {
+                            formulas: vec![AtomicFormula::Literal(Literal {
+                                sign: Sign::NoSign,
+                                atom: Atom {
+                                    predicate: "b".into(),
+                                    terms: vec![],
+                                },
+                            })],
+                        },
+                    },
+                ),
+                (
+                    "a :-.",
+                    Rule {
+                        head: Head::Basic(Atom {
+                            predicate: "a".into(),
+                            terms: vec![],
+                        }),
+                        body: Body { formulas: vec![] },
+                    },
+                ),
+                (
+                    "a.",
+                    Rule {
+                        head: Head::Basic(Atom {
+                            predicate: "a".into(),
+                            terms: vec![],
+                        }),
+                        body: Body { formulas: vec![] },
+                    },
+                ),
+            ])
+            .should_reject(["", "."]);
+    }
+
+    #[test]
+    fn parse_program() {
+        ProgramParser.should_parse_into([
+            ("", Program { rules: vec![] }),
+            (
+                "a. b :- a.",
+                Program {
+                    rules: vec![
+                        Rule {
+                            head: Head::Basic(Atom {
+                                predicate: "a".into(),
+                                terms: vec![],
+                            }),
+                            body: Body { formulas: vec![] },
+                        },
+                        Rule {
+                            head: Head::Basic(Atom {
+                                predicate: "b".into(),
+                                terms: vec![],
+                            }),
+                            body: Body {
+                                formulas: vec![AtomicFormula::Literal(Literal {
+                                    sign: Sign::NoSign,
+                                    atom: Atom {
+                                        predicate: "a".into(),
+                                        terms: vec![],
+                                    },
+                                })],
+                            },
+                        },
+                    ],
+                },
+            ),
+        ]);
+    }
 }

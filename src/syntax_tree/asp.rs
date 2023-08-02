@@ -93,9 +93,9 @@ impl Node for Relation {}
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Comparison {
-    relation: Relation,
-    lhs: Term,
-    rhs: Term,
+    pub relation: Relation,
+    pub lhs: Term,
+    pub rhs: Term,
 }
 
 impl Node for Comparison {}
