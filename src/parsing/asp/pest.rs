@@ -177,8 +177,6 @@ impl PestParser for SignParser {
             Self::report_unexpected_pair(pair)
         }
 
-        println!("{pair}");
-
         let mut pairs = pair.into_inner();
         let mut result = Sign::NoSign;
 
