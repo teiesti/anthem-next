@@ -2,7 +2,7 @@ use crate::{
     parsing::PestParser,
     syntax_tree::fol::{
         Atom, AtomicFormula, BasicIntegerTerm, BinaryConnective, BinaryOperator, Comparison,
-        GeneralTerm, Guard, IntegerTerm, Quantification, Quantifier, Relation, Sort,
+        Formula, GeneralTerm, Guard, IntegerTerm, Quantification, Quantifier, Relation, Sort,
         UnaryConnective, UnaryOperator, Variable,
     },
 };
@@ -15,7 +15,7 @@ mod internal {
     pub struct Parser;
 
     lazy_static::lazy_static! {
-        pub static ref PRATT_PARSER: PrattParser<Rule> = {
+        pub static ref TERM_PRATT_PARSER: PrattParser<Rule> = {
             use pest::pratt_parser::{Assoc::*, Op};
             use Rule::*;
 
@@ -23,6 +23,17 @@ mod internal {
                 .op(Op::infix(add, Left) | Op::infix(subtract, Left))
                 .op(Op::infix(multiply, Left))
                 .op(Op::prefix(negative))
+        };
+
+        pub static ref FORMULA_PRATT_PARSER: PrattParser<Rule> = {
+            use pest::pratt_parser::{Assoc::*, Op};
+            use Rule::*;
+
+            PrattParser::new()
+                .op(Op::infix(equivalence, Right) | Op::infix(implication, Right) | Op::infix(reverse_implication, Left))
+                .op(Op::infix(disjunction, Left))
+                .op(Op::infix(conjunction, Left))
+                .op(Op::prefix(negation) | Op::prefix(quantification))
         };
     }
 }
@@ -100,7 +111,7 @@ impl PestParser for IntegerTermParser {
     const RULE: internal::Rule = internal::Rule::integer_term;
 
     fn translate_pair(pair: pest::iterators::Pair<'_, Self::Rule>) -> Self::Node {
-        internal::PRATT_PARSER
+        internal::TERM_PRATT_PARSER
             .map_primary(|primary| match primary.as_rule() {
                 internal::Rule::integer_term => IntegerTermParser::translate_pair(primary),
                 internal::Rule::basic_integer_term => {
@@ -400,6 +411,44 @@ impl PestParser for BinaryConnectiveParser {
     }
 }
 
+pub struct FormulaParser;
+
+impl PestParser for FormulaParser {
+    type Node = Formula;
+
+    type InternalParser = internal::Parser;
+    type Rule = internal::Rule;
+    const RULE: Self::Rule = internal::Rule::formula;
+
+    fn translate_pair(pair: pest::iterators::Pair<'_, Self::Rule>) -> Self::Node {
+        internal::FORMULA_PRATT_PARSER
+            .map_primary(|primary| match primary.as_rule() {
+                internal::Rule::formula => FormulaParser::translate_pair(primary),
+                internal::Rule::atomic_formula => {
+                    Formula::AtomicFormula(AtomicFormulaParser::translate_pair(primary))
+                }
+                _ => Self::report_unexpected_pair(primary),
+            })
+            .map_prefix(|op, arg| match op.as_rule() {
+                internal::Rule::quantification => Formula::QuantifiedFormula {
+                    quantification: QuantificationParser::translate_pair(op),
+                    formula: Box::new(arg),
+                },
+                internal::Rule::unary_connective => Formula::UnaryFormula {
+                    connective: UnaryConnectiveParser::translate_pair(op),
+                    formula: Box::new(arg),
+                },
+                _ => Self::report_unexpected_pair(op),
+            })
+            .map_infix(|lhs, op, rhs| Formula::BinaryFormula {
+                connective: BinaryConnectiveParser::translate_pair(op),
+                lhs: Box::new(lhs),
+                rhs: Box::new(rhs),
+            })
+            .parse(pair.into_inner())
+    }
+}
+
 // TODO Zach: Continue implementing pest parsing for first-order logic here
 
 #[cfg(test)]
@@ -407,7 +456,7 @@ mod tests {
     use {
         super::{
             AtomParser, AtomicFormulaParser, BasicIntegerTermParser, BinaryConnectiveParser,
-            BinaryOperatorParser, ComparisonParser, GeneralTermParser, GuardParser,
+            BinaryOperatorParser, ComparisonParser, FormulaParser, GeneralTermParser, GuardParser,
             IntegerTermParser, QuantificationParser, QuantifierParser, RelationParser,
             UnaryConnectiveParser, UnaryOperatorParser, VariableParser,
         },
@@ -415,8 +464,8 @@ mod tests {
             parsing::TestedParser,
             syntax_tree::fol::{
                 Atom, AtomicFormula, BasicIntegerTerm, BinaryConnective, BinaryOperator,
-                Comparison, GeneralTerm, Guard, IntegerTerm, Quantification, Quantifier, Relation,
-                Sort, UnaryConnective, UnaryOperator, Variable,
+                Comparison, Formula, GeneralTerm, Guard, IntegerTerm, Quantification, Quantifier,
+                Relation, Sort, UnaryConnective, UnaryOperator, Variable,
             },
         },
     };
@@ -936,5 +985,37 @@ mod tests {
                 "forall X$k",
                 "exists X$i$g",
             ]);
+    }
+
+    #[test]
+    fn parse_formula() {
+        FormulaParser.should_parse_into([(
+            "forall A p(A) => q",
+            Formula::BinaryFormula {
+                connective: BinaryConnective::Implication,
+                lhs: Formula::QuantifiedFormula {
+                    quantification: Quantification {
+                        quantifier: Quantifier::Forall,
+                        variables: vec![Variable {
+                            name: "A".into(),
+                            sort: Sort::General,
+                        }],
+                    },
+                    formula: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                        predicate: "p".into(),
+                        terms: vec![GeneralTerm::GeneralVariable("A".into())],
+                    }))
+                    .into(),
+                }
+                .into(),
+                rhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                    predicate: "q".into(),
+                    terms: vec![],
+                }))
+                .into(),
+            },
+        )]);
+
+        // TODO Add more tests
     }
 }
