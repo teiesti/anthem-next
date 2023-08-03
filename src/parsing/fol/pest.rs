@@ -764,18 +764,64 @@ mod tests {
     #[test]
     fn parse_atomic_formula() {
         AtomicFormulaParser
-            .should_parse_into([(
-                "1 = N$g",
-                AtomicFormula::Comparison(Comparison {
-                    term: GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(
-                        BasicIntegerTerm::Numeral(1),
-                    )),
-                    guards: vec![Guard {
-                        relation: Relation::Equal,
-                        term: GeneralTerm::GeneralVariable("N".into()),
-                    }],
-                }),
-            )])
+            .should_parse_into([
+                (
+                    "1 = N$g",
+                    AtomicFormula::Comparison(Comparison {
+                        term: GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(
+                            BasicIntegerTerm::Numeral(1),
+                        )),
+                        guards: vec![Guard {
+                            relation: Relation::Equal,
+                            term: GeneralTerm::GeneralVariable("N".into()),
+                        }],
+                    }),
+                ),
+                (
+                    "1 <= N$g > 3 < X$i",
+                    AtomicFormula::Comparison(Comparison {
+                        term: GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(
+                            BasicIntegerTerm::Numeral(1),
+                        )),
+                        guards: vec![
+                            Guard {
+                                relation: Relation::LessEqual,
+                                term: GeneralTerm::GeneralVariable("N".into()),
+                            },
+                            Guard {
+                                relation: Relation::Greater,
+                                term: GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(
+                                    BasicIntegerTerm::Numeral(3),
+                                )),
+                            },
+                            Guard {
+                                relation: Relation::Less,
+                                term: GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(
+                                    BasicIntegerTerm::IntegerVariable("X".into()),
+                                )),
+                            },
+                        ],
+                    }),
+                ),
+                (
+                    "p(N$i, 3*2)",
+                    AtomicFormula::Atom(Atom {
+                        predicate: "p".into(),
+                        terms: vec![
+                            GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(
+                                BasicIntegerTerm::IntegerVariable("N".into()),
+                            )),
+                            GeneralTerm::IntegerTerm(IntegerTerm::BinaryOperation {
+                                op: BinaryOperator::Multiply,
+                                lhs: IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(3))
+                                    .into(),
+                                rhs: IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(2))
+                                    .into(),
+                            }),
+                        ],
+                    }),
+                ),
+            ])
             .should_reject(["p and b"]);
     }
 
