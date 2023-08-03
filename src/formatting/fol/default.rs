@@ -1,6 +1,10 @@
 use {
     crate::syntax_tree::{
-        fol::{BasicIntegerTerm, BinaryOperator, GeneralTerm, IntegerTerm, UnaryOperator},
+        fol::{
+            Atom, AtomicFormula, BasicIntegerTerm, BinaryConnective, BinaryOperator, Comparison,
+            GeneralTerm, Guard, IntegerTerm, Quantification, Quantifier, Relation, Sort,
+            UnaryConnective, UnaryOperator, Variable,
+        },
         Node,
     },
     std::fmt::{self, Display, Formatter},
@@ -100,6 +104,104 @@ impl Display for Format<'_, GeneralTerm> {
             GeneralTerm::Symbol(s) => write!(f, "{s}"),
             GeneralTerm::GeneralVariable(v) => write!(f, "{v}$g"),
             GeneralTerm::IntegerTerm(t) => Format(t).fmt(f),
+        }
+    }
+}
+
+impl Display for Format<'_, Atom> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let predicate = &self.0.predicate;
+        let terms = &self.0.terms;
+
+        write!(f, "{predicate}")?;
+
+        if !terms.is_empty() {
+            let mut iter = terms.iter().map(|t| Format(t));
+            write!(f, "({}", iter.next().unwrap())?;
+            for term in iter {
+                write!(f, ", {term}")?;
+            }
+            write!(f, ")")?;
+        }
+
+        Ok(())
+    }
+}
+
+impl Display for Format<'_, Relation> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self.0 {
+            Relation::Equal => write!(f, "="),
+            Relation::NotEqual => write!(f, "!="),
+            Relation::GreaterEqual => write!(f, ">="),
+            Relation::LessEqual => write!(f, "<="),
+            Relation::Greater => write!(f, ">"),
+            Relation::Less => write!(f, "<"),
+        }
+    }
+}
+
+impl Display for Format<'_, Guard> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        todo!();
+    }
+}
+
+impl Display for Format<'_, Comparison> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        todo!();
+    }
+}
+
+impl Display for Format<'_, AtomicFormula> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        todo!();
+    }
+}
+
+impl Display for Format<'_, Quantifier> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self.0 {
+            Quantifier::Forall => write!(f, "forall"),
+            Quantifier::Exists => write!(f, "exists"),
+        }
+    }
+}
+
+impl Display for Format<'_, Variable> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let name = &self.0.name;
+        let sort = &self.0.sort;
+
+        match sort {
+            Sort::General => write!(f, "{name}$g"),
+            Sort::Integer => write!(f, "{name}$i"),
+        }
+    }
+}
+
+impl Display for Format<'_, Quantification> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        todo!();
+    }
+}
+
+impl Display for Format<'_, UnaryConnective> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self.0 {
+            UnaryConnective::Negation => write!(f, "not"),
+        }
+    }
+}
+
+impl Display for Format<'_, BinaryConnective> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self.0 {
+            BinaryConnective::Equivalence => write!(f, "<=>"),
+            BinaryConnective::Implication => write!(f, "=>"),
+            BinaryConnective::ReverseImplication => write!(f, "<="),
+            BinaryConnective::Conjunction => write!(f, "and"),
+            BinaryConnective::Disjunction => write!(f, "or"),
         }
     }
 }
