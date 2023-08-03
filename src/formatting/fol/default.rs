@@ -2,7 +2,7 @@ use {
     crate::syntax_tree::{
         fol::{
             Atom, AtomicFormula, BasicIntegerTerm, BinaryConnective, BinaryOperator, Comparison,
-            GeneralTerm, Guard, IntegerTerm, Quantification, Quantifier, Relation, Sort,
+            Formula, GeneralTerm, Guard, IntegerTerm, Quantification, Quantifier, Relation, Sort,
             UnaryConnective, UnaryOperator, Variable,
         },
         Node,
@@ -143,31 +143,19 @@ impl Display for Format<'_, Relation> {
 
 impl Display for Format<'_, Guard> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let relation = &self.0.relation;
-        let term = &self.0.term;
-
-        let formatted_relation = Format(relation);
-        let formatted_term = Format(term);
-
-        write!(f, "{formatted_relation} {formatted_term}");
-
-        Ok(())
+        write!(f, "{} {}", Format(&self.0.relation), Format(&self.0.term))
     }
 }
 
 impl Display for Format<'_, Comparison> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let term = &self.0.term;
         let guards = &self.0.guards;
 
-        Format(term).fmt(f);
+        write!(f, "{}", Format(&self.0.term))?;
 
-        if !guards.is_empty() {
-            let mut iter = guards.iter().map(|t| Format(t));
-            write!(f, " {}", iter.next().unwrap())?;
-            for guard in iter {
-                write!(f, ", {guard}")?;
-            }
+        let iter = guards.iter().map(|t| Format(t));
+        for guard in iter {
+            write!(f, " {guard}")?;
         }
 
         Ok(())
@@ -176,7 +164,11 @@ impl Display for Format<'_, Comparison> {
 
 impl Display for Format<'_, AtomicFormula> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        todo!();
+        match self.0 {
+            AtomicFormula::Falsity => write!(f, "#false"),
+            AtomicFormula::Atom(a) => Format(a).fmt(f),
+            AtomicFormula::Comparison(c) => Format(c).fmt(f),
+        }
     }
 }
 
@@ -203,7 +195,20 @@ impl Display for Format<'_, Variable> {
 
 impl Display for Format<'_, Quantification> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        todo!();
+        let quantifier = &self.0.quantifier;
+        let variables = &self.0.variables;
+
+        match quantifier {
+            Quantifier::Forall => write!(f, "forall"),
+            Quantifier::Exists => write!(f, "exists"),
+        }?;
+
+        let iter = variables.iter().map(|t| Format(t));
+        for var in iter {
+            write!(f, " {var}")?;
+        }
+
+        Ok(())
     }
 }
 
@@ -227,12 +232,22 @@ impl Display for Format<'_, BinaryConnective> {
     }
 }
 
+impl Display for Format<'_, Formula> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        todo!();
+    }
+}
+
 // TODO Zach: Continue implementing the default formatting for first-order logic here
 
 #[cfg(test)]
 mod tests {
-    use crate::{formatting::fol::default::Format,
-        syntax_tree::fol::{BasicIntegerTerm, GeneralTerm, IntegerTerm, BinaryOperator,}
+    use crate::{
+        formatting::fol::default::Format,
+        syntax_tree::fol::{
+            Atom, AtomicFormula, BasicIntegerTerm, BinaryOperator, Comparison, GeneralTerm, Guard,
+            IntegerTerm, Quantification, Quantifier, Relation, Sort, Variable,
+        },
     };
 
     #[test]
@@ -250,21 +265,133 @@ mod tests {
 
     #[test]
     fn format_general_term() {
-        assert_eq!(Format(&GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::IntegerVariable("N".into())).into())).to_string(), "N$i");
-        assert_eq!(Format(&GeneralTerm::Symbol("abc".into())).to_string(), "abc");
-        assert_eq!(Format(&GeneralTerm::IntegerTerm(
-            IntegerTerm::BinaryOperation {
+        assert_eq!(
+            Format(&GeneralTerm::IntegerTerm(
+                IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::IntegerVariable("N".into())).into()
+            ))
+            .to_string(),
+            "N$i"
+        );
+        assert_eq!(
+            Format(&GeneralTerm::Symbol("abc".into())).to_string(),
+            "abc"
+        );
+        assert_eq!(
+            Format(&GeneralTerm::IntegerTerm(IntegerTerm::BinaryOperation {
                 op: BinaryOperator::Multiply,
                 lhs: IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(1)).into(),
                 rhs: IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(5)).into(),
-            })
-        ).to_string(), "1 * 5");
+            }))
+            .to_string(),
+            "1 * 5"
+        );
     }
 
-    //#[test]
-    //fn format_comparison() {
-    //    assert_eq!(Format(&Ge));
-    //}
+    #[test]
+    fn format_comparison() {
+        assert_eq!(
+            Format(&Comparison {
+                term: GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(
+                    BasicIntegerTerm::Numeral(1)
+                )),
+                guards: vec![Guard {
+                    relation: Relation::Less,
+                    term: GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(
+                        BasicIntegerTerm::Numeral(5)
+                    )),
+                }]
+            })
+            .to_string(),
+            "1 < 5"
+        );
+        assert_eq!(
+            Format(&Comparison {
+                term: GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(
+                    BasicIntegerTerm::IntegerVariable("N".into())
+                )),
+                guards: vec![
+                    Guard {
+                        relation: Relation::Less,
+                        term: GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(
+                            BasicIntegerTerm::Numeral(5)
+                        )),
+                    },
+                    Guard {
+                        relation: Relation::NotEqual,
+                        term: GeneralTerm::IntegerTerm(IntegerTerm::BinaryOperation {
+                            op: BinaryOperator::Multiply,
+                            lhs: IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(7)).into(),
+                            rhs: IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(2)).into(),
+                        }),
+                    },
+                    Guard {
+                        relation: Relation::GreaterEqual,
+                        term: GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(
+                            BasicIntegerTerm::IntegerVariable("Xa".into())
+                        )),
+                    },
+                ]
+            })
+            .to_string(),
+            "N$i < 5 != 7 * 2 >= Xa$i"
+        );
+    }
+
+    #[test]
+    fn format_quantification() {
+        assert_eq!(
+            Format(&Quantification {
+                quantifier: Quantifier::Forall,
+                variables: vec![
+                    Variable {
+                        name: "X".into(),
+                        sort: Sort::General,
+                    },
+                    Variable {
+                        name: "Y".into(),
+                        sort: Sort::Integer,
+                    },
+                    Variable {
+                        name: "N".into(),
+                        sort: Sort::General,
+                    },
+                ]
+            })
+            .to_string(),
+            "forall X$g Y$i N$g"
+        );
+    }
+
+    #[test]
+    fn format_atomic_formula() {
+        assert_eq!(
+            Format(&AtomicFormula::Atom(Atom {
+                predicate: "p".into(),
+                terms: vec![
+                    GeneralTerm::Symbol("a".into()),
+                    GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(
+                        BasicIntegerTerm::IntegerVariable("X".into())
+                    )),
+                ]
+            }))
+            .to_string(),
+            "p(a, X$i)"
+        );
+        assert_eq!(
+            Format(&AtomicFormula::Comparison(Comparison {
+                term: GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(
+                    BasicIntegerTerm::Numeral(5)
+                )),
+                guards: vec![Guard {
+                    relation: Relation::Less,
+                    term: GeneralTerm::GeneralVariable("I".into()),
+                }]
+            }))
+            .to_string(),
+            "5 < I$g"
+        );
+        assert_eq!(Format(&AtomicFormula::Falsity).to_string(), "#false");
+    }
 
     // TODO Zach: Add tests for the remaining formatters
 }
