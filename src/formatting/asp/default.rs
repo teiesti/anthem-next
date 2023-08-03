@@ -1,6 +1,6 @@
 use {
     crate::syntax_tree::{
-        asp::{BinaryOperator, Constant, Term, UnaryOperator, Variable},
+        asp::{Atom, BinaryOperator, Constant, Term, UnaryOperator, Variable},
         Node,
     },
     std::fmt::{self, Display, Formatter},
@@ -116,13 +116,33 @@ impl Display for Format<'_, Term> {
     }
 }
 
+impl Display for Format<'_, Atom> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let predicate = &self.0.predicate;
+        let terms = &self.0.terms;
+
+        write!(f, "{predicate}")?;
+
+        if !terms.is_empty() {
+            let mut iter = terms.iter().map(|t| Format(t));
+            write!(f, "({}", iter.next().unwrap())?;
+            for term in iter {
+                write!(f, ", {term}")?;
+            }
+            write!(f, ")")?;
+        }
+
+        Ok(())
+    }
+}
+
 // TODO Tobias: Continue implementing the default formatting for ASP here
 
 #[cfg(test)]
 mod tests {
     use crate::{
         formatting::asp::default::Format,
-        syntax_tree::asp::{BinaryOperator, Constant, Term, UnaryOperator, Variable},
+        syntax_tree::asp::{Atom, BinaryOperator, Constant, Term, UnaryOperator, Variable},
     };
 
     #[test]
@@ -226,6 +246,39 @@ mod tests {
             })
             .to_string(),
             "1 + 2 + 3"
+        );
+    }
+
+    #[test]
+    fn format_atom() {
+        assert_eq!(
+            Format(&Atom {
+                predicate: "p".into(),
+                terms: vec![],
+            })
+            .to_string(),
+            "p"
+        );
+
+        assert_eq!(
+            Format(&Atom {
+                predicate: "p".into(),
+                terms: vec![Term::Constant(Constant::Integer(1))],
+            })
+            .to_string(),
+            "p(1)"
+        );
+
+        assert_eq!(
+            Format(&Atom {
+                predicate: "p".into(),
+                terms: vec![
+                    Term::Constant(Constant::Integer(1)),
+                    Term::Constant(Constant::Integer(2))
+                ],
+            })
+            .to_string(),
+            "p(1, 2)"
         );
     }
 }
