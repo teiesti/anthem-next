@@ -1,6 +1,10 @@
 use crate::{
     parsing::PestParser,
-    syntax_tree::fol::{BasicIntegerTerm, BinaryOperator, GeneralTerm, IntegerTerm, UnaryOperator},
+    syntax_tree::fol::{
+        Atom, AtomicFormula, BasicIntegerTerm, BinaryConnective, BinaryOperator, Comparison,
+        GeneralTerm, Guard, IntegerTerm, Quantification, Quantifier, Relation, Sort,
+        UnaryConnective, UnaryOperator, Variable,
+    },
 };
 
 mod internal {
@@ -145,19 +149,274 @@ impl PestParser for GeneralTermParser {
     }
 }
 
+pub struct AtomParser;
+
+impl PestParser for AtomParser {
+    type Node = Atom;
+
+    type InternalParser = internal::Parser;
+    type Rule = internal::Rule;
+    const RULE: Self::Rule = internal::Rule::atom;
+
+    fn translate_pair(pair: pest::iterators::Pair<'_, Self::Rule>) -> Self::Node {
+        if pair.as_rule() != internal::Rule::atom {
+            Self::report_unexpected_pair(pair)
+        }
+
+        let mut pairs = pair.into_inner();
+
+        let predicate = pairs
+            .next()
+            .unwrap_or_else(|| Self::report_missing_pair())
+            .as_str()
+            .into();
+        let terms: Vec<_> = pairs.map(GeneralTermParser::translate_pair).collect();
+
+        Atom { predicate, terms }
+    }
+}
+
+pub struct RelationParser;
+
+impl PestParser for RelationParser {
+    type Node = Relation;
+
+    type InternalParser = internal::Parser;
+    type Rule = internal::Rule;
+    const RULE: internal::Rule = internal::Rule::relation;
+
+    fn translate_pair(pair: pest::iterators::Pair<'_, Self::Rule>) -> Self::Node {
+        match pair.as_rule() {
+            internal::Rule::relation => Self::translate_pairs(pair.into_inner()),
+            internal::Rule::greater_equal => Relation::GreaterEqual,
+            internal::Rule::less_equal => Relation::LessEqual,
+            internal::Rule::greater => Relation::Greater,
+            internal::Rule::less => Relation::Less,
+            internal::Rule::equal => Relation::Equal,
+            internal::Rule::not_equal => Relation::NotEqual,
+            _ => Self::report_unexpected_pair(pair),
+        }
+    }
+}
+
+pub struct GuardParser;
+
+impl PestParser for GuardParser {
+    type Node = Guard;
+
+    type InternalParser = internal::Parser;
+    type Rule = internal::Rule;
+    const RULE: Self::Rule = internal::Rule::guard;
+
+    fn translate_pair(pair: pest::iterators::Pair<'_, Self::Rule>) -> Self::Node {
+        if pair.as_rule() != internal::Rule::guard {
+            Self::report_unexpected_pair(pair)
+        }
+
+        let mut pairs = pair.into_inner();
+
+        let relation = RelationParser::translate_pair(
+            pairs.next().unwrap_or_else(|| Self::report_missing_pair()),
+        );
+        let term = GeneralTermParser::translate_pair(
+            pairs.next().unwrap_or_else(|| Self::report_missing_pair()),
+        );
+
+        if let Some(pair) = pairs.next() {
+            Self::report_unexpected_pair(pair)
+        }
+
+        Guard { relation, term }
+    }
+}
+
+pub struct ComparisonParser;
+
+impl PestParser for ComparisonParser {
+    type Node = Comparison;
+
+    type InternalParser = internal::Parser;
+    type Rule = internal::Rule;
+    const RULE: Self::Rule = internal::Rule::comparison;
+
+    fn translate_pair(pair: pest::iterators::Pair<'_, Self::Rule>) -> Self::Node {
+        if pair.as_rule() != internal::Rule::comparison {
+            Self::report_unexpected_pair(pair)
+        }
+
+        let mut pairs = pair.into_inner();
+
+        let term = GeneralTermParser::translate_pair(
+            pairs.next().unwrap_or_else(|| Self::report_missing_pair()),
+        );
+
+        let guards: Vec<_> = pairs.map(GuardParser::translate_pair).collect();
+
+        Comparison { term, guards }
+    }
+}
+
+pub struct AtomicFormulaParser;
+
+impl PestParser for AtomicFormulaParser {
+    type Node = AtomicFormula;
+
+    type InternalParser = internal::Parser;
+    type Rule = internal::Rule;
+    const RULE: internal::Rule = internal::Rule::atomic_formula;
+
+    fn translate_pair(pair: pest::iterators::Pair<'_, Self::Rule>) -> Self::Node {
+        match pair.as_rule() {
+            internal::Rule::atomic_formula => {
+                AtomicFormulaParser::translate_pairs(pair.into_inner())
+            }
+            internal::Rule::falsity => AtomicFormula::Falsity,
+            internal::Rule::atom => AtomicFormula::Atom(AtomParser::translate_pair(pair)),
+            internal::Rule::comparison => {
+                AtomicFormula::Comparison(ComparisonParser::translate_pair(pair))
+            }
+            _ => Self::report_unexpected_pair(pair),
+        }
+    }
+}
+
+pub struct QuantifierParser;
+
+impl PestParser for QuantifierParser {
+    type Node = Quantifier;
+
+    type InternalParser = internal::Parser;
+    type Rule = internal::Rule;
+    const RULE: internal::Rule = internal::Rule::quantifier;
+
+    fn translate_pair(pair: pest::iterators::Pair<'_, Self::Rule>) -> Self::Node {
+        match pair.as_rule() {
+            internal::Rule::quantifier => QuantifierParser::translate_pairs(pair.into_inner()),
+            internal::Rule::forall => Quantifier::Forall,
+            internal::Rule::exists => Quantifier::Exists,
+            _ => Self::report_unexpected_pair(pair),
+        }
+    }
+}
+
+pub struct VariableParser;
+
+impl PestParser for VariableParser {
+    type Node = Variable;
+
+    type InternalParser = internal::Parser;
+    type Rule = internal::Rule;
+    const RULE: internal::Rule = internal::Rule::variable;
+
+    fn translate_pair(pair: pest::iterators::Pair<'_, Self::Rule>) -> Self::Node {
+        match pair.as_rule() {
+            internal::Rule::variable => VariableParser::translate_pairs(pair.into_inner()),
+            internal::Rule::integer_variable => match pair.into_inner().next() {
+                Some(pair) if pair.as_rule() == internal::Rule::unsorted_variable => Variable {
+                    name: pair.as_str().into(),
+                    sort: Sort::Integer,
+                },
+                Some(pair) => Self::report_unexpected_pair(pair),
+                None => Self::report_missing_pair(),
+            },
+            internal::Rule::general_variable => match pair.into_inner().next() {
+                Some(pair) if pair.as_rule() == internal::Rule::unsorted_variable => Variable {
+                    name: pair.as_str().into(),
+                    sort: Sort::General,
+                },
+                Some(pair) => Self::report_unexpected_pair(pair),
+                None => Self::report_missing_pair(),
+            },
+            _ => Self::report_unexpected_pair(pair),
+        }
+    }
+}
+
+pub struct QuantificationParser;
+
+impl PestParser for QuantificationParser {
+    type Node = Quantification;
+
+    type InternalParser = internal::Parser;
+    type Rule = internal::Rule;
+    const RULE: internal::Rule = internal::Rule::quantification;
+
+    fn translate_pair(pair: pest::iterators::Pair<'_, Self::Rule>) -> Self::Node {
+        if pair.as_rule() != internal::Rule::quantification {
+            Self::report_unexpected_pair(pair)
+        }
+
+        let mut pairs = pair.into_inner();
+
+        let quantifier = QuantifierParser::translate_pair(
+            pairs.next().unwrap_or_else(|| Self::report_missing_pair()),
+        );
+
+        let variables: Vec<_> = pairs.map(VariableParser::translate_pair).collect();
+
+        Quantification {
+            quantifier,
+            variables,
+        }
+    }
+}
+
+pub struct UnaryConnectiveParser;
+
+impl PestParser for UnaryConnectiveParser {
+    type Node = UnaryConnective;
+
+    type InternalParser = internal::Parser;
+    type Rule = internal::Rule;
+    const RULE: internal::Rule = internal::Rule::unary_connective;
+
+    fn translate_pair(pair: pest::iterators::Pair<'_, Self::Rule>) -> Self::Node {
+        match pair.as_rule() {
+            internal::Rule::negation => UnaryConnective::Negation,
+            _ => Self::report_unexpected_pair(pair),
+        }
+    }
+}
+
+pub struct BinaryConnectiveParser;
+
+impl PestParser for BinaryConnectiveParser {
+    type Node = BinaryConnective;
+
+    type InternalParser = internal::Parser;
+    type Rule = internal::Rule;
+    const RULE: internal::Rule = internal::Rule::binary_connective;
+
+    fn translate_pair(pair: pest::iterators::Pair<'_, Self::Rule>) -> Self::Node {
+        match pair.as_rule() {
+            internal::Rule::binary_connective => Self::translate_pairs(pair.into_inner()),
+            internal::Rule::equivalence => BinaryConnective::Equivalence,
+            internal::Rule::implication => BinaryConnective::Implication,
+            internal::Rule::reverse_implication => BinaryConnective::ReverseImplication,
+            internal::Rule::conjunction => BinaryConnective::Conjunction,
+            internal::Rule::disjunction => BinaryConnective::Disjunction,
+            _ => Self::report_unexpected_pair(pair),
+        }
+    }
+}
+
 // TODO Zach: Continue implementing pest parsing for first-order logic here
 
 #[cfg(test)]
 mod tests {
     use {
         super::{
-            BasicIntegerTermParser, BinaryOperatorParser, GeneralTermParser, IntegerTermParser,
-            UnaryOperatorParser,
+            AtomParser, AtomicFormulaParser, BasicIntegerTermParser, BinaryConnectiveParser,
+            BinaryOperatorParser, ComparisonParser, GeneralTermParser, GuardParser,
+            IntegerTermParser, QuantificationParser, QuantifierParser, RelationParser,
+            UnaryConnectiveParser, UnaryOperatorParser, VariableParser,
         },
         crate::{
             parsing::TestedParser,
             syntax_tree::fol::{
-                BasicIntegerTerm, BinaryOperator, GeneralTerm, IntegerTerm, UnaryOperator,
+                Atom, AtomicFormula, BasicIntegerTerm, BinaryConnective, BinaryOperator,
+                Comparison, GeneralTerm, Guard, IntegerTerm, Quantification, Quantifier, Relation,
+                Sort, UnaryConnective, UnaryOperator, Variable,
             },
         },
     };
@@ -412,6 +671,224 @@ mod tests {
                 "(1 + a",
                 "1 + a)",
                 "(1 (+ a +) 1)",
+            ]);
+    }
+
+    #[test]
+    fn parse_atom() {
+        AtomParser
+            .should_parse_into([
+                (
+                    "p",
+                    Atom {
+                        predicate: "p".into(),
+                        terms: vec![],
+                    },
+                ),
+                (
+                    "p()",
+                    Atom {
+                        predicate: "p".into(),
+                        terms: vec![],
+                    },
+                ),
+                (
+                    "p(1)",
+                    Atom {
+                        predicate: "p".into(),
+                        terms: vec![GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(
+                            BasicIntegerTerm::Numeral(1),
+                        ))],
+                    },
+                ),
+                (
+                    "p(1, 2)",
+                    Atom {
+                        predicate: "p".into(),
+                        terms: vec![
+                            GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(
+                                BasicIntegerTerm::Numeral(1),
+                            )),
+                            GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(
+                                BasicIntegerTerm::Numeral(2),
+                            )),
+                        ],
+                    },
+                ),
+                (
+                    "p(X, a)",
+                    Atom {
+                        predicate: "p".into(),
+                        terms: vec![
+                            GeneralTerm::GeneralVariable("X".into()),
+                            GeneralTerm::Symbol("a".into()),
+                        ],
+                    },
+                ),
+            ])
+            .should_reject(["p(1,)", "1", "P", "p("]);
+    }
+
+    #[test]
+    fn parse_relation() {
+        RelationParser
+            .should_parse_into([
+                ("<", Relation::Less),
+                (">", Relation::Greater),
+                ("<=", Relation::LessEqual),
+                (">=", Relation::GreaterEqual),
+                ("!=", Relation::NotEqual),
+                ("=", Relation::Equal),
+            ])
+            .should_reject(["< =", "< =", "less"]);
+    }
+
+    #[test]
+    fn parse_comparison() {
+        ComparisonParser
+            .should_parse_into([(
+                "p < 5",
+                Comparison {
+                    term: GeneralTerm::Symbol("p".into()),
+                    guards: vec![Guard {
+                        relation: Relation::Less,
+                        term: GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(
+                            BasicIntegerTerm::Numeral(5),
+                        )),
+                    }],
+                },
+            )])
+            .should_reject(["A < B < "]);
+    }
+
+    #[test]
+    fn parse_atomic_formula() {
+        AtomicFormulaParser
+            .should_parse_into([(
+                "1 = N$g",
+                AtomicFormula::Comparison(Comparison {
+                    term: GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(
+                        BasicIntegerTerm::Numeral(1),
+                    )),
+                    guards: vec![Guard {
+                        relation: Relation::Equal,
+                        term: GeneralTerm::GeneralVariable("N".into()),
+                    }],
+                }),
+            )])
+            .should_reject(["p and b"]);
+    }
+
+    #[test]
+    fn parse_unary_connective() {
+        UnaryConnectiveParser
+            .should_parse_into([("not", UnaryConnective::Negation)])
+            .should_reject(["noto", "not(", "n ot"]);
+    }
+
+    #[test]
+    fn parse_quantifier() {
+        QuantifierParser
+            .should_parse_into([
+                ("forall", Quantifier::Forall),
+                ("exists", Quantifier::Exists),
+            ])
+            .should_reject(["fora", "exis", "ex ists", "forall1", "exists("]);
+    }
+
+    #[test]
+    fn parse_variable() {
+        VariableParser
+            .should_parse_into([
+                (
+                    "X",
+                    Variable {
+                        name: "X".into(),
+                        sort: Sort::General,
+                    },
+                ),
+                (
+                    "G1",
+                    Variable {
+                        name: "G1".into(),
+                        sort: Sort::General,
+                    },
+                ),
+                (
+                    "X$i",
+                    Variable {
+                        name: "X".into(),
+                        sort: Sort::Integer,
+                    },
+                ),
+                (
+                    "Y$g",
+                    Variable {
+                        name: "Y".into(),
+                        sort: Sort::General,
+                    },
+                ),
+            ])
+            .should_reject(["X$k", "X $i", "$i", "$g", "a$g"]);
+    }
+
+    #[test]
+    fn parse_quantification() {
+        QuantificationParser
+            .should_parse_into([
+                (
+                    "exists X",
+                    Quantification {
+                        quantifier: Quantifier::Exists,
+                        variables: vec![Variable {
+                            name: "X".into(),
+                            sort: Sort::General,
+                        }],
+                    },
+                ),
+                (
+                    "forall X$i Y Z$g",
+                    Quantification {
+                        quantifier: Quantifier::Forall,
+                        variables: vec![
+                            Variable {
+                                name: "X".into(),
+                                sort: Sort::Integer,
+                            },
+                            Variable {
+                                name: "Y".into(),
+                                sort: Sort::General,
+                            },
+                            Variable {
+                                name: "Z".into(),
+                                sort: Sort::General,
+                            },
+                        ],
+                    },
+                ),
+                (
+                    "exists G1 G1$i",
+                    Quantification {
+                        quantifier: Quantifier::Exists,
+                        variables: vec![
+                            Variable {
+                                name: "G1".into(),
+                                sort: Sort::General,
+                            },
+                            Variable {
+                                name: "G1".into(),
+                                sort: Sort::Integer,
+                            },
+                        ],
+                    },
+                ),
+            ])
+            .should_reject([
+                "forall",
+                "exists ",
+                "exists aA",
+                "forall X$k",
+                "exists X$i$g",
             ]);
     }
 }

@@ -8,27 +8,25 @@
 
 WHITESPACE = _{ " " | NEWLINE }
 
-keyword = _{ primitive | nonassociative_binary_connective | associative_binary_connective | unary_connective | quantifier | sort }
+keyword = _{ primitive | binary_connective | unary_connective | quantifier | sort }
 
     primitive = _{ infimum | supremum }
         infimum  = { "#inf" }
         supremum = { "#sup" }
 
-    nonassociative_binary_connective = _{ implication | reverse_implication | equivalence }
+    binary_connective = _{ equivalence | implication | reverse_implication | conjunction | disjunction }
+        equivalence         = { "<=>" }
         implication         = { "=>"  }
         reverse_implication = { "<="  }
-        equivalence         = { "<=>" }
-
-    associative_binary_connective = _{ conjunction | disjunction }
-        conjunction = { "and" }
-        disjunction = { "or"  }
+        conjunction         = { "and" }
+        disjunction         = { "or"  }
 
     unary_connective = _{ negation }
         negation = { "not" }
 
-    quantifier = _{ universal | existential }
-        universal   = { "forall" }
-        existential = { "exists" }
+    quantifier = _{ forall | exists }
+        forall = { "forall" }
+        exists = { "exists" }
 
     sort = { integer_sort | general_sort }
         integer_sort = { "i" }
@@ -53,3 +51,30 @@ integer_term = { unary_operator* ~ n_primary ~ (binary_operator ~ unary_operator
 general_term = { integer_term | symbolic_constant | general_variable }
     symbolic_constant = @{ !(keyword) ~ "_"? ~ ASCII_ALPHA_LOWER ~ (ASCII_ALPHANUMERIC | "_" | "'")* }
     general_variable  = ${ unsorted_variable ~ ("$" ~ general_sort)?}
+
+variable = { integer_variable | general_variable }
+
+atom = { predicate_symbol ~ term_tuple? }
+    predicate_symbol  = _{ symbolic_constant }
+    term_tuple = _{ "(" ~ (general_term ~ ("," ~ general_term)*)? ~ ")" }
+
+relation = { greater_equal | less_equal | greater | less | not_equal | equal }
+    greater_equal = { ">=" }
+    less_equal    = { "<=" }
+    greater       = { ">"  }
+    less          = { "<"  }
+    not_equal     = { "!=" }
+    equal         = { "="  }
+
+guard = { relation ~ general_term }
+
+atomic_formula = { falsity | atom | comparison }
+    falsity    = { "#false" }
+    comparison = { general_term ~ guard+ }
+
+quantification = { quantifier ~ variable+ }
+
+formula = { prefix* ~ primary ~ (infix ~ prefix* ~ primary)* }
+    prefix  = _{ quantification | unary_connective }
+    infix   = _{ binary_connective }
+    primary = _{ "(" ~ formula ~ ")" | atomic_formula }
