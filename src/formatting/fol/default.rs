@@ -143,13 +143,34 @@ impl Display for Format<'_, Relation> {
 
 impl Display for Format<'_, Guard> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        todo!();
+        let relation = &self.0.relation;
+        let term = &self.0.term;
+
+        let formatted_relation = Format(relation);
+        let formatted_term = Format(term);
+
+        write!(f, "{formatted_relation} {formatted_term}");
+
+        Ok(())
     }
 }
 
 impl Display for Format<'_, Comparison> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        todo!();
+        let term = &self.0.term;
+        let guards = &self.0.guards;
+
+        Format(term).fmt(f);
+
+        if !guards.is_empty() {
+            let mut iter = guards.iter().map(|t| Format(t));
+            write!(f, " {}", iter.next().unwrap())?;
+            for guard in iter {
+                write!(f, ", {guard}")?;
+            }
+        }
+
+        Ok(())
     }
 }
 
@@ -210,7 +231,9 @@ impl Display for Format<'_, BinaryConnective> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{formatting::fol::default::Format, syntax_tree::fol::BasicIntegerTerm};
+    use crate::{formatting::fol::default::Format,
+        syntax_tree::fol::{BasicIntegerTerm, GeneralTerm, IntegerTerm, BinaryOperator,}
+    };
 
     #[test]
     fn format_basic_integer_term() {
@@ -224,6 +247,24 @@ mod tests {
         );
         assert_eq!(Format(&BasicIntegerTerm::Supremum).to_string(), "#sup");
     }
+
+    #[test]
+    fn format_general_term() {
+        assert_eq!(Format(&GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::IntegerVariable("N".into())).into())).to_string(), "N$i");
+        assert_eq!(Format(&GeneralTerm::Symbol("abc".into())).to_string(), "abc");
+        assert_eq!(Format(&GeneralTerm::IntegerTerm(
+            IntegerTerm::BinaryOperation {
+                op: BinaryOperator::Multiply,
+                lhs: IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(1)).into(),
+                rhs: IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(5)).into(),
+            })
+        ).to_string(), "1 * 5");
+    }
+
+    //#[test]
+    //fn format_comparison() {
+    //    assert_eq!(Format(&Ge));
+    //}
 
     // TODO Zach: Add tests for the remaining formatters
 }
