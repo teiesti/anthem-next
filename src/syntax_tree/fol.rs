@@ -165,5 +165,3 @@ pub enum Formula {
 }
 
 impl Node for Formula {}
-
-// TODO Zach: Continue implementing the abstract syntax tree for first-order logic here
