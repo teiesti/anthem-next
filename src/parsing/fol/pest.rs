@@ -453,6 +453,8 @@ impl PestParser for FormulaParser {
 
 #[cfg(test)]
 mod tests {
+    use std::vec;
+
     use {
         super::{
             AtomParser, AtomicFormulaParser, BasicIntegerTermParser, BinaryConnectiveParser,
@@ -793,6 +795,32 @@ mod tests {
     }
 
     #[test]
+    fn parse_guard() {
+        GuardParser
+            .should_parse_into([(
+                "< N$g",
+                Guard {
+                    relation: Relation::Less,
+                    term: GeneralTerm::GeneralVariable("N".into()),
+                },
+            )])
+            .should_reject(["< 3 =", "="]);
+    }
+
+    #[test]
+    fn parse_binary_connective() {
+        BinaryConnectiveParser
+            .should_parse_into([
+                ("and", BinaryConnective::Conjunction),
+                ("or", BinaryConnective::Disjunction),
+                ("->", BinaryConnective::Implication),
+                ("<-", BinaryConnective::ReverseImplication),
+                ("<->", BinaryConnective::Equivalence),
+            ])
+            .should_reject(["<=", "< ->", "<- >", "anda", "And", "o r"]);
+    }
+
+    #[test]
     fn parse_comparison() {
         ComparisonParser
             .should_parse_into([(
@@ -989,32 +1017,97 @@ mod tests {
 
     #[test]
     fn parse_formula() {
-        FormulaParser.should_parse_into([(
-            "forall A p(A) -> q",
-            Formula::BinaryFormula {
-                connective: BinaryConnective::Implication,
-                lhs: Formula::QuantifiedFormula {
-                    quantification: Quantification {
-                        quantifier: Quantifier::Forall,
-                        variables: vec![Variable {
-                            name: "A".into(),
-                            sort: Sort::General,
-                        }],
-                    },
-                    formula: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
-                        predicate: "p".into(),
-                        terms: vec![GeneralTerm::GeneralVariable("A".into())],
+        FormulaParser.should_parse_into([
+            (
+                "forall A p(A) -> q",
+                Formula::BinaryFormula {
+                    connective: BinaryConnective::Implication,
+                    lhs: Formula::QuantifiedFormula {
+                        quantification: Quantification {
+                            quantifier: Quantifier::Forall,
+                            variables: vec![Variable {
+                                name: "A".into(),
+                                sort: Sort::General,
+                            }],
+                        },
+                        formula: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                            predicate: "p".into(),
+                            terms: vec![GeneralTerm::GeneralVariable("A".into())],
+                        }))
+                        .into(),
+                    }
+                    .into(),
+                    rhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                        predicate: "q".into(),
+                        terms: vec![],
                     }))
                     .into(),
-                }
-                .into(),
-                rhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
-                    predicate: "q".into(),
-                    terms: vec![],
-                }))
-                .into(),
-            },
-        )]);
+                },
+            ),
+            (
+                "exists X$i G(p(G, X$i+30) <-> q or r and t)",
+                Formula::QuantifiedFormula {
+                    quantification: Quantification {
+                        quantifier: Quantifier::Exists,
+                        variables: vec![
+                            Variable {
+                                name: "X".into(),
+                                sort: Sort::Integer,
+                            },
+                            Variable {
+                                name: "G".into(),
+                                sort: Sort::General,
+                            },
+                        ],
+                    },
+                    formula: Formula::BinaryFormula {
+                        connective: BinaryConnective::Equivalence,
+                        lhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                            predicate: "p".into(),
+                            terms: vec![
+                                GeneralTerm::GeneralVariable("G".into()),
+                                GeneralTerm::IntegerTerm(IntegerTerm::BinaryOperation {
+                                    op: BinaryOperator::Add,
+                                    lhs: IntegerTerm::BasicIntegerTerm(
+                                        BasicIntegerTerm::IntegerVariable("X".into()),
+                                    )
+                                    .into(),
+                                    rhs: IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(
+                                        30,
+                                    ))
+                                    .into(),
+                                }),
+                            ],
+                        }))
+                        .into(),
+                        rhs: Formula::BinaryFormula {
+                            connective: BinaryConnective::Disjunction,
+                            lhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                                predicate: "q".into(),
+                                terms: vec![],
+                            }))
+                            .into(),
+                            rhs: Formula::BinaryFormula {
+                                connective: BinaryConnective::Conjunction,
+                                lhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                                    predicate: "r".into(),
+                                    terms: vec![],
+                                }))
+                                .into(),
+                                rhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                                    predicate: "t".into(),
+                                    terms: vec![],
+                                }))
+                                .into(),
+                            }
+                            .into(),
+                        }
+                        .into(),
+                    }
+                    .into(),
+                },
+            ),
+        ]);
 
         // TODO Add more tests
     }
