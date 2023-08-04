@@ -113,6 +113,36 @@ impl Display for Format<'_, IntegerTerm> {
     }
 }
 
+impl Display for Format<'_, GeneralTerm> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self.0 {
+            GeneralTerm::Symbol(s) => write!(f, "{s}"),
+            GeneralTerm::GeneralVariable(v) => write!(f, "{v}"),
+            GeneralTerm::IntegerTerm(t) => Format(t).fmt(f),
+        }
+    }
+}
+
+impl Display for Format<'_, Atom> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let predicate = &self.0.predicate;
+        let terms = &self.0.terms;
+
+        write!(f, "{predicate}")?;
+
+        if !terms.is_empty() {
+            let mut iter = terms.iter().map(|t| Format(t));
+            write!(f, "({}", iter.next().unwrap())?;
+            for term in iter {
+                write!(f, ", {term}")?;
+            }
+            write!(f, ")")?;
+        }
+
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{
@@ -201,6 +231,46 @@ mod tests {
             .to_string(),
             "$difference($uminus(195), $uminus(N))"
         );
+    }
+
+    #[test]
+    fn format_general_term() {
+        assert_eq!(
+            Format(&GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(
+                BasicIntegerTerm::Infimum
+            )))
+            .to_string(),
+            "c__infimum__"
+        );
+        assert_eq!(Format(&GeneralTerm::Symbol("p".into())).to_string(), "p");
+        assert_eq!(
+            Format(&GeneralTerm::GeneralVariable("N1".into())).to_string(),
+            "N1"
+        );
+    }
+
+    #[test]
+    fn format_atom() {
+        assert_eq!(
+            Format(&Atom {
+                predicate: "prime".into(),
+                terms: vec![
+                    GeneralTerm::IntegerTerm(IntegerTerm::BinaryOperation {
+                        op: BinaryOperator::Add,
+                        lhs: IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::IntegerVariable(
+                            "N1".into()
+                        ))
+                        .into(),
+                        rhs: IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(3)).into(),
+                    }),
+                    GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(
+                        BasicIntegerTerm::Numeral(5)
+                    )),
+                ]
+            })
+            .to_string(),
+            "prime($sum(N1, 3), 5)"
+        )
     }
 }
 
