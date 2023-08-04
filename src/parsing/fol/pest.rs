@@ -449,8 +449,6 @@ impl PestParser for FormulaParser {
     }
 }
 
-// TODO Zach: Continue implementing pest parsing for first-order logic here
-
 #[cfg(test)]
 mod tests {
     use std::vec;
