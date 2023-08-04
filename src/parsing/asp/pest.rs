@@ -197,7 +197,7 @@ impl PestParser for SignParser {
         }
 
         match pairs.next() {
-            None => return result,
+            None => result,
             Some(pair) => Self::report_unexpected_pair(pair),
         }
     }
