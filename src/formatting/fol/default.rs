@@ -284,7 +284,7 @@ impl Display for Format<'_, Formula> {
                 let connective = Format(connective);
                 let formula = Format(formula.as_ref());
 
-                connective.fmt(f)?;
+                write!(f, "{connective} ")?;
                 if self.precedence() < formula.precedence() {
                     write!(f, "({formula})")
                 } else {
@@ -298,7 +298,7 @@ impl Display for Format<'_, Formula> {
                 let connective = Format(quantification);
                 let formula = Format(formula.as_ref());
 
-                connective.fmt(f)?;
+                write!(f, "{connective} ")?;
                 if self.precedence() < formula.precedence() {
                     write!(f, "({formula})")
                 } else {
@@ -342,7 +342,7 @@ mod tests {
         syntax_tree::fol::{
             Atom, AtomicFormula, BasicIntegerTerm, BinaryConnective, BinaryOperator, Comparison,
             Formula, GeneralTerm, Guard, IntegerTerm, Quantification, Quantifier, Relation, Sort,
-            Variable,
+            UnaryConnective, Variable,
         },
     };
 
@@ -498,6 +498,38 @@ mod tests {
             })))
             .to_string(),
             "p"
+        );
+
+        assert_eq!(
+            Format(&Formula::UnaryFormula {
+                connective: UnaryConnective::Negation,
+                formula: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                    predicate: "p".into(),
+                    terms: vec![]
+                }))
+                .into()
+            })
+            .to_string(),
+            "not p"
+        );
+
+        assert_eq!(
+            Format(&Formula::QuantifiedFormula {
+                quantification: Quantification {
+                    quantifier: Quantifier::Forall,
+                    variables: vec![Variable {
+                        name: "X".into(),
+                        sort: Sort::General
+                    }]
+                },
+                formula: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                    predicate: "p".into(),
+                    terms: vec![GeneralTerm::GeneralVariable("X".into())]
+                }))
+                .into()
+            })
+            .to_string(),
+            "forall X$g p(X$g)"
         );
 
         assert_eq!(
