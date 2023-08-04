@@ -127,7 +127,7 @@ impl Display for Format<'_, Atom> {
         write!(f, "{predicate}")?;
 
         if !terms.is_empty() {
-            let mut iter = terms.iter().map(|t| Format(t));
+            let mut iter = terms.iter().map(Format);
             write!(f, "({}", iter.next().unwrap())?;
             for term in iter {
                 write!(f, ", {term}")?;
@@ -214,7 +214,7 @@ impl Display for Format<'_, Head> {
 
 impl Display for Format<'_, Body> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut iter = self.0.formulas.iter().map(|f| Format(f));
+        let mut iter = self.0.formulas.iter().map(Format);
         if let Some(formula) = iter.next() {
             write!(f, "{formula}")?;
             for formula in iter {
