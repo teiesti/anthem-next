@@ -241,7 +241,7 @@ mod tests {
         formatting::asp::default::Format,
         syntax_tree::asp::{
             Atom, AtomicFormula, BinaryOperator, Body, Comparison, Constant, Head, Literal,
-            Relation, Sign, Term, UnaryOperator, Variable,
+            Program, Relation, Rule, Sign, Term, UnaryOperator, Variable,
         },
     };
 
@@ -508,6 +508,35 @@ mod tests {
 
     #[test]
     fn format_program() {
-        // TODO
+        assert_eq!(
+            Format(&Program {
+                rules: vec![
+                    Rule {
+                        head: Head::Basic(Atom {
+                            predicate: "a".into(),
+                            terms: vec![]
+                        }),
+                        body: Body { formulas: vec![] }
+                    },
+                    Rule {
+                        head: Head::Basic(Atom {
+                            predicate: "b".into(),
+                            terms: vec![]
+                        }),
+                        body: Body {
+                            formulas: vec![AtomicFormula::Literal(Literal {
+                                sign: Sign::Negation,
+                                atom: Atom {
+                                    predicate: "a".into(),
+                                    terms: vec![]
+                                }
+                            })]
+                        }
+                    }
+                ]
+            })
+            .to_string(),
+            "a.\nb :- not a.\n"
+        );
     }
 }
