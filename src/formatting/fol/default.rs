@@ -232,21 +232,117 @@ impl Display for Format<'_, BinaryConnective> {
     }
 }
 
-impl Display for Format<'_, Formula> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        todo!();
+impl Format<'_, Formula> {
+    fn precedence(&self) -> usize {
+        match self.0 {
+            Formula::AtomicFormula(_) => 0,
+            Formula::UnaryFormula { .. } | Formula::QuantifiedFormula { .. } => 1,
+            Formula::BinaryFormula {
+                connective: BinaryConnective::Conjunction,
+                ..
+            } => 2,
+            Formula::BinaryFormula {
+                connective: BinaryConnective::Disjunction,
+                ..
+            } => 3,
+            Formula::BinaryFormula {
+                connective:
+                    BinaryConnective::Equivalence
+                    | BinaryConnective::Implication
+                    | BinaryConnective::ReverseImplication,
+                ..
+            } => 4,
+        }
+    }
+
+    fn is_left_associative(&self) -> bool {
+        match self.0 {
+            Formula::BinaryFormula {
+                connective:
+                    BinaryConnective::Conjunction
+                    | BinaryConnective::Disjunction
+                    | BinaryConnective::ReverseImplication,
+                ..
+            } => true,
+            Formula::BinaryFormula {
+                connective: BinaryConnective::Equivalence | BinaryConnective::Implication,
+                ..
+            } => false,
+            _ => unreachable!(), // TODO
+        }
     }
 }
 
-// TODO Zach: Continue implementing the default formatting for first-order logic here
+impl Display for Format<'_, Formula> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self.0 {
+            Formula::AtomicFormula(a) => Format(a).fmt(f),
+            Formula::UnaryFormula {
+                connective,
+                formula,
+            } => {
+                let connective = Format(connective);
+                let formula = Format(formula.as_ref());
+
+                connective.fmt(f)?;
+                if self.precedence() < formula.precedence() {
+                    write!(f, "({formula})")
+                } else {
+                    write!(f, "{formula}")
+                }
+            }
+            Formula::QuantifiedFormula {
+                quantification,
+                formula,
+            } => {
+                let connective = Format(quantification);
+                let formula = Format(formula.as_ref());
+
+                connective.fmt(f)?;
+                if self.precedence() < formula.precedence() {
+                    write!(f, "({formula})")
+                } else {
+                    write!(f, "{formula}")
+                }
+            }
+            Formula::BinaryFormula {
+                connective,
+                lhs,
+                rhs,
+            } => {
+                let op = Format(connective);
+                let lhs = Format(lhs.as_ref());
+                let rhs = Format(rhs.as_ref());
+
+                if self.precedence() < lhs.precedence()
+                    || self.precedence() == lhs.precedence() && !lhs.is_left_associative()
+                {
+                    write!(f, "({lhs})")
+                } else {
+                    write!(f, "{lhs}")
+                }?;
+
+                write!(f, " {op} ")?;
+                if self.precedence() < rhs.precedence()
+                    || self.precedence() == rhs.precedence() && self.is_left_associative()
+                {
+                    write!(f, "({rhs})")
+                } else {
+                    write!(f, "{rhs}")
+                }
+            }
+        }
+    }
+}
 
 #[cfg(test)]
 mod tests {
     use crate::{
         formatting::fol::default::Format,
         syntax_tree::fol::{
-            Atom, AtomicFormula, BasicIntegerTerm, BinaryOperator, Comparison, GeneralTerm, Guard,
-            IntegerTerm, Quantification, Quantifier, Relation, Sort, Variable,
+            Atom, AtomicFormula, BasicIntegerTerm, BinaryConnective, BinaryOperator, Comparison,
+            Formula, GeneralTerm, Guard, IntegerTerm, Quantification, Quantifier, Relation, Sort,
+            Variable,
         },
     };
 
@@ -393,5 +489,231 @@ mod tests {
         assert_eq!(Format(&AtomicFormula::Falsity).to_string(), "#false");
     }
 
-    // TODO Zach: Add tests for the remaining formatters
+    #[test]
+    fn format_formula() {
+        assert_eq!(
+            Format(&Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                predicate: "p".into(),
+                terms: vec![]
+            })))
+            .to_string(),
+            "p"
+        );
+
+        assert_eq!(
+            Format(&Formula::BinaryFormula {
+                connective: BinaryConnective::ReverseImplication,
+                lhs: Formula::BinaryFormula {
+                    connective: BinaryConnective::ReverseImplication,
+                    lhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                        predicate: "p".into(),
+                        terms: vec![]
+                    }))
+                    .into(),
+                    rhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                        predicate: "q".into(),
+                        terms: vec![]
+                    }))
+                    .into()
+                }
+                .into(),
+                rhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                    predicate: "r".into(),
+                    terms: vec![]
+                }))
+                .into(),
+            })
+            .to_string(),
+            "p <- q <- r"
+        );
+
+        assert_eq!(
+            Format(&Formula::BinaryFormula {
+                connective: BinaryConnective::ReverseImplication,
+                lhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                    predicate: "p".into(),
+                    terms: vec![]
+                }))
+                .into(),
+                rhs: Formula::BinaryFormula {
+                    connective: BinaryConnective::ReverseImplication,
+                    lhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                        predicate: "q".into(),
+                        terms: vec![]
+                    }))
+                    .into(),
+                    rhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                        predicate: "r".into(),
+                        terms: vec![]
+                    }))
+                    .into()
+                }
+                .into()
+            })
+            .to_string(),
+            "p <- (q <- r)"
+        );
+
+        assert_eq!(
+            Format(&Formula::BinaryFormula {
+                connective: BinaryConnective::Implication,
+                lhs: Formula::BinaryFormula {
+                    connective: BinaryConnective::Implication,
+                    lhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                        predicate: "p".into(),
+                        terms: vec![]
+                    }))
+                    .into(),
+                    rhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                        predicate: "q".into(),
+                        terms: vec![]
+                    }))
+                    .into()
+                }
+                .into(),
+                rhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                    predicate: "r".into(),
+                    terms: vec![]
+                }))
+                .into(),
+            })
+            .to_string(),
+            "(p -> q) -> r"
+        );
+
+        assert_eq!(
+            Format(&Formula::BinaryFormula {
+                connective: BinaryConnective::Implication,
+                lhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                    predicate: "p".into(),
+                    terms: vec![]
+                }))
+                .into(),
+                rhs: Formula::BinaryFormula {
+                    connective: BinaryConnective::Implication,
+                    lhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                        predicate: "q".into(),
+                        terms: vec![]
+                    }))
+                    .into(),
+                    rhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                        predicate: "r".into(),
+                        terms: vec![]
+                    }))
+                    .into()
+                }
+                .into()
+            })
+            .to_string(),
+            "p -> q -> r"
+        );
+
+        assert_eq!(
+            Format(&Formula::BinaryFormula {
+                connective: BinaryConnective::ReverseImplication,
+                lhs: Formula::BinaryFormula {
+                    connective: BinaryConnective::Implication,
+                    lhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                        predicate: "p".into(),
+                        terms: vec![]
+                    }))
+                    .into(),
+                    rhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                        predicate: "q".into(),
+                        terms: vec![]
+                    }))
+                    .into()
+                }
+                .into(),
+                rhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                    predicate: "r".into(),
+                    terms: vec![]
+                }))
+                .into(),
+            })
+            .to_string(),
+            "(p -> q) <- r"
+        );
+
+        assert_eq!(
+            Format(&Formula::BinaryFormula {
+                connective: BinaryConnective::Implication,
+                lhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                    predicate: "p".into(),
+                    terms: vec![]
+                }))
+                .into(),
+                rhs: Formula::BinaryFormula {
+                    connective: BinaryConnective::ReverseImplication,
+                    lhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                        predicate: "q".into(),
+                        terms: vec![]
+                    }))
+                    .into(),
+                    rhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                        predicate: "r".into(),
+                        terms: vec![]
+                    }))
+                    .into()
+                }
+                .into()
+            })
+            .to_string(),
+            "p -> q <- r"
+        );
+
+        assert_eq!(
+            Format(&Formula::BinaryFormula {
+                connective: BinaryConnective::Implication,
+                lhs: Formula::BinaryFormula {
+                    connective: BinaryConnective::ReverseImplication,
+                    lhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                        predicate: "p".into(),
+                        terms: vec![]
+                    }))
+                    .into(),
+                    rhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                        predicate: "q".into(),
+                        terms: vec![]
+                    }))
+                    .into()
+                }
+                .into(),
+                rhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                    predicate: "r".into(),
+                    terms: vec![]
+                }))
+                .into(),
+            })
+            .to_string(),
+            "p <- q -> r"
+        );
+
+        assert_eq!(
+            Format(&Formula::BinaryFormula {
+                connective: BinaryConnective::ReverseImplication,
+                lhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                    predicate: "p".into(),
+                    terms: vec![]
+                }))
+                .into(),
+                rhs: Formula::BinaryFormula {
+                    connective: BinaryConnective::Implication,
+                    lhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                        predicate: "q".into(),
+                        terms: vec![]
+                    }))
+                    .into(),
+                    rhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                        predicate: "r".into(),
+                        terms: vec![]
+                    }))
+                    .into()
+                }
+                .into()
+            })
+            .to_string(),
+            "p <- (q -> r)"
+        );
+    }
 }
