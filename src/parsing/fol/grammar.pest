@@ -15,9 +15,9 @@ keyword = _{ primitive | binary_connective | unary_connective | quantifier | sor
         supremum = { "#sup" }
 
     binary_connective = _{ equivalence | implication | reverse_implication | conjunction | disjunction }
-        equivalence         = { "<=>" }
-        implication         = { "=>"  }
-        reverse_implication = { "<="  }
+        equivalence         = { "<->" }
+        implication         = { "->"  }
+        reverse_implication = { "<-"  }
         conjunction         = { "and" }
         disjunction         = { "or"  }
 

@@ -223,9 +223,9 @@ impl Display for Format<'_, UnaryConnective> {
 impl Display for Format<'_, BinaryConnective> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self.0 {
-            BinaryConnective::Equivalence => write!(f, "<=>"),
-            BinaryConnective::Implication => write!(f, "=>"),
-            BinaryConnective::ReverseImplication => write!(f, "<="),
+            BinaryConnective::Equivalence => write!(f, "<->"),
+            BinaryConnective::Implication => write!(f, "->"),
+            BinaryConnective::ReverseImplication => write!(f, "<-"),
             BinaryConnective::Conjunction => write!(f, "and"),
             BinaryConnective::Disjunction => write!(f, "or"),
         }

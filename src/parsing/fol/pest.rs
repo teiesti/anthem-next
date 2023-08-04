@@ -990,7 +990,7 @@ mod tests {
     #[test]
     fn parse_formula() {
         FormulaParser.should_parse_into([(
-            "forall A p(A) => q",
+            "forall A p(A) -> q",
             Formula::BinaryFormula {
                 connective: BinaryConnective::Implication,
                 lhs: Formula::QuantifiedFormula {
