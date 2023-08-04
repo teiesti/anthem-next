@@ -252,7 +252,9 @@ impl Display for Format<'_, BinaryConnective> {
         match self.0 {
             BinaryConnective::Equivalence => write!(f, "<=>"),
             BinaryConnective::Implication => write!(f, "=>"),
-            BinaryConnective::ReverseImplication => write!(f, "<="), // TODO: Decide how this should be converted to TFF
+            BinaryConnective::ReverseImplication => {
+                unimplemented!("Reverse implication is unsupported by TPTP.")
+            }
             BinaryConnective::Conjunction => write!(f, "&"),
             BinaryConnective::Disjunction => write!(f, "|"),
         }
