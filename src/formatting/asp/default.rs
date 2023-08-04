@@ -82,7 +82,7 @@ impl Display for Format<'_, Term> {
             Term::Variable(v) => Format(v).fmt(f),
             Term::UnaryOperation { op, arg } => {
                 let op = Format(op);
-                let arg = Format(&**arg);
+                let arg = Format(arg.as_ref());
 
                 op.fmt(f)?;
                 if self.precedence() < arg.precedence() {
@@ -93,8 +93,8 @@ impl Display for Format<'_, Term> {
             }
             Term::BinaryOperation { op, lhs, rhs } => {
                 let op = Format(op);
-                let lhs = Format(&**lhs);
-                let rhs = Format(&**rhs);
+                let lhs = Format(lhs.as_ref());
+                let rhs = Format(rhs.as_ref());
 
                 if self.precedence() < lhs.precedence() {
                     write!(f, "({lhs})")
