@@ -2,7 +2,7 @@ use {
     crate::syntax_tree::{
         fol::{
             Atom, AtomicFormula, BasicIntegerTerm, BinaryConnective, BinaryOperator, Comparison,
-            Formula, GeneralTerm, Guard, IntegerTerm, Quantification, Quantifier, Relation, Sort,
+            Formula, GeneralTerm, IntegerTerm, Quantification, Quantifier, Relation, Sort,
             UnaryConnective, UnaryOperator, Variable,
         },
         Node,
