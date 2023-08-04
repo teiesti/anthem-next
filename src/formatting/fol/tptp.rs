@@ -118,7 +118,7 @@ impl Display for Format<'_, Comparison> {
 
         let mut counter = 0;
         let mut previous_term = &self.0.term;
-        for g in guards.iter() {
+        for g in guards {
             if counter > 0 {
                 write!(f, " and ")?;
             }
@@ -189,7 +189,7 @@ impl Display for Format<'_, Quantification> {
             counter += 1;
         }
 
-        write!(f, "]: ")?;
+        write!(f, "]")?;
 
         Ok(())
     }
@@ -208,9 +208,7 @@ impl Display for Format<'_, BinaryConnective> {
         match self.0 {
             BinaryConnective::Equivalence => write!(f, "<=>"),
             BinaryConnective::Implication => write!(f, "=>"),
-            BinaryConnective::ReverseImplication => {
-                unimplemented!("Reverse implication is unsupported by TPTP.")
-            }
+            BinaryConnective::ReverseImplication => write!(f, "<="),
             BinaryConnective::Conjunction => write!(f, "&"),
             BinaryConnective::Disjunction => write!(f, "|"),
         }
@@ -221,38 +219,15 @@ impl Format<'_, Formula> {
     fn precedence(&self) -> usize {
         match self.0 {
             Formula::AtomicFormula(_) => 0,
-            Formula::UnaryFormula { .. } | Formula::QuantifiedFormula { .. } => 1,
-            Formula::BinaryFormula {
-                connective: BinaryConnective::Conjunction,
-                ..
-            } => 2,
-            Formula::BinaryFormula {
-                connective: BinaryConnective::Disjunction,
-                ..
-            } => 3,
-            Formula::BinaryFormula {
-                connective:
-                    BinaryConnective::Equivalence
-                    | BinaryConnective::Implication
-                    | BinaryConnective::ReverseImplication,
-                ..
-            } => 4,
+            Formula::UnaryFormula { .. } => 1,
+            Formula::QuantifiedFormula { .. } => 2,
+            Formula::BinaryFormula { .. } => 3,
         }
     }
 
     fn is_left_associative(&self) -> bool {
         match self.0 {
-            Formula::BinaryFormula {
-                connective:
-                    BinaryConnective::Conjunction
-                    | BinaryConnective::Disjunction
-                    | BinaryConnective::ReverseImplication,
-                ..
-            } => true,
-            Formula::BinaryFormula {
-                connective: BinaryConnective::Equivalence | BinaryConnective::Implication,
-                ..
-            } => false,
+            Formula::BinaryFormula { .. } => true,
             _ => unreachable!(), // TODO
         }
     }
@@ -282,19 +257,7 @@ impl Display for Format<'_, Formula> {
             } => {
                 let connective = Format(quantification);
                 let formula = Format(formula.as_ref());
-
-                connective.fmt(f)?;
-                if 0 == 0 {
-                    write!(f, "({formula})")
-                } else {
-                    write!(f, "({formula})")
-                }
-
-                //if self.precedence() < formula.precedence() {
-                //    write!(f, "({formula})")
-                //} else {
-                //    write!(f, "{formula}")
-                //}
+                write!(f, "{connective}: ({formula})")
             }
             Formula::BinaryFormula {
                 connective,
@@ -575,7 +538,7 @@ mod tests {
                 ]
             })
             .to_string(),
-            "![X1: $int, N2: object]: "
+            "![X1: $int, N2: object]"
         );
         assert_eq!(
             Format(&Quantification {
@@ -586,7 +549,7 @@ mod tests {
                 },]
             })
             .to_string(),
-            "?[X1: $int]: "
+            "?[X1: $int]"
         );
     }
 
@@ -624,7 +587,7 @@ mod tests {
                 .into(),
             })
             .to_string(),
-            "(p => q) => r"
+            "p => q => r"
         );
         assert_eq!(
             Format(&Formula::QuantifiedFormula {
@@ -661,5 +624,3 @@ mod tests {
         );
     }
 }
-
-// TODO Zach: Implement the TPTP formatting for first-order logic here
