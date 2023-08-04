@@ -18,8 +18,8 @@ impl Display for Format<'_, BasicIntegerTerm> {
             BasicIntegerTerm::Infimum => write!(f, "c__infimum__"),
             BasicIntegerTerm::Supremum => write!(f, "c__supremum__"),
             BasicIntegerTerm::Numeral(n) => {
-                if *n < 0 as isize {
-                    let m = (*n).abs();
+                if *n < 0 {
+                    let m = n.abs();
                     write!(f, "$uminus({m})")?;
                 } else {
                     write!(f, "{n}")?;
@@ -50,64 +50,20 @@ impl Display for Format<'_, BinaryOperator> {
     }
 }
 
-impl Format<'_, IntegerTerm> {
-    fn precedence(&self) -> usize {
-        match self.0 {
-            IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(1..)) => 1,
-            IntegerTerm::UnaryOperation {
-                op: UnaryOperator::Negative,
-                ..
-            }
-            | IntegerTerm::BasicIntegerTerm(_) => 0,
-            IntegerTerm::BinaryOperation {
-                op: BinaryOperator::Multiply,
-                ..
-            } => 2,
-            IntegerTerm::BinaryOperation {
-                op: BinaryOperator::Add | BinaryOperator::Subtract,
-                ..
-            } => 3,
-        }
-    }
-}
-
 impl Display for Format<'_, IntegerTerm> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self.0 {
             IntegerTerm::BasicIntegerTerm(t) => Format(t).fmt(f),
             IntegerTerm::UnaryOperation { op, arg } => {
                 let op = Format(op);
-                let arg = Format(&**arg);
-
-                write!(f, "{op}(")?;
-                if self.precedence() < arg.precedence() {
-                    write!(f, "({arg})")
-                } else {
-                    write!(f, "{arg}")
-                }?;
-                write!(f, ")")?;
-
-                Ok(())
+                let arg = Format(arg.as_ref());
+                write!(f, "{op}({arg})")
             }
             IntegerTerm::BinaryOperation { op, lhs, rhs } => {
                 let op = Format(op);
-                let lhs = Format(&**lhs);
-                let rhs = Format(&**rhs);
-
-                write!(f, "{op}(")?;
-                if self.precedence() < lhs.precedence() {
-                    write!(f, "({lhs}), ")
-                } else {
-                    write!(f, "{lhs}, ")
-                }?;
-                if self.precedence() <= rhs.precedence() {
-                    write!(f, "({rhs})")
-                } else {
-                    write!(f, "{rhs}")
-                }?;
-                write!(f, ")")?;
-
-                Ok(())
+                let lhs = Format(lhs.as_ref());
+                let rhs = Format(rhs.as_ref());
+                write!(f, "{op}({lhs}, {rhs})")
             }
         }
     }
