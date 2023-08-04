@@ -252,7 +252,7 @@ impl Display for Format<'_, BinaryConnective> {
         match self.0 {
             BinaryConnective::Equivalence => write!(f, "<=>"),
             BinaryConnective::Implication => write!(f, "=>"),
-            BinaryConnective::ReverseImplication => write!(f, "<="),    // TODO: Decide how this should be converted to TFF
+            BinaryConnective::ReverseImplication => write!(f, "<="), // TODO: Decide how this should be converted to TFF
             BinaryConnective::Conjunction => write!(f, "&"),
             BinaryConnective::Disjunction => write!(f, "|"),
         }
@@ -373,9 +373,9 @@ mod tests {
     use crate::{
         formatting::fol::tptp::Format,
         syntax_tree::fol::{
-            Atom, AtomicFormula, BasicIntegerTerm, BinaryOperator, Comparison, GeneralTerm, Guard,
-            IntegerTerm, Quantification, Quantifier, Relation, Sort, UnaryOperator, Variable, Formula,
-            BinaryConnective,
+            Atom, AtomicFormula, BasicIntegerTerm, BinaryConnective, BinaryOperator, Comparison,
+            Formula, GeneralTerm, Guard, IntegerTerm, Quantification, Quantifier, Relation, Sort,
+            UnaryOperator, Variable,
         },
     };
 
@@ -622,12 +622,10 @@ mod tests {
         assert_eq!(
             Format(&Quantification {
                 quantifier: Quantifier::Exists,
-                variables: vec![
-                    Variable {
-                        name: "X1".into(),
-                        sort: Sort::Integer,
-                    },
-                ]
+                variables: vec![Variable {
+                    name: "X1".into(),
+                    sort: Sort::Integer,
+                },]
             })
             .to_string(),
             "?[X1: $int]: "
@@ -670,32 +668,39 @@ mod tests {
             .to_string(),
             "(p => q) => r"
         );
-        assert_eq!(Format(&Formula::QuantifiedFormula {
-            quantification: Quantification {
-                quantifier: Quantifier::Forall,
-                variables: vec![
-                    Variable {
-                        name: "X".into(),
-                        sort: Sort::Integer,
-                    },
-                    Variable {
-                        name: "Y1".into(),
-                        sort: Sort::General,
-                    },
-                ]
-            },
-            formula: Formula::BinaryFormula {
-                connective: BinaryConnective::Conjunction,
-                lhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
-                    predicate: "p".into(),
-                    terms: vec![],
-                })).into(),
-                rhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
-                    predicate: "q".into(),
-                    terms: vec![],
-                })).into(),
-            }.into()
-        }).to_string(), "![X: $int, Y1: object]: (p & q)");
+        assert_eq!(
+            Format(&Formula::QuantifiedFormula {
+                quantification: Quantification {
+                    quantifier: Quantifier::Forall,
+                    variables: vec![
+                        Variable {
+                            name: "X".into(),
+                            sort: Sort::Integer,
+                        },
+                        Variable {
+                            name: "Y1".into(),
+                            sort: Sort::General,
+                        },
+                    ]
+                },
+                formula: Formula::BinaryFormula {
+                    connective: BinaryConnective::Conjunction,
+                    lhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                        predicate: "p".into(),
+                        terms: vec![],
+                    }))
+                    .into(),
+                    rhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                        predicate: "q".into(),
+                        terms: vec![],
+                    }))
+                    .into(),
+                }
+                .into()
+            })
+            .to_string(),
+            "![X: $int, Y1: object]: (p & q)"
+        );
     }
 }
 
