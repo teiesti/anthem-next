@@ -1,6 +1,9 @@
 use {
     crate::syntax_tree::{
-        asp::{Atom, BinaryOperator, Constant, Term, UnaryOperator, Variable},
+        asp::{
+            Atom, AtomicFormula, BinaryOperator, Body, Comparison, Constant, Head, Literal,
+            Program, Relation, Rule, Sign, Term, UnaryOperator, Variable,
+        },
         Node,
     },
     std::fmt::{self, Display, Formatter},
@@ -136,13 +139,110 @@ impl Display for Format<'_, Atom> {
     }
 }
 
-// TODO Tobias: Continue implementing the default formatting for ASP here
+impl Display for Format<'_, Program> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        for rule in &self.0.rules {
+            writeln!(f, "{}", Format(rule))?;
+        }
+        Ok(())
+    }
+}
+
+impl Display for Format<'_, Sign> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self.0 {
+            Sign::NoSign => write!(f, ""),
+            Sign::Negation => write!(f, "not"),
+            Sign::DoubleNegation => write!(f, "not not"),
+        }
+    }
+}
+
+impl Display for Format<'_, Literal> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        if self.0.sign == Sign::NoSign {
+            write!(f, "{}", Format(&self.0.atom))
+        } else {
+            write!(f, "{} {}", Format(&self.0.sign), Format(&self.0.atom))
+        }
+    }
+}
+
+impl Display for Format<'_, Relation> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self.0 {
+            Relation::Equal => write!(f, "="),
+            Relation::NotEqual => write!(f, "!="),
+            Relation::Less => write!(f, "<"),
+            Relation::LessEqual => write!(f, "<="),
+            Relation::Greater => write!(f, ">"),
+            Relation::GreaterEqual => write!(f, ">="),
+        }
+    }
+}
+
+impl Display for Format<'_, Comparison> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{} {} {}",
+            Format(&self.0.lhs),
+            Format(&self.0.relation),
+            Format(&self.0.rhs)
+        )
+    }
+}
+
+impl Display for Format<'_, AtomicFormula> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self.0 {
+            AtomicFormula::Literal(l) => write!(f, "{}", Format(l)),
+            AtomicFormula::Comparison(c) => write!(f, "{}", Format(c)),
+        }
+    }
+}
+
+impl Display for Format<'_, Head> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self.0 {
+            Head::Basic(a) => write!(f, "{}", Format(a)),
+            Head::Choice(a) => write!(f, "{{{}}}", Format(a)),
+            Head::Falsity => write!(f, ""),
+        }
+    }
+}
+
+impl Display for Format<'_, Body> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let mut iter = self.0.formulas.iter().map(|f| Format(f));
+        if let Some(formula) = iter.next() {
+            write!(f, "{formula}")?;
+            for formula in iter {
+                write!(f, ", {formula}")?;
+            }
+        }
+        Ok(())
+    }
+}
+
+impl Display for Format<'_, Rule> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", Format(&self.0.head))?;
+        if self.0.head == Head::Falsity || !self.0.body.formulas.is_empty() {
+            write!(f, " :- ")?;
+        }
+        write!(f, "{}.", Format(&self.0.body))
+    }
+}
 
 #[cfg(test)]
 mod tests {
     use crate::{
         formatting::asp::default::Format,
-        syntax_tree::asp::{Atom, BinaryOperator, Constant, Term, UnaryOperator, Variable},
+        syntax_tree::asp::{
+            Atom, AtomicFormula, BinaryOperator, Body, Comparison, Constant, Head, Literal,
+            Relation, Sign, Term, UnaryOperator, Variable,
+        },
     };
 
     #[test]
@@ -280,5 +380,134 @@ mod tests {
             .to_string(),
             "p(1, 2)"
         );
+    }
+
+    #[test]
+    fn format_sign() {
+        assert_eq!(Format(&Sign::NoSign).to_string(), "");
+        assert_eq!(Format(&Sign::Negation).to_string(), "not");
+        assert_eq!(Format(&Sign::DoubleNegation).to_string(), "not not");
+    }
+
+    #[test]
+    fn format_literal() {
+        assert_eq!(
+            Format(&Literal {
+                sign: Sign::Negation,
+                atom: Atom {
+                    predicate: "p".into(),
+                    terms: vec![]
+                }
+            })
+            .to_string(),
+            "not p"
+        );
+    }
+
+    #[test]
+    fn format_relation() {
+        assert_eq!(Format(&Relation::Equal).to_string(), "=");
+        assert_eq!(Format(&Relation::NotEqual).to_string(), "!=");
+        assert_eq!(Format(&Relation::Less).to_string(), "<");
+        assert_eq!(Format(&Relation::LessEqual).to_string(), "<=");
+        assert_eq!(Format(&Relation::Greater).to_string(), ">");
+        assert_eq!(Format(&Relation::GreaterEqual).to_string(), ">=");
+    }
+
+    #[test]
+    fn format_comparison() {
+        assert_eq!(
+            Format(&Comparison {
+                relation: Relation::Equal,
+                lhs: Term::Variable(Variable::Named("I".into())),
+                rhs: Term::Constant(Constant::Integer(1))
+            })
+            .to_string(),
+            "I = 1"
+        );
+    }
+
+    #[test]
+    fn format_atomic_formula() {
+        assert_eq!(
+            Format(&AtomicFormula::Literal(Literal {
+                sign: Sign::DoubleNegation,
+                atom: Atom {
+                    predicate: "p".into(),
+                    terms: vec![]
+                }
+            }))
+            .to_string(),
+            "not not p"
+        );
+
+        assert_eq!(
+            Format(&AtomicFormula::Comparison(Comparison {
+                relation: Relation::NotEqual,
+                lhs: Term::Constant(Constant::Integer(1)),
+                rhs: Term::Constant(Constant::Integer(2))
+            }))
+            .to_string(),
+            "1 != 2"
+        );
+    }
+
+    #[test]
+    fn format_head() {
+        assert_eq!(
+            Format(&Head::Basic(Atom {
+                predicate: "p".into(),
+                terms: vec![]
+            }))
+            .to_string(),
+            "p"
+        );
+
+        assert_eq!(
+            Format(&Head::Choice(Atom {
+                predicate: "p".into(),
+                terms: vec![]
+            }))
+            .to_string(),
+            "{p}"
+        );
+
+        assert_eq!(Format(&Head::Falsity).to_string(), "");
+    }
+
+    #[test]
+    fn format_body() {
+        assert_eq!(Format(&Body { formulas: vec![] }).to_string(), "");
+
+        assert_eq!(
+            Format(&Body {
+                formulas: vec![
+                    AtomicFormula::Literal(Literal {
+                        sign: Sign::NoSign,
+                        atom: Atom {
+                            predicate: "p".into(),
+                            terms: vec![Term::Variable(Variable::Named("X".into()))]
+                        }
+                    }),
+                    AtomicFormula::Comparison(Comparison {
+                        relation: Relation::Less,
+                        lhs: Term::Variable(Variable::Named("X".into())),
+                        rhs: Term::Constant(Constant::Integer(10))
+                    })
+                ]
+            })
+            .to_string(),
+            "p(X), X < 10"
+        );
+    }
+
+    #[test]
+    fn format_rule() {
+        // TODO
+    }
+
+    #[test]
+    fn format_program() {
+        // TODO
     }
 }
