@@ -77,7 +77,7 @@ impl Display for Format<'_, IntegerTerm> {
             IntegerTerm::BasicIntegerTerm(t) => Format(t).fmt(f),
             IntegerTerm::UnaryOperation { op, arg } => {
                 let op = Format(op);
-                let arg = Format(arg.as_ref());
+                let arg = Format(&**arg);
 
                 write!(f, "{op}(")?;
                 if self.precedence() < arg.precedence() {
@@ -91,8 +91,8 @@ impl Display for Format<'_, IntegerTerm> {
             }
             IntegerTerm::BinaryOperation { op, lhs, rhs } => {
                 let op = Format(op);
-                let lhs = Format(lhs.as_ref());
-                let rhs = Format(rhs.as_ref());
+                let lhs = Format(&**lhs);
+                let rhs = Format(&**rhs);
 
                 write!(f, "{op}(")?;
                 if self.precedence() < lhs.precedence() {
@@ -143,13 +143,239 @@ impl Display for Format<'_, Atom> {
     }
 }
 
+impl Display for Format<'_, Relation> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self.0 {
+            Relation::Equal => write!(f, "="),
+            Relation::NotEqual => write!(f, "!="),
+            Relation::GreaterEqual => write!(f, "$greatereq"),
+            Relation::LessEqual => write!(f, "$lesseq"),
+            Relation::Greater => write!(f, "$greater"),
+            Relation::Less => write!(f, "$less"),
+        }
+    }
+}
+
+impl Display for Format<'_, Comparison> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let guards = &self.0.guards;
+
+        let mut counter = 0;
+        let mut previous_term = &self.0.term;
+        for g in guards.iter() {
+            if counter > 0 {
+                write!(f, " and ")?;
+            }
+            match g.relation {
+                Relation::Equal | Relation::NotEqual => write!(
+                    f,
+                    "{} {} {}",
+                    Format(previous_term),
+                    Format(&g.relation),
+                    Format(&g.term)
+                ),
+                _ => write!(
+                    f,
+                    "{}({}, {})",
+                    Format(&g.relation),
+                    Format(previous_term),
+                    Format(&g.term)
+                ),
+            }?;
+            previous_term = &g.term;
+            counter += 1;
+        }
+
+        Ok(())
+    }
+}
+
+impl Display for Format<'_, AtomicFormula> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self.0 {
+            AtomicFormula::Falsity => write!(f, "$false"),
+            AtomicFormula::Atom(a) => Format(a).fmt(f),
+            AtomicFormula::Comparison(c) => Format(c).fmt(f),
+        }
+    }
+}
+
+impl Display for Format<'_, Quantifier> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self.0 {
+            Quantifier::Forall => write!(f, "!"),
+            Quantifier::Exists => write!(f, "?"),
+        }
+    }
+}
+
+impl Display for Format<'_, Variable> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", &self.0.name)
+    }
+}
+
+impl Display for Format<'_, Quantification> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let variables = &self.0.variables;
+
+        write!(f, "{}[", Format(&self.0.quantifier))?;
+
+        let mut counter = 0;
+        for var in variables.iter() {
+            if counter > 0 {
+                write!(f, ", ")?;
+            }
+            match var.sort {
+                Sort::Integer => write!(f, "{}: $int", var.name),
+                Sort::General => write!(f, "{}: object", var.name),
+            }?;
+            counter += 1;
+        }
+
+        write!(f, "]: ")?;
+
+        Ok(())
+    }
+}
+
+impl Display for Format<'_, UnaryConnective> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self.0 {
+            UnaryConnective::Negation => write!(f, "~"),
+        }
+    }
+}
+
+impl Display for Format<'_, BinaryConnective> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self.0 {
+            BinaryConnective::Equivalence => write!(f, "<=>"),
+            BinaryConnective::Implication => write!(f, "=>"),
+            BinaryConnective::ReverseImplication => write!(f, "<="),    // TODO: Decide how this should be converted to TFF
+            BinaryConnective::Conjunction => write!(f, "&"),
+            BinaryConnective::Disjunction => write!(f, "|"),
+        }
+    }
+}
+
+impl Format<'_, Formula> {
+    fn precedence(&self) -> usize {
+        match self.0 {
+            Formula::AtomicFormula(_) => 0,
+            Formula::UnaryFormula { .. } | Formula::QuantifiedFormula { .. } => 1,
+            Formula::BinaryFormula {
+                connective: BinaryConnective::Conjunction,
+                ..
+            } => 2,
+            Formula::BinaryFormula {
+                connective: BinaryConnective::Disjunction,
+                ..
+            } => 3,
+            Formula::BinaryFormula {
+                connective:
+                    BinaryConnective::Equivalence
+                    | BinaryConnective::Implication
+                    | BinaryConnective::ReverseImplication,
+                ..
+            } => 4,
+        }
+    }
+
+    fn is_left_associative(&self) -> bool {
+        match self.0 {
+            Formula::BinaryFormula {
+                connective:
+                    BinaryConnective::Conjunction
+                    | BinaryConnective::Disjunction
+                    | BinaryConnective::ReverseImplication,
+                ..
+            } => true,
+            Formula::BinaryFormula {
+                connective: BinaryConnective::Equivalence | BinaryConnective::Implication,
+                ..
+            } => false,
+            _ => unreachable!(), // TODO
+        }
+    }
+}
+
+impl Display for Format<'_, Formula> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self.0 {
+            Formula::AtomicFormula(a) => Format(a).fmt(f),
+            Formula::UnaryFormula {
+                connective,
+                formula,
+            } => {
+                let connective = Format(connective);
+                let formula = Format(formula.as_ref());
+
+                connective.fmt(f)?;
+                if self.precedence() < formula.precedence() {
+                    write!(f, "({formula})")
+                } else {
+                    write!(f, "{formula}")
+                }
+            }
+            Formula::QuantifiedFormula {
+                quantification,
+                formula,
+            } => {
+                let connective = Format(quantification);
+                let formula = Format(formula.as_ref());
+
+                connective.fmt(f)?;
+                if 0 == 0 {
+                    write!(f, "({formula})")
+                } else {
+                    write!(f, "({formula})")
+                }
+
+                //if self.precedence() < formula.precedence() {
+                //    write!(f, "({formula})")
+                //} else {
+                //    write!(f, "{formula}")
+                //}
+            }
+            Formula::BinaryFormula {
+                connective,
+                lhs,
+                rhs,
+            } => {
+                let op = Format(connective);
+                let lhs = Format(lhs.as_ref());
+                let rhs = Format(rhs.as_ref());
+
+                if self.precedence() < lhs.precedence()
+                    || self.precedence() == lhs.precedence() && !lhs.is_left_associative()
+                {
+                    write!(f, "({lhs})")
+                } else {
+                    write!(f, "{lhs}")
+                }?;
+
+                write!(f, " {op} ")?;
+                if self.precedence() < rhs.precedence()
+                    || self.precedence() == rhs.precedence() && self.is_left_associative()
+                {
+                    write!(f, "({rhs})")
+                } else {
+                    write!(f, "{rhs}")
+                }
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{
         formatting::fol::tptp::Format,
         syntax_tree::fol::{
             Atom, AtomicFormula, BasicIntegerTerm, BinaryOperator, Comparison, GeneralTerm, Guard,
-            IntegerTerm, Quantification, Quantifier, Relation, Sort, UnaryOperator, Variable,
+            IntegerTerm, Quantification, Quantifier, Relation, Sort, UnaryOperator, Variable, Formula,
+            BinaryConnective,
         },
     };
 
@@ -271,6 +497,205 @@ mod tests {
             .to_string(),
             "prime($sum(N1, 3), 5)"
         )
+    }
+
+    #[test]
+    fn format_comparison() {
+        assert_eq!(
+            Format(&Comparison {
+                term: GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(
+                    BasicIntegerTerm::Numeral(5)
+                )),
+                guards: vec![Guard {
+                    relation: Relation::Equal,
+                    term: GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(
+                        BasicIntegerTerm::Numeral(3)
+                    )),
+                }]
+            })
+            .to_string(),
+            "5 = 3"
+        );
+        assert_eq!(
+            Format(&Comparison {
+                term: GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(
+                    BasicIntegerTerm::Numeral(5)
+                )),
+                guards: vec![Guard {
+                    relation: Relation::NotEqual,
+                    term: GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(
+                        BasicIntegerTerm::Numeral(3)
+                    )),
+                }]
+            })
+            .to_string(),
+            "5 != 3"
+        );
+        assert_eq!(
+            Format(&Comparison {
+                term: GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(
+                    BasicIntegerTerm::Numeral(5)
+                )),
+                guards: vec![Guard {
+                    relation: Relation::LessEqual,
+                    term: GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(
+                        BasicIntegerTerm::Numeral(3)
+                    )),
+                }]
+            })
+            .to_string(),
+            "$lesseq(5, 3)"
+        );
+        assert_eq!(
+            Format(&Comparison {
+                term: GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(
+                    BasicIntegerTerm::Numeral(5)
+                )),
+                guards: vec![
+                    Guard {
+                        relation: Relation::LessEqual,
+                        term: GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(
+                            BasicIntegerTerm::Numeral(3)
+                        )),
+                    },
+                    Guard {
+                        relation: Relation::Equal,
+                        term: GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(
+                            BasicIntegerTerm::Numeral(4)
+                        )),
+                    }
+                ]
+            })
+            .to_string(),
+            "$lesseq(5, 3) and 3 = 4"
+        );
+        assert_eq!(
+            Format(&Comparison {
+                term: GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(
+                    BasicIntegerTerm::Numeral(5)
+                )),
+                guards: vec![
+                    Guard {
+                        relation: Relation::LessEqual,
+                        term: GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(
+                            BasicIntegerTerm::Numeral(3)
+                        )),
+                    },
+                    Guard {
+                        relation: Relation::Less,
+                        term: GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(
+                            BasicIntegerTerm::Numeral(6)
+                        )),
+                    },
+                    Guard {
+                        relation: Relation::NotEqual,
+                        term: GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(
+                            BasicIntegerTerm::Numeral(5)
+                        )),
+                    }
+                ]
+            })
+            .to_string(),
+            "$lesseq(5, 3) and $less(3, 6) and 6 != 5"
+        );
+    }
+
+    #[test]
+    fn format_quantification() {
+        assert_eq!(
+            Format(&Quantification {
+                quantifier: Quantifier::Forall,
+                variables: vec![
+                    Variable {
+                        name: "X1".into(),
+                        sort: Sort::Integer,
+                    },
+                    Variable {
+                        name: "N2".into(),
+                        sort: Sort::General,
+                    },
+                ]
+            })
+            .to_string(),
+            "![X1: $int, N2: object]: "
+        );
+        assert_eq!(
+            Format(&Quantification {
+                quantifier: Quantifier::Exists,
+                variables: vec![
+                    Variable {
+                        name: "X1".into(),
+                        sort: Sort::Integer,
+                    },
+                ]
+            })
+            .to_string(),
+            "?[X1: $int]: "
+        );
+    }
+
+    #[test]
+    fn format_formula() {
+        assert_eq!(
+            Format(&Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                predicate: "p".into(),
+                terms: vec![]
+            })))
+            .to_string(),
+            "p"
+        );
+        assert_eq!(
+            Format(&Formula::BinaryFormula {
+                connective: BinaryConnective::Implication,
+                lhs: Formula::BinaryFormula {
+                    connective: BinaryConnective::Implication,
+                    lhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                        predicate: "p".into(),
+                        terms: vec![]
+                    }))
+                    .into(),
+                    rhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                        predicate: "q".into(),
+                        terms: vec![]
+                    }))
+                    .into()
+                }
+                .into(),
+                rhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                    predicate: "r".into(),
+                    terms: vec![]
+                }))
+                .into(),
+            })
+            .to_string(),
+            "(p => q) => r"
+        );
+        assert_eq!(Format(&Formula::QuantifiedFormula {
+            quantification: Quantification {
+                quantifier: Quantifier::Forall,
+                variables: vec![
+                    Variable {
+                        name: "X".into(),
+                        sort: Sort::Integer,
+                    },
+                    Variable {
+                        name: "Y1".into(),
+                        sort: Sort::General,
+                    },
+                ]
+            },
+            formula: Formula::BinaryFormula {
+                connective: BinaryConnective::Conjunction,
+                lhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                    predicate: "p".into(),
+                    terms: vec![],
+                })).into(),
+                rhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                    predicate: "q".into(),
+                    terms: vec![],
+                })).into(),
+            }.into()
+        }).to_string(), "![X: $int, Y1: object]: (p & q)");
     }
 }
 
