@@ -87,7 +87,7 @@ impl Display for Format<'_, Atom> {
         write!(f, "{predicate}")?;
 
         if !terms.is_empty() {
-            let mut iter = terms.iter().map(|t| Format(t));
+            let mut iter = terms.iter().map(Format);
             write!(f, "({}", iter.next().unwrap())?;
             for term in iter {
                 write!(f, ", {term}")?;
@@ -116,9 +116,8 @@ impl Display for Format<'_, Comparison> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let guards = &self.0.guards;
 
-        let mut counter = 0;
         let mut previous_term = &self.0.term;
-        for g in guards {
+        for (counter, g) in guards.iter().enumerate() {
             if counter > 0 {
                 write!(f, " and ")?;
             }
@@ -139,7 +138,6 @@ impl Display for Format<'_, Comparison> {
                 ),
             }?;
             previous_term = &g.term;
-            counter += 1;
         }
 
         Ok(())
@@ -177,8 +175,7 @@ impl Display for Format<'_, Quantification> {
 
         write!(f, "{}[", Format(&self.0.quantifier))?;
 
-        let mut counter = 0;
-        for var in variables.iter() {
+        for (counter, var) in variables.iter().enumerate() {
             if counter > 0 {
                 write!(f, ", ")?;
             }
@@ -186,7 +183,6 @@ impl Display for Format<'_, Quantification> {
                 Sort::Integer => write!(f, "{}: $int", var.name),
                 Sort::General => write!(f, "{}: object", var.name),
             }?;
-            counter += 1;
         }
 
         write!(f, "]")?;

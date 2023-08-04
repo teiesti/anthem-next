@@ -116,7 +116,7 @@ impl Display for Format<'_, Atom> {
         write!(f, "{predicate}")?;
 
         if !terms.is_empty() {
-            let mut iter = terms.iter().map(|t| Format(t));
+            let mut iter = terms.iter().map(Format);
             write!(f, "({}", iter.next().unwrap())?;
             for term in iter {
                 write!(f, ", {term}")?;
@@ -153,7 +153,7 @@ impl Display for Format<'_, Comparison> {
 
         write!(f, "{}", Format(&self.0.term))?;
 
-        let iter = guards.iter().map(|t| Format(t));
+        let iter = guards.iter().map(Format);
         for guard in iter {
             write!(f, " {guard}")?;
         }
@@ -203,7 +203,7 @@ impl Display for Format<'_, Quantification> {
             Quantifier::Exists => write!(f, "exists"),
         }?;
 
-        let iter = variables.iter().map(|t| Format(t));
+        let iter = variables.iter().map(Format);
         for var in iter {
             write!(f, " {var}")?;
         }
