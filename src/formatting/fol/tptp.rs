@@ -1,11 +1,14 @@
 use {
-    crate::syntax_tree::{
-        fol::{
-            Atom, AtomicFormula, BasicIntegerTerm, BinaryConnective, BinaryOperator, Comparison,
-            Formula, GeneralTerm, IntegerTerm, Quantification, Quantifier, Relation, Sort,
-            UnaryConnective, UnaryOperator, Variable,
+    crate::{
+        formatting::{Associativity, Precedence},
+        syntax_tree::{
+            fol::{
+                Atom, AtomicFormula, BasicIntegerTerm, BinaryConnective, BinaryOperator,
+                Comparison, Formula, GeneralTerm, IntegerTerm, Quantification, Quantifier,
+                Relation, Sort, UnaryConnective, UnaryOperator, Variable,
+            },
+            Node,
         },
-        Node,
     },
     std::fmt::{self, Display, Formatter},
 };
@@ -211,7 +214,7 @@ impl Display for Format<'_, BinaryConnective> {
     }
 }
 
-impl Format<'_, Formula> {
+impl Precedence for Format<'_, Formula> {
     fn precedence(&self) -> usize {
         match self.0 {
             Formula::AtomicFormula(_) => 0,
@@ -221,10 +224,18 @@ impl Format<'_, Formula> {
         }
     }
 
-    fn is_left_associative(&self) -> bool {
+    fn associativity(&self) -> Associativity {
+        Associativity::Left
+    }
+
+    fn fmt_operator(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self.0 {
-            Formula::BinaryFormula { .. } => true,
-            _ => unreachable!(), // TODO
+            Formula::UnaryFormula { connective, .. } => write!(f, "{}", Format(connective)),
+            Formula::BinaryFormula { connective, .. } => write!(f, " {} ", Format(connective)),
+            Formula::QuantifiedFormula { quantification, .. } => {
+                write!(f, "{}: ", Format(quantification))
+            }
+            Formula::AtomicFormula(_) => unreachable!(),
         }
     }
 }
@@ -233,53 +244,18 @@ impl Display for Format<'_, Formula> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self.0 {
             Formula::AtomicFormula(a) => Format(a).fmt(f),
-            Formula::UnaryFormula {
-                connective,
-                formula,
-            } => {
-                let connective = Format(connective);
-                let formula = Format(formula.as_ref());
-
-                connective.fmt(f)?;
-                if self.precedence() < formula.precedence() {
-                    write!(f, "({formula})")
-                } else {
-                    write!(f, "{formula}")
-                }
-            }
+            Formula::UnaryFormula { formula, .. } => self.fmt_unary(Format(formula.as_ref()), f),
             Formula::QuantifiedFormula {
                 quantification,
                 formula,
             } => {
+                // no precedence formatting needed
                 let connective = Format(quantification);
                 let formula = Format(formula.as_ref());
                 write!(f, "{connective}: ({formula})")
             }
-            Formula::BinaryFormula {
-                connective,
-                lhs,
-                rhs,
-            } => {
-                let op = Format(connective);
-                let lhs = Format(lhs.as_ref());
-                let rhs = Format(rhs.as_ref());
-
-                if self.precedence() < lhs.precedence()
-                    || self.precedence() == lhs.precedence() && !lhs.is_left_associative()
-                {
-                    write!(f, "({lhs})")
-                } else {
-                    write!(f, "{lhs}")
-                }?;
-
-                write!(f, " {op} ")?;
-                if self.precedence() < rhs.precedence()
-                    || self.precedence() == rhs.precedence() && self.is_left_associative()
-                {
-                    write!(f, "({rhs})")
-                } else {
-                    write!(f, "{rhs}")
-                }
+            Formula::BinaryFormula { lhs, rhs, .. } => {
+                self.fmt_binary(Format(lhs.as_ref()), Format(rhs.as_ref()), f)
             }
         }
     }

@@ -1,10 +1,13 @@
 use {
-    crate::syntax_tree::{
-        asp::{
-            Atom, AtomicFormula, BinaryOperator, Body, Comparison, Constant, Head, Literal,
-            Program, Relation, Rule, Sign, Term, UnaryOperator, Variable,
+    crate::{
+        formatting::{Associativity, Precedence},
+        syntax_tree::{
+            asp::{
+                Atom, AtomicFormula, BinaryOperator, Body, Comparison, Constant, Head, Literal,
+                Program, Relation, Rule, Sign, Term, UnaryOperator, Variable,
+            },
+            Node,
         },
-        Node,
     },
     std::fmt::{self, Display, Formatter},
 };
@@ -52,7 +55,7 @@ impl Display for Format<'_, BinaryOperator> {
     }
 }
 
-impl Format<'_, Term> {
+impl Precedence for Format<'_, Term> {
     fn precedence(&self) -> usize {
         match self.0 {
             Term::Constant(Constant::Integer(1..)) => 1,
@@ -76,6 +79,21 @@ impl Format<'_, Term> {
             } => 4,
         }
     }
+
+    fn associativity(&self) -> Associativity {
+        Associativity::Left
+    }
+
+    fn fmt_operator(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self.0 {
+            Term::UnaryOperation { op, .. } => write!(f, "{}", Format(op)),
+            Term::BinaryOperation { op, .. } => match op {
+                BinaryOperator::Interval => write!(f, "{}", Format(op)),
+                _ => write!(f, " {} ", Format(op)),
+            },
+            Term::Constant(_) | Term::Variable(_) => unreachable!(),
+        }
+    }
 }
 
 impl Display for Format<'_, Term> {
@@ -83,37 +101,9 @@ impl Display for Format<'_, Term> {
         match self.0 {
             Term::Constant(c) => Format(c).fmt(f),
             Term::Variable(v) => Format(v).fmt(f),
-            Term::UnaryOperation { op, arg } => {
-                let op = Format(op);
-                let arg = Format(arg.as_ref());
-
-                op.fmt(f)?;
-                if self.precedence() < arg.precedence() {
-                    write!(f, "({arg})")
-                } else {
-                    write!(f, "{arg}")
-                }
-            }
-            Term::BinaryOperation { op, lhs, rhs } => {
-                let op = Format(op);
-                let lhs = Format(lhs.as_ref());
-                let rhs = Format(rhs.as_ref());
-
-                if self.precedence() < lhs.precedence() {
-                    write!(f, "({lhs})")
-                } else {
-                    write!(f, "{lhs}")
-                }?;
-                if *op.0 == BinaryOperator::Interval {
-                    write!(f, "{op}")
-                } else {
-                    write!(f, " {op} ")
-                }?;
-                if self.precedence() <= rhs.precedence() {
-                    write!(f, "({rhs})")
-                } else {
-                    write!(f, "{rhs}")
-                }
+            Term::UnaryOperation { arg, .. } => self.fmt_unary(Format(arg.as_ref()), f),
+            Term::BinaryOperation { lhs, rhs, .. } => {
+                self.fmt_binary(Format(lhs.as_ref()), Format(rhs.as_ref()), f)
             }
         }
     }
