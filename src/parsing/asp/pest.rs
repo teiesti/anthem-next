@@ -58,12 +58,11 @@ impl PestParser for VariableParser {
     const RULE: internal::Rule = internal::Rule::variable;
 
     fn translate_pair(pair: pest::iterators::Pair<'_, Self::Rule>) -> Self::Node {
-        match pair.as_rule() {
-            internal::Rule::variable => Self::translate_pairs(pair.into_inner()),
-            internal::Rule::anonymous_variable => Variable::Anonymous,
-            internal::Rule::named_variable => Variable::Named(pair.as_str().into()),
-            _ => Self::report_unexpected_pair(pair),
+        if pair.as_rule() != internal::Rule::variable {
+            Self::report_unexpected_pair(pair)
         }
+
+        Variable(pair.as_str().into())
     }
 }
 
@@ -455,15 +454,14 @@ mod tests {
     fn parse_variable() {
         VariableParser
             .should_parse_into([
-                ("_", Variable::Anonymous),
-                ("A", Variable::Named("A".into())),
-                ("AA", Variable::Named("AA".into())),
-                ("Aa", Variable::Named("Aa".into())),
-                ("_A", Variable::Named("_A".into())),
-                ("'A", Variable::Named("'A".into())),
-                ("_'X'_'X'_", Variable::Named("_'X'_'X'_".into())),
+                ("A", Variable("A".into())),
+                ("AA", Variable("AA".into())),
+                ("Aa", Variable("Aa".into())),
+                ("_A", Variable("_A".into())),
+                ("'A", Variable("'A".into())),
+                ("_'X'_'X'_", Variable("_'X'_'X'_".into())),
             ])
-            .should_reject(["a", "1", "A A", "A-A", "'", "-A"]);
+            .should_reject(["_", "a", "1", "A A", "A-A", "'", "-A"]);
     }
 
     #[test]
@@ -565,20 +563,20 @@ mod tests {
                         rhs: Term::Constant(Constant::Symbol("a".into())).into(),
                     },
                 ),
-                ("A", Term::Variable(Variable::Named("A".into()))),
-                ("(A)", Term::Variable(Variable::Named("A".into()))),
+                ("A", Term::Variable(Variable("A".into()))),
+                ("(A)", Term::Variable(Variable("A".into()))),
                 (
                     "-A",
                     Term::UnaryOperation {
                         op: UnaryOperator::Negative,
-                        arg: Term::Variable(Variable::Named("A".into())).into(),
+                        arg: Term::Variable(Variable("A".into())).into(),
                     },
                 ),
                 (
                     "-(A)",
                     Term::UnaryOperation {
                         op: UnaryOperator::Negative,
-                        arg: Term::Variable(Variable::Named("A".into())).into(),
+                        arg: Term::Variable(Variable("A".into())).into(),
                     },
                 ),
                 (
@@ -587,7 +585,7 @@ mod tests {
                         op: UnaryOperator::Negative,
                         arg: Term::UnaryOperation {
                             op: UnaryOperator::Negative,
-                            arg: Term::Variable(Variable::Named("A".into())).into(),
+                            arg: Term::Variable(Variable("A".into())).into(),
                         }
                         .into(),
                     },
@@ -597,7 +595,7 @@ mod tests {
                     Term::BinaryOperation {
                         op: BinaryOperator::Add,
                         lhs: Term::Constant(Constant::Integer(1)).into(),
-                        rhs: Term::Variable(Variable::Named("A".into())).into(),
+                        rhs: Term::Variable(Variable("A".into())).into(),
                     },
                 ),
                 (
@@ -605,7 +603,7 @@ mod tests {
                     Term::BinaryOperation {
                         op: BinaryOperator::Interval,
                         lhs: Term::Constant(Constant::Integer(1)).into(),
-                        rhs: Term::Variable(Variable::Named("A".into())).into(),
+                        rhs: Term::Variable(Variable("A".into())).into(),
                     },
                 ),
                 (
@@ -615,7 +613,7 @@ mod tests {
                         lhs: Term::BinaryOperation {
                             op: BinaryOperator::Add,
                             lhs: Term::Constant(Constant::Integer(1)).into(),
-                            rhs: Term::Variable(Variable::Named("A".into())).into(),
+                            rhs: Term::Variable(Variable("A".into())).into(),
                         }
                         .into(),
                         rhs: Term::BinaryOperation {
@@ -826,7 +824,7 @@ mod tests {
             Comparison {
                 relation: Relation::Less,
                 lhs: Term::Constant(Constant::Integer(1)),
-                rhs: Term::Variable(Variable::Named("N".into())),
+                rhs: Term::Variable(Variable("N".into())),
             },
         )]);
     }
@@ -839,7 +837,7 @@ mod tests {
                 AtomicFormula::Comparison(Comparison {
                     relation: Relation::Less,
                     lhs: Term::Constant(Constant::Integer(1)),
-                    rhs: Term::Variable(Variable::Named("N".into())),
+                    rhs: Term::Variable(Variable("N".into())),
                 }),
             ),
             (
@@ -905,7 +903,7 @@ mod tests {
                         }),
                         AtomicFormula::Comparison(Comparison {
                             relation: Relation::Less,
-                            lhs: Term::Variable(Variable::Named("N".into())),
+                            lhs: Term::Variable(Variable("N".into())),
                             rhs: Term::Constant(Constant::Integer(1)),
                         }),
                     ],

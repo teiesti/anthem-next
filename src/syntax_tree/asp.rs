@@ -11,10 +11,7 @@ pub enum Constant {
 impl Node for Constant {}
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum Variable {
-    Anonymous,
-    Named(String),
-}
+pub struct Variable(pub String);
 
 impl Node for Variable {}
 
