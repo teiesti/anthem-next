@@ -34,7 +34,7 @@ keyword = _{ primitive | binary_connective | unary_connective | quantifier | sor
 
 basic_integer_term = { numeral | integer_variable | infimum | supremum }
     numeral           = @{ ("0") | ("-"? ~ ASCII_NONZERO_DIGIT ~ ASCII_DIGIT*) }
-    unsorted_variable = @{ "_"? ~ ASCII_ALPHA_UPPER ~ (ASCII_ALPHANUMERIC | "_" | "'")* }
+    unsorted_variable = @{ "_"? ~ ASCII_ALPHA_UPPER ~ (ASCII_ALPHANUMERIC | "_")* }
     integer_variable  = ${ unsorted_variable ~ "$" ~ integer_sort }
 
 unary_operator = _{ negative }
@@ -46,11 +46,11 @@ binary_operator = _{ add | subtract | multiply }
     multiply = { "*" }
 
 integer_term = { unary_operator* ~ n_primary ~ (binary_operator ~ unary_operator* ~ n_primary)* }
-    n_primary = _{ basic_integer_term | "(" ~ integer_term ~ ")"}
+    n_primary = _{ basic_integer_term | "(" ~ integer_term ~ ")" }
 
 general_term = { integer_term | symbolic_constant | general_variable }
-    symbolic_constant = @{ !(keyword) ~ "_"? ~ ASCII_ALPHA_LOWER ~ (ASCII_ALPHANUMERIC | "_" | "'")* }
-    general_variable  = ${ unsorted_variable ~ ("$" ~ general_sort)?}
+    symbolic_constant = @{ !keyword ~ "_"? ~ ASCII_ALPHA_LOWER ~ (ASCII_ALPHANUMERIC | "_")* }
+    general_variable  = ${ unsorted_variable ~ ("$" ~ general_sort)? }
 
 variable = { integer_variable | general_variable }
 
