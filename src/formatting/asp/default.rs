@@ -27,10 +27,7 @@ impl Display for Format<'_, Constant> {
 
 impl Display for Format<'_, Variable> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self.0 {
-            Variable::Anonymous => write!(f, "_"),
-            Variable::Named(s) => write!(f, "{s}"),
-        }
+        write!(f, "{}", self.0 .0)
     }
 }
 
@@ -247,8 +244,7 @@ mod tests {
 
     #[test]
     fn format_variable() {
-        assert_eq!(Format(&Variable::Anonymous).to_string(), "_");
-        assert_eq!(Format(&Variable::Named("A".into())).to_string(), "A");
+        assert_eq!(Format(&Variable("A".into())).to_string(), "A");
     }
 
     #[test]
@@ -274,7 +270,7 @@ mod tests {
         );
 
         assert_eq!(
-            Format(&Term::Variable(Variable::Named("A".into()))).to_string(),
+            Format(&Term::Variable(Variable("A".into()))).to_string(),
             "A"
         );
 
@@ -409,7 +405,7 @@ mod tests {
         assert_eq!(
             Format(&Comparison {
                 relation: Relation::Equal,
-                lhs: Term::Variable(Variable::Named("I".into())),
+                lhs: Term::Variable(Variable("I".into())),
                 rhs: Term::Constant(Constant::Integer(1))
             })
             .to_string(),
@@ -476,12 +472,12 @@ mod tests {
                         sign: Sign::NoSign,
                         atom: Atom {
                             predicate: "p".into(),
-                            terms: vec![Term::Variable(Variable::Named("X".into()))]
+                            terms: vec![Term::Variable(Variable("X".into()))]
                         }
                     }),
                     AtomicFormula::Comparison(Comparison {
                         relation: Relation::Less,
-                        lhs: Term::Variable(Variable::Named("X".into())),
+                        lhs: Term::Variable(Variable("X".into())),
                         rhs: Term::Constant(Constant::Integer(10))
                     })
                 ]

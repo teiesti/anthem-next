@@ -11,13 +11,11 @@ constant = { infimum | integer | symbol | supremum }
     }
     supremum = @{ "#supremum" | "#sup" }
 
-variable = { named_variable | anonymous_variable }
-    named_variable = @{
-        ("_" | "'")*
-        ~ ASCII_ALPHA_UPPER
-        ~ (ASCII_ALPHANUMERIC | "_" | "'")*
-    }
-    anonymous_variable = @{ "_" }
+variable = @{
+    ("_" | "'")*
+    ~ ASCII_ALPHA_UPPER
+    ~ (ASCII_ALPHANUMERIC | "_" | "'")*
+}
 
 unary_operator = _{ negative }
     negative = { !integer ~ "-" }
