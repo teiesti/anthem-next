@@ -3,19 +3,10 @@ WHITESPACE = _{ " " | NEWLINE }
 precomputed_term = { infimum | integer | symbol | supremum }
     infimum = @{ "#infimum" | "#inf" }
     integer = @{ "0" | "-"? ~ ASCII_NONZERO_DIGIT ~ ASCII_DIGIT* }
-    symbol = @{
-        !negation
-        ~ ("_" | "'")*
-        ~ ASCII_ALPHA_LOWER
-        ~ (ASCII_ALPHANUMERIC | "_" | "'")*
-    }
+    symbol = @{ !negation ~ ASCII_ALPHA_LOWER ~ ASCII_ALPHANUMERIC* }
     supremum = @{ "#supremum" | "#sup" }
 
-variable = @{
-    ("_" | "'")*
-    ~ ASCII_ALPHA_UPPER
-    ~ (ASCII_ALPHANUMERIC | "_" | "'")*
-}
+variable = @{ ASCII_ALPHA_UPPER ~ ASCII_ALPHANUMERIC* }
 
 unary_operator = _{ negative }
     negative = { !integer ~ "-" }
