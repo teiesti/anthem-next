@@ -1,14 +1,14 @@
 use super::Node;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum Constant {
+pub enum PrecomputedTerm {
     Infimum,
-    Integer(isize),
+    Numeral(isize),
     Symbol(String),
     Supremum,
 }
 
-impl Node for Constant {}
+impl Node for PrecomputedTerm {}
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Variable(pub String);
@@ -36,7 +36,7 @@ impl Node for BinaryOperator {}
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Term {
-    Constant(Constant),
+    PrecomputedTerm(PrecomputedTerm),
     Variable(Variable),
     UnaryOperation {
         op: UnaryOperator,

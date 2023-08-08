@@ -1,8 +1,8 @@
 use crate::{
     parsing::PestParser,
     syntax_tree::asp::{
-        Atom, AtomicFormula, BinaryOperator, Body, Comparison, Constant, Head, Literal, Program,
-        Relation, Rule, Sign, Term, UnaryOperator, Variable,
+        Atom, AtomicFormula, BinaryOperator, Body, Comparison, Head, Literal, PrecomputedTerm,
+        Program, Relation, Rule, Sign, Term, UnaryOperator, Variable,
     },
 };
 
@@ -27,22 +27,22 @@ mod internal {
     }
 }
 
-pub struct ConstantParser;
+pub struct PrecomputedTermParser;
 
-impl PestParser for ConstantParser {
-    type Node = Constant;
+impl PestParser for PrecomputedTermParser {
+    type Node = PrecomputedTerm;
 
     type InternalParser = internal::Parser;
     type Rule = internal::Rule;
-    const RULE: internal::Rule = internal::Rule::constant;
+    const RULE: internal::Rule = internal::Rule::precomputed_term;
 
     fn translate_pair(pair: pest::iterators::Pair<'_, Self::Rule>) -> Self::Node {
         match pair.as_rule() {
-            internal::Rule::constant => Self::translate_pairs(pair.into_inner()),
-            internal::Rule::infimum => Constant::Infimum,
-            internal::Rule::integer => Constant::Integer(pair.as_str().parse().unwrap()),
-            internal::Rule::symbol => Constant::Symbol(pair.as_str().into()),
-            internal::Rule::supremum => Constant::Supremum,
+            internal::Rule::precomputed_term => Self::translate_pairs(pair.into_inner()),
+            internal::Rule::infimum => PrecomputedTerm::Infimum,
+            internal::Rule::integer => PrecomputedTerm::Numeral(pair.as_str().parse().unwrap()),
+            internal::Rule::symbol => PrecomputedTerm::Symbol(pair.as_str().into()),
+            internal::Rule::supremum => PrecomputedTerm::Supremum,
             _ => Self::report_unexpected_pair(pair),
         }
     }
@@ -118,7 +118,9 @@ impl PestParser for TermParser {
         internal::PRATT_PARSER
             .map_primary(|primary| match primary.as_rule() {
                 internal::Rule::term => TermParser::translate_pair(primary),
-                internal::Rule::constant => Term::Constant(ConstantParser::translate_pair(primary)),
+                internal::Rule::precomputed_term => {
+                    Term::PrecomputedTerm(PrecomputedTermParser::translate_pair(primary))
+                }
                 internal::Rule::variable => Term::Variable(VariableParser::translate_pair(primary)),
                 _ => Self::report_unexpected_pair(primary),
             })
@@ -412,38 +414,38 @@ mod tests {
     use {
         super::{
             AtomParser, AtomicFormulaParser, BinaryOperatorParser, BodyParser, ComparisonParser,
-            ConstantParser, HeadParser, LiteralParser, ProgramParser, RelationParser, RuleParser,
-            SignParser, TermParser, UnaryOperatorParser, VariableParser,
+            HeadParser, LiteralParser, PrecomputedTermParser, ProgramParser, RelationParser,
+            RuleParser, SignParser, TermParser, UnaryOperatorParser, VariableParser,
         },
         crate::{
             parsing::TestedParser,
             syntax_tree::asp::{
-                Atom, AtomicFormula, BinaryOperator, Body, Comparison, Constant, Head, Literal,
-                Program, Relation, Rule, Sign, Term, UnaryOperator, Variable,
+                Atom, AtomicFormula, BinaryOperator, Body, Comparison, Head, Literal,
+                PrecomputedTerm, Program, Relation, Rule, Sign, Term, UnaryOperator, Variable,
             },
         },
     };
 
     #[test]
-    fn parse_constant() {
-        ConstantParser
+    fn parse_precomputed_term() {
+        PrecomputedTermParser
             .should_parse_into([
-                ("#inf", Constant::Infimum),
-                ("#infimum", Constant::Infimum),
-                ("0", Constant::Integer(0)),
-                ("1", Constant::Integer(1)),
-                ("42", Constant::Integer(42)),
-                ("4711", Constant::Integer(4711)),
-                ("-1", Constant::Integer(-1)),
-                ("a", Constant::Symbol("a".into())),
-                ("aa", Constant::Symbol("aa".into())),
-                ("aA", Constant::Symbol("aA".into())),
-                ("_a", Constant::Symbol("_a".into())),
-                ("'a", Constant::Symbol("'a".into())),
-                ("_'x'_'x'_", Constant::Symbol("_'x'_'x'_".into())),
-                ("noto", Constant::Symbol("noto".into())),
-                ("#sup", Constant::Supremum),
-                ("#supremum", Constant::Supremum),
+                ("#inf", PrecomputedTerm::Infimum),
+                ("#infimum", PrecomputedTerm::Infimum),
+                ("0", PrecomputedTerm::Numeral(0)),
+                ("1", PrecomputedTerm::Numeral(1)),
+                ("42", PrecomputedTerm::Numeral(42)),
+                ("4711", PrecomputedTerm::Numeral(4711)),
+                ("-1", PrecomputedTerm::Numeral(-1)),
+                ("a", PrecomputedTerm::Symbol("a".into())),
+                ("aa", PrecomputedTerm::Symbol("aa".into())),
+                ("aA", PrecomputedTerm::Symbol("aA".into())),
+                ("_a", PrecomputedTerm::Symbol("_a".into())),
+                ("'a", PrecomputedTerm::Symbol("'a".into())),
+                ("_'x'_'x'_", PrecomputedTerm::Symbol("_'x'_'x'_".into())),
+                ("noto", PrecomputedTerm::Symbol("noto".into())),
+                ("#sup", PrecomputedTerm::Supremum),
+                ("#supremum", PrecomputedTerm::Supremum),
             ])
             .should_reject([
                 "A", "4 2", "00", "-0", "--1", "a a", "a-a", "'", "not", "#", "#infi", "#supi", "_",
@@ -485,55 +487,61 @@ mod tests {
     fn parse_term() {
         TermParser
             .should_parse_into([
-                ("#inf", Term::Constant(Constant::Infimum)),
-                ("#sup", Term::Constant(Constant::Supremum)),
-                ("1", Term::Constant(Constant::Integer(1))),
-                ("(1)", Term::Constant(Constant::Integer(1))),
-                ("-1", Term::Constant(Constant::Integer(-1))),
+                ("#inf", Term::PrecomputedTerm(PrecomputedTerm::Infimum)),
+                ("#sup", Term::PrecomputedTerm(PrecomputedTerm::Supremum)),
+                ("1", Term::PrecomputedTerm(PrecomputedTerm::Numeral(1))),
+                ("(1)", Term::PrecomputedTerm(PrecomputedTerm::Numeral(1))),
+                ("-1", Term::PrecomputedTerm(PrecomputedTerm::Numeral(-1))),
                 (
                     "-(1)",
                     Term::UnaryOperation {
                         op: UnaryOperator::Negative,
-                        arg: Term::Constant(Constant::Integer(1)).into(),
+                        arg: Term::PrecomputedTerm(PrecomputedTerm::Numeral(1)).into(),
                     },
                 ),
                 (
                     "--1",
                     Term::UnaryOperation {
                         op: UnaryOperator::Negative,
-                        arg: Term::Constant(Constant::Integer(-1)).into(),
+                        arg: Term::PrecomputedTerm(PrecomputedTerm::Numeral(-1)).into(),
                     },
                 ),
                 (
                     "1 + 2",
                     Term::BinaryOperation {
                         op: BinaryOperator::Add,
-                        lhs: Term::Constant(Constant::Integer(1)).into(),
-                        rhs: Term::Constant(Constant::Integer(2)).into(),
+                        lhs: Term::PrecomputedTerm(PrecomputedTerm::Numeral(1)).into(),
+                        rhs: Term::PrecomputedTerm(PrecomputedTerm::Numeral(2)).into(),
                     },
                 ),
                 (
                     "1..2",
                     Term::BinaryOperation {
                         op: BinaryOperator::Interval,
-                        lhs: Term::Constant(Constant::Integer(1)).into(),
-                        rhs: Term::Constant(Constant::Integer(2)).into(),
+                        lhs: Term::PrecomputedTerm(PrecomputedTerm::Numeral(1)).into(),
+                        rhs: Term::PrecomputedTerm(PrecomputedTerm::Numeral(2)).into(),
                     },
                 ),
-                ("a", Term::Constant(Constant::Symbol("a".into()))),
-                ("(a)", Term::Constant(Constant::Symbol("a".into()))),
+                (
+                    "a",
+                    Term::PrecomputedTerm(PrecomputedTerm::Symbol("a".into())),
+                ),
+                (
+                    "(a)",
+                    Term::PrecomputedTerm(PrecomputedTerm::Symbol("a".into())),
+                ),
                 (
                     "-a",
                     Term::UnaryOperation {
                         op: UnaryOperator::Negative,
-                        arg: Term::Constant(Constant::Symbol("a".into())).into(),
+                        arg: Term::PrecomputedTerm(PrecomputedTerm::Symbol("a".into())).into(),
                     },
                 ),
                 (
                     "-(a)",
                     Term::UnaryOperation {
                         op: UnaryOperator::Negative,
-                        arg: Term::Constant(Constant::Symbol("a".into())).into(),
+                        arg: Term::PrecomputedTerm(PrecomputedTerm::Symbol("a".into())).into(),
                     },
                 ),
                 (
@@ -542,7 +550,7 @@ mod tests {
                         op: UnaryOperator::Negative,
                         arg: Term::UnaryOperation {
                             op: UnaryOperator::Negative,
-                            arg: Term::Constant(Constant::Symbol("a".into())).into(),
+                            arg: Term::PrecomputedTerm(PrecomputedTerm::Symbol("a".into())).into(),
                         }
                         .into(),
                     },
@@ -551,16 +559,16 @@ mod tests {
                     "1 + a",
                     Term::BinaryOperation {
                         op: BinaryOperator::Add,
-                        lhs: Term::Constant(Constant::Integer(1)).into(),
-                        rhs: Term::Constant(Constant::Symbol("a".into())).into(),
+                        lhs: Term::PrecomputedTerm(PrecomputedTerm::Numeral(1)).into(),
+                        rhs: Term::PrecomputedTerm(PrecomputedTerm::Symbol("a".into())).into(),
                     },
                 ),
                 (
                     "1..a",
                     Term::BinaryOperation {
                         op: BinaryOperator::Interval,
-                        lhs: Term::Constant(Constant::Integer(1)).into(),
-                        rhs: Term::Constant(Constant::Symbol("a".into())).into(),
+                        lhs: Term::PrecomputedTerm(PrecomputedTerm::Numeral(1)).into(),
+                        rhs: Term::PrecomputedTerm(PrecomputedTerm::Symbol("a".into())).into(),
                     },
                 ),
                 ("A", Term::Variable(Variable("A".into()))),
@@ -594,7 +602,7 @@ mod tests {
                     "1 + A",
                     Term::BinaryOperation {
                         op: BinaryOperator::Add,
-                        lhs: Term::Constant(Constant::Integer(1)).into(),
+                        lhs: Term::PrecomputedTerm(PrecomputedTerm::Numeral(1)).into(),
                         rhs: Term::Variable(Variable("A".into())).into(),
                     },
                 ),
@@ -602,7 +610,7 @@ mod tests {
                     "1..A",
                     Term::BinaryOperation {
                         op: BinaryOperator::Interval,
-                        lhs: Term::Constant(Constant::Integer(1)).into(),
+                        lhs: Term::PrecomputedTerm(PrecomputedTerm::Numeral(1)).into(),
                         rhs: Term::Variable(Variable("A".into())).into(),
                     },
                 ),
@@ -612,14 +620,14 @@ mod tests {
                         op: BinaryOperator::Multiply,
                         lhs: Term::BinaryOperation {
                             op: BinaryOperator::Add,
-                            lhs: Term::Constant(Constant::Integer(1)).into(),
+                            lhs: Term::PrecomputedTerm(PrecomputedTerm::Numeral(1)).into(),
                             rhs: Term::Variable(Variable("A".into())).into(),
                         }
                         .into(),
                         rhs: Term::BinaryOperation {
                             op: BinaryOperator::Subtract,
-                            lhs: Term::Constant(Constant::Integer(1)).into(),
-                            rhs: Term::Constant(Constant::Symbol("a".into())).into(),
+                            lhs: Term::PrecomputedTerm(PrecomputedTerm::Numeral(1)).into(),
+                            rhs: Term::PrecomputedTerm(PrecomputedTerm::Symbol("a".into())).into(),
                         }
                         .into(),
                     },
@@ -632,25 +640,25 @@ mod tests {
                             op: BinaryOperator::Subtract,
                             lhs: Term::BinaryOperation {
                                 op: BinaryOperator::Add,
-                                lhs: Term::Constant(Constant::Integer(1)).into(),
-                                rhs: Term::Constant(Constant::Integer(2)).into(),
+                                lhs: Term::PrecomputedTerm(PrecomputedTerm::Numeral(1)).into(),
+                                rhs: Term::PrecomputedTerm(PrecomputedTerm::Numeral(2)).into(),
                             }
                             .into(),
-                            rhs: Term::Constant(Constant::Integer(3)).into(),
+                            rhs: Term::PrecomputedTerm(PrecomputedTerm::Numeral(3)).into(),
                         }
                         .into(),
-                        rhs: Term::Constant(Constant::Integer(4)).into(),
+                        rhs: Term::PrecomputedTerm(PrecomputedTerm::Numeral(4)).into(),
                     },
                 ),
                 (
                     "2 * (1..3)",
                     Term::BinaryOperation {
                         op: BinaryOperator::Multiply,
-                        lhs: Term::Constant(Constant::Integer(2)).into(),
+                        lhs: Term::PrecomputedTerm(PrecomputedTerm::Numeral(2)).into(),
                         rhs: Term::BinaryOperation {
                             op: BinaryOperator::Interval,
-                            lhs: Term::Constant(Constant::Integer(1)).into(),
-                            rhs: Term::Constant(Constant::Integer(3)).into(),
+                            lhs: Term::PrecomputedTerm(PrecomputedTerm::Numeral(1)).into(),
+                            rhs: Term::PrecomputedTerm(PrecomputedTerm::Numeral(3)).into(),
                         }
                         .into(),
                     },
@@ -661,22 +669,22 @@ mod tests {
                         op: BinaryOperator::Interval,
                         lhs: Term::BinaryOperation {
                             op: BinaryOperator::Interval,
-                            lhs: Term::Constant(Constant::Integer(1)).into(),
-                            rhs: Term::Constant(Constant::Integer(3)).into(),
+                            lhs: Term::PrecomputedTerm(PrecomputedTerm::Numeral(1)).into(),
+                            rhs: Term::PrecomputedTerm(PrecomputedTerm::Numeral(3)).into(),
                         }
                         .into(),
-                        rhs: Term::Constant(Constant::Integer(2)).into(),
+                        rhs: Term::PrecomputedTerm(PrecomputedTerm::Numeral(2)).into(),
                     },
                 ),
                 (
                     "1 + 2 * 3",
                     Term::BinaryOperation {
                         op: BinaryOperator::Add,
-                        lhs: Term::Constant(Constant::Integer(1)).into(),
+                        lhs: Term::PrecomputedTerm(PrecomputedTerm::Numeral(1)).into(),
                         rhs: Term::BinaryOperation {
                             op: BinaryOperator::Multiply,
-                            lhs: Term::Constant(Constant::Integer(2)).into(),
-                            rhs: Term::Constant(Constant::Integer(3)).into(),
+                            lhs: Term::PrecomputedTerm(PrecomputedTerm::Numeral(2)).into(),
+                            rhs: Term::PrecomputedTerm(PrecomputedTerm::Numeral(3)).into(),
                         }
                         .into(),
                     },
@@ -687,11 +695,11 @@ mod tests {
                         op: BinaryOperator::Add,
                         lhs: Term::BinaryOperation {
                             op: BinaryOperator::Multiply,
-                            lhs: Term::Constant(Constant::Integer(1)).into(),
-                            rhs: Term::Constant(Constant::Integer(2)).into(),
+                            lhs: Term::PrecomputedTerm(PrecomputedTerm::Numeral(1)).into(),
+                            rhs: Term::PrecomputedTerm(PrecomputedTerm::Numeral(2)).into(),
                         }
                         .into(),
-                        rhs: Term::Constant(Constant::Integer(3)).into(),
+                        rhs: Term::PrecomputedTerm(PrecomputedTerm::Numeral(3)).into(),
                     },
                 ),
             ])
@@ -729,7 +737,7 @@ mod tests {
                     "p(1)",
                     Atom {
                         predicate: "p".into(),
-                        terms: vec![Term::Constant(Constant::Integer(1))],
+                        terms: vec![Term::PrecomputedTerm(PrecomputedTerm::Numeral(1))],
                     },
                 ),
                 (
@@ -737,8 +745,8 @@ mod tests {
                     Atom {
                         predicate: "p".into(),
                         terms: vec![
-                            Term::Constant(Constant::Integer(1)),
-                            Term::Constant(Constant::Integer(2)),
+                            Term::PrecomputedTerm(PrecomputedTerm::Numeral(1)),
+                            Term::PrecomputedTerm(PrecomputedTerm::Numeral(2)),
                         ],
                     },
                 ),
@@ -823,7 +831,7 @@ mod tests {
             "1 < N",
             Comparison {
                 relation: Relation::Less,
-                lhs: Term::Constant(Constant::Integer(1)),
+                lhs: Term::PrecomputedTerm(PrecomputedTerm::Numeral(1)),
                 rhs: Term::Variable(Variable("N".into())),
             },
         )]);
@@ -836,7 +844,7 @@ mod tests {
                 "1 < N",
                 AtomicFormula::Comparison(Comparison {
                     relation: Relation::Less,
-                    lhs: Term::Constant(Constant::Integer(1)),
+                    lhs: Term::PrecomputedTerm(PrecomputedTerm::Numeral(1)),
                     rhs: Term::Variable(Variable("N".into())),
                 }),
             ),
@@ -904,7 +912,7 @@ mod tests {
                         AtomicFormula::Comparison(Comparison {
                             relation: Relation::Less,
                             lhs: Term::Variable(Variable("N".into())),
-                            rhs: Term::Constant(Constant::Integer(1)),
+                            rhs: Term::PrecomputedTerm(PrecomputedTerm::Numeral(1)),
                         }),
                     ],
                 },

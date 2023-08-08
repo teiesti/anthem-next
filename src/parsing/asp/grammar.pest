@@ -1,6 +1,6 @@
 WHITESPACE = _{ " " | NEWLINE }
 
-constant = { infimum | integer | symbol | supremum }
+precomputed_term = { infimum | integer | symbol | supremum }
     infimum = @{ "#infimum" | "#inf" }
     integer = @{ "0" | "-"? ~ ASCII_NONZERO_DIGIT ~ ASCII_DIGIT* }
     symbol = @{
@@ -29,7 +29,7 @@ binary_operator = _{ add | subtract | multiply | divide | modulo | interval }
     interval = { ".." }
 
 term = { unary_operator* ~ primary_term ~ (binary_operator ~ unary_operator* ~ primary_term)* }
-    primary_term = _{ constant | variable | "(" ~ term ~ ")"}
+    primary_term = _{ precomputed_term | variable | "(" ~ term ~ ")"}
 
 atom = { symbol ~ term_tuple? }
     term_tuple = _{ "(" ~ (term ~ ("," ~ term)*)? ~ ")" }
