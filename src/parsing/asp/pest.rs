@@ -440,15 +440,27 @@ mod tests {
                 ("a", PrecomputedTerm::Symbol("a".into())),
                 ("aa", PrecomputedTerm::Symbol("aa".into())),
                 ("aA", PrecomputedTerm::Symbol("aA".into())),
-                ("_a", PrecomputedTerm::Symbol("_a".into())),
-                ("'a", PrecomputedTerm::Symbol("'a".into())),
-                ("_'x'_'x'_", PrecomputedTerm::Symbol("_'x'_'x'_".into())),
                 ("noto", PrecomputedTerm::Symbol("noto".into())),
                 ("#sup", PrecomputedTerm::Supremum),
                 ("#supremum", PrecomputedTerm::Supremum),
             ])
             .should_reject([
-                "A", "4 2", "00", "-0", "--1", "a a", "a-a", "'", "not", "#", "#infi", "#supi", "_",
+                "_a",
+                "'a",
+                "_'x'_'x'_",
+                "A",
+                "4 2",
+                "00",
+                "-0",
+                "--1",
+                "a a",
+                "a-a",
+                "'",
+                "not",
+                "#",
+                "#infi",
+                "#supi",
+                "_",
             ]);
     }
 
@@ -459,11 +471,19 @@ mod tests {
                 ("A", Variable("A".into())),
                 ("AA", Variable("AA".into())),
                 ("Aa", Variable("Aa".into())),
-                ("_A", Variable("_A".into())),
-                ("'A", Variable("'A".into())),
-                ("_'X'_'X'_", Variable("_'X'_'X'_".into())),
             ])
-            .should_reject(["_", "a", "1", "A A", "A-A", "'", "-A"]);
+            .should_reject([
+                "_",
+                "a",
+                "1",
+                "A A",
+                "A-A",
+                "'",
+                "-A",
+                "_A",
+                "'A",
+                "_'X'_'X'_",
+            ]);
     }
 
     #[test]
