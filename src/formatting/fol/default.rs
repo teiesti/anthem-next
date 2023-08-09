@@ -267,6 +267,18 @@ impl Precedence for Format<'_, Formula> {
         }
     }
 
+    fn mandatory_parentheses(&self) -> bool {
+        matches!(
+            self.0,
+            Formula::BinaryFormula {
+                connective: BinaryConnective::Equivalence
+                    | BinaryConnective::Implication
+                    | BinaryConnective::ReverseImplication,
+                ..
+            }
+        )
+    }
+
     fn fmt_operator(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self.0 {
             Formula::UnaryFormula { connective, .. } => write!(f, "{} ", Format(connective)),
@@ -515,7 +527,7 @@ mod tests {
                 .into(),
             })
             .to_string(),
-            "p <- q <- r"
+            "(p <- q) <- r"
         );
 
         assert_eq!(
@@ -596,7 +608,7 @@ mod tests {
                 .into()
             })
             .to_string(),
-            "p -> q -> r"
+            "p -> (q -> r)"
         );
 
         assert_eq!(
@@ -650,7 +662,7 @@ mod tests {
                 .into()
             })
             .to_string(),
-            "p -> q <- r"
+            "p -> (q <- r)"
         );
 
         assert_eq!(
@@ -677,7 +689,7 @@ mod tests {
                 .into(),
             })
             .to_string(),
-            "p <- q -> r"
+            "(p <- q) -> r"
         );
 
         assert_eq!(

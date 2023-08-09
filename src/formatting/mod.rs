@@ -14,6 +14,10 @@ pub trait Precedence: Display {
 
     fn associativity(&self) -> Associativity;
 
+    fn mandatory_parentheses(&self) -> bool {
+        false
+    }
+
     fn fmt_operator(&self, f: &mut Formatter<'_>) -> fmt::Result;
 
     fn fmt_unary(&self, inner: impl Precedence, f: &mut Formatter<'_>) -> fmt::Result {
@@ -21,7 +25,7 @@ pub trait Precedence: Display {
             self.fmt_operator(f)?;
         }
 
-        if self.precedence() < inner.precedence() {
+        if inner.mandatory_parentheses() || self.precedence() < inner.precedence() {
             write!(f, "({inner})")?;
         } else {
             write!(f, "{inner}")?;
@@ -40,7 +44,8 @@ pub trait Precedence: Display {
         rhs: impl Precedence,
         f: &mut Formatter<'_>,
     ) -> fmt::Result {
-        if self.precedence() < lhs.precedence()
+        if lhs.mandatory_parentheses()
+            || self.precedence() < lhs.precedence()
             || self.precedence() == lhs.precedence() && lhs.associativity() == Associativity::Right
         {
             write!(f, "({lhs})")?;
@@ -50,7 +55,8 @@ pub trait Precedence: Display {
 
         self.fmt_operator(f)?;
 
-        if self.precedence() < rhs.precedence()
+        if rhs.mandatory_parentheses()
+            || self.precedence() < rhs.precedence()
             || self.precedence() == rhs.precedence() && self.associativity() == Associativity::Left
         {
             write!(f, "({rhs})")
