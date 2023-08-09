@@ -1,4 +1,12 @@
-use super::Node;
+use crate::{
+    formatting::asp::default::Format,
+    parsing::asp::pest::{
+        AtomParser, AtomicFormulaParser, BinaryOperatorParser, BodyParser, ComparisonParser,
+        HeadParser, LiteralParser, PrecomputedTermParser, ProgramParser, RelationParser,
+        RuleParser, SignParser, TermParser, UnaryOperatorParser, VariableParser,
+    },
+    syntax_tree::{impl_node, Node},
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum PrecomputedTerm {
@@ -8,19 +16,19 @@ pub enum PrecomputedTerm {
     Supremum,
 }
 
-impl Node for PrecomputedTerm {}
+impl_node!(PrecomputedTerm, Format, PrecomputedTermParser);
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Variable(pub String);
 
-impl Node for Variable {}
+impl_node!(Variable, Format, VariableParser);
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum UnaryOperator {
     Negative,
 }
 
-impl Node for UnaryOperator {}
+impl_node!(UnaryOperator, Format, UnaryOperatorParser);
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum BinaryOperator {
@@ -32,7 +40,7 @@ pub enum BinaryOperator {
     Interval,
 }
 
-impl Node for BinaryOperator {}
+impl_node!(BinaryOperator, Format, BinaryOperatorParser);
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Term {
@@ -49,7 +57,7 @@ pub enum Term {
     },
 }
 
-impl Node for Term {}
+impl_node!(Term, Format, TermParser);
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Atom {
@@ -57,7 +65,7 @@ pub struct Atom {
     pub terms: Vec<Term>,
 }
 
-impl Node for Atom {}
+impl_node!(Atom, Format, AtomParser);
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Sign {
@@ -66,7 +74,7 @@ pub enum Sign {
     DoubleNegation,
 }
 
-impl Node for Sign {}
+impl_node!(Sign, Format, SignParser);
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Literal {
@@ -74,7 +82,7 @@ pub struct Literal {
     pub atom: Atom,
 }
 
-impl Node for Literal {}
+impl_node!(Literal, Format, LiteralParser);
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Relation {
@@ -86,7 +94,7 @@ pub enum Relation {
     GreaterEqual,
 }
 
-impl Node for Relation {}
+impl_node!(Relation, Format, RelationParser);
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Comparison {
@@ -95,7 +103,7 @@ pub struct Comparison {
     pub rhs: Term,
 }
 
-impl Node for Comparison {}
+impl_node!(Comparison, Format, ComparisonParser);
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum AtomicFormula {
@@ -103,7 +111,7 @@ pub enum AtomicFormula {
     Comparison(Comparison),
 }
 
-impl Node for AtomicFormula {}
+impl_node!(AtomicFormula, Format, AtomicFormulaParser);
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Head {
@@ -112,14 +120,14 @@ pub enum Head {
     Falsity,
 }
 
-impl Node for Head {}
+impl_node!(Head, Format, HeadParser);
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Body {
     pub formulas: Vec<AtomicFormula>,
 }
 
-impl Node for Body {}
+impl_node!(Body, Format, BodyParser);
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Rule {
@@ -127,11 +135,11 @@ pub struct Rule {
     pub body: Body,
 }
 
-impl Node for Rule {}
+impl_node!(Rule, Format, RuleParser);
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Program {
     pub rules: Vec<Rule>,
 }
 
-impl Node for Program {}
+impl_node!(Program, Format, ProgramParser);

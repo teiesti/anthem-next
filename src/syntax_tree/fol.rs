@@ -1,4 +1,13 @@
-use super::Node;
+use crate::{
+    formatting::fol::default::Format,
+    parsing::fol::pest::{
+        AtomParser, AtomicFormulaParser, BasicIntegerTermParser, BinaryConnectiveParser,
+        BinaryOperatorParser, ComparisonParser, FormulaParser, GeneralTermParser, GuardParser,
+        IntegerTermParser, QuantificationParser, QuantifierParser, RelationParser,
+        UnaryConnectiveParser, UnaryOperatorParser, VariableParser,
+    },
+    syntax_tree::{impl_node, Node},
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum BasicIntegerTerm {
@@ -8,14 +17,14 @@ pub enum BasicIntegerTerm {
     IntegerVariable(String),
 }
 
-impl Node for BasicIntegerTerm {}
+impl_node!(BasicIntegerTerm, Format, BasicIntegerTermParser);
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum UnaryOperator {
     Negative,
 }
 
-impl Node for UnaryOperator {}
+impl_node!(UnaryOperator, Format, UnaryOperatorParser);
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum BinaryOperator {
@@ -24,7 +33,7 @@ pub enum BinaryOperator {
     Multiply,
 }
 
-impl Node for BinaryOperator {}
+impl_node!(BinaryOperator, Format, BinaryOperatorParser);
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum IntegerTerm {
@@ -40,7 +49,7 @@ pub enum IntegerTerm {
     },
 }
 
-impl Node for IntegerTerm {}
+impl_node!(IntegerTerm, Format, IntegerTermParser);
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum GeneralTerm {
@@ -49,7 +58,7 @@ pub enum GeneralTerm {
     IntegerTerm(IntegerTerm),
 }
 
-impl Node for GeneralTerm {}
+impl_node!(GeneralTerm, Format, GeneralTermParser);
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Atom {
@@ -57,7 +66,7 @@ pub struct Atom {
     pub terms: Vec<GeneralTerm>,
 }
 
-impl Node for Atom {}
+impl_node!(Atom, Format, AtomParser);
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Relation {
@@ -69,7 +78,7 @@ pub enum Relation {
     LessEqual,
 }
 
-impl Node for Relation {}
+impl_node!(Relation, Format, RelationParser);
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Guard {
@@ -77,7 +86,7 @@ pub struct Guard {
     pub term: GeneralTerm,
 }
 
-impl Node for Guard {}
+impl_node!(Guard, Format, GuardParser);
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Comparison {
@@ -85,7 +94,7 @@ pub struct Comparison {
     pub guards: Vec<Guard>,
 }
 
-impl Node for Comparison {}
+impl_node!(Comparison, Format, ComparisonParser);
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum AtomicFormula {
@@ -94,14 +103,14 @@ pub enum AtomicFormula {
     Comparison(Comparison),
 }
 
-impl Node for AtomicFormula {}
+impl_node!(AtomicFormula, Format, AtomicFormulaParser);
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum UnaryConnective {
     Negation,
 }
 
-impl Node for UnaryConnective {}
+impl_node!(UnaryConnective, Format, UnaryConnectiveParser);
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Quantifier {
@@ -109,7 +118,7 @@ pub enum Quantifier {
     Exists,
 }
 
-impl Node for Quantifier {}
+impl_node!(Quantifier, Format, QuantifierParser);
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Quantification {
@@ -117,7 +126,7 @@ pub struct Quantification {
     pub variables: Vec<Variable>,
 }
 
-impl Node for Quantification {}
+impl_node!(Quantification, Format, QuantificationParser);
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Sort {
@@ -125,7 +134,7 @@ pub enum Sort {
     General,
 }
 
-impl Node for Sort {}
+// TODO: Should Sort be a Node?
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Variable {
@@ -133,7 +142,7 @@ pub struct Variable {
     pub sort: Sort,
 }
 
-impl Node for Variable {}
+impl_node!(Variable, Format, VariableParser);
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum BinaryConnective {
@@ -144,7 +153,7 @@ pub enum BinaryConnective {
     Equivalence,
 }
 
-impl Node for BinaryConnective {}
+impl_node!(BinaryConnective, Format, BinaryConnectiveParser);
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Formula {
@@ -164,4 +173,4 @@ pub enum Formula {
     },
 }
 
-impl Node for Formula {}
+impl_node!(Formula, Format, FormulaParser);
