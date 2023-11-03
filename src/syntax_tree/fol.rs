@@ -9,6 +9,8 @@ use crate::{
     syntax_tree::{impl_node, Node},
 };
 
+use std::cmp::Ordering;
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum BasicIntegerTerm {
     Infimum,
@@ -143,6 +145,26 @@ pub struct Variable {
 }
 
 impl_node!(Variable, Format, VariableParser);
+
+impl Ord for Variable {
+    fn cmp(&self, other: &Self) -> Ordering {
+        (&self.name).cmp(&other.name)
+    }
+}
+
+impl PartialOrd for Variable {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        let size1 = self.name.clone();
+        let size2 = other.name.clone();
+        if size1 < size2 {
+            Some(Ordering::Less)
+        } else if size1 > size2 {
+            Some(Ordering::Greater)
+        } else {
+            Some(Ordering::Equal)
+        }
+    }
+}
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum BinaryConnective {
