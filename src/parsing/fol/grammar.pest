@@ -78,3 +78,5 @@ formula = { prefix* ~ primary ~ (infix ~ prefix* ~ primary)* }
     prefix  = _{ quantification | unary_connective }
     infix   = _{ binary_connective }
     primary = _{ "(" ~ formula ~ ")" | atomic_formula }
+
+theory = { (formula ~ ".")+ }

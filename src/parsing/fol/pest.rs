@@ -3,7 +3,7 @@ use crate::{
     syntax_tree::fol::{
         Atom, AtomicFormula, BasicIntegerTerm, BinaryConnective, BinaryOperator, Comparison,
         Formula, GeneralTerm, Guard, IntegerTerm, Quantification, Quantifier, Relation, Sort,
-        UnaryConnective, UnaryOperator, Variable,
+        Theory, UnaryConnective, UnaryOperator, Variable,
     },
 };
 
@@ -446,6 +446,28 @@ impl PestParser for FormulaParser {
                 rhs: Box::new(rhs),
             })
             .parse(pair.into_inner())
+    }
+}
+
+pub struct TheoryParser;
+
+impl PestParser for TheoryParser {
+    type Node = Theory;
+
+    type InternalParser = internal::Parser;
+    type Rule = internal::Rule;
+    const RULE: Self::Rule = internal::Rule::theory;
+
+    fn translate_pair(pair: pest::iterators::Pair<'_, Self::Rule>) -> Self::Node {
+        if pair.as_rule() != internal::Rule::theory {
+            Self::report_unexpected_pair(pair)
+        }
+        Theory {
+            formulas: pair
+                .into_inner()
+                .map(FormulaParser::translate_pair)
+                .collect(),
+        }
     }
 }
 
