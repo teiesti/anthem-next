@@ -95,7 +95,7 @@ impl Display for Format<'_, GeneralTerm> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self.0 {
             GeneralTerm::Symbol(s) => write!(f, "{s}"),
-            GeneralTerm::GeneralVariable(v) => write!(f, "{v}$g"),
+            GeneralTerm::GeneralVariable(v) => write!(f, "{v}"),
             GeneralTerm::IntegerTerm(t) => Format(t).fmt(f),
         }
     }
@@ -180,7 +180,7 @@ impl Display for Format<'_, Variable> {
         let sort = &self.0.sort;
 
         match sort {
-            Sort::General => write!(f, "{name}$g"),
+            Sort::General => write!(f, "{name}"),
             Sort::Integer => write!(f, "{name}$i"),
         }
     }
@@ -436,7 +436,7 @@ mod tests {
                 ]
             })
             .to_string(),
-            "forall X$g Y$i N$g"
+            "forall X Y$i N"
         );
     }
 
@@ -466,7 +466,7 @@ mod tests {
                 }]
             }))
             .to_string(),
-            "5 < I$g"
+            "5 < I"
         );
         assert_eq!(Format(&AtomicFormula::Falsity).to_string(), "#false");
     }
@@ -511,7 +511,7 @@ mod tests {
                 .into()
             })
             .to_string(),
-            "forall X$g p(X$g)"
+            "forall X p(X)"
         );
 
         assert_eq!(
