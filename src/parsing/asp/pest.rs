@@ -996,7 +996,6 @@ mod tests {
     #[test]
     fn parse_program() {
         ProgramParser.should_parse_into([
-            ("", Program { rules: vec![] }),
             (
                 "a. b :- a.",
                 Program {

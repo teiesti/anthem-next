@@ -196,7 +196,12 @@ impl Display for Format<'_, Quantification> {
             Quantifier::Exists => write!(f, "exists"),
         }?;
 
-        let iter = variables.iter().map(Format);
+        let mut sorted_vars = Vec::<Variable>::new();
+        for var in variables.iter() {
+            sorted_vars.push(var.clone());
+        }
+        sorted_vars.sort();
+        let iter = sorted_vars.iter().map(Format);
         for var in iter {
             write!(f, " {var}")?;
         }
@@ -436,7 +441,7 @@ mod tests {
                 ]
             })
             .to_string(),
-            "forall X Y$i N"
+            "forall N X Y$i"
         );
     }
 
