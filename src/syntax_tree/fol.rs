@@ -3,7 +3,7 @@ use crate::{
     parsing::fol::pest::{
         AtomParser, AtomicFormulaParser, BasicIntegerTermParser, BinaryConnectiveParser,
         BinaryOperatorParser, ComparisonParser, FormulaParser, GeneralTermParser, GuardParser,
-        IntegerTermParser, QuantificationParser, QuantifierParser, RelationParser,
+        IntegerTermParser, QuantificationParser, QuantifierParser, RelationParser, TheoryParser,
         UnaryConnectiveParser, UnaryOperatorParser, VariableParser,
     },
     syntax_tree::{impl_node, Node},
@@ -174,3 +174,10 @@ pub enum Formula {
 }
 
 impl_node!(Formula, Format, FormulaParser);
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Theory {
+    pub formulas: Vec<Formula>,
+}
+
+impl_node!(Theory, Format, TheoryParser);
