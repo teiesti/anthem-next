@@ -434,8 +434,8 @@ impl PestParser for FormulaParser {
                     quantification: QuantificationParser::translate_pair(op),
                     formula: Box::new(arg),
                 },
-                internal::Rule::unary_connective => Formula::UnaryFormula {
-                    connective: UnaryConnectiveParser::translate_pair(op),
+                internal::Rule::negation => Formula::UnaryFormula {
+                    connective: UnaryConnective::Negation,
                     formula: Box::new(arg),
                 },
                 _ => Self::report_unexpected_pair(op),
@@ -1016,6 +1016,17 @@ mod tests {
     #[test]
     fn parse_formula() {
         FormulaParser.should_parse_into([
+            (
+                "not p",
+                Formula::UnaryFormula {
+                    connective: UnaryConnective::Negation,
+                    formula: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                        predicate: "p".into(),
+                        terms: vec![],
+                    }))
+                    .into(),
+                },
+            ),
             (
                 "forall A p(A) -> q",
                 Formula::BinaryFormula {
