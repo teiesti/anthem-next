@@ -3,7 +3,7 @@ pub mod parsing;
 pub mod syntax_tree;
 pub mod translating;
 
-use crate::syntax_tree::{asp,fol};
+use crate::syntax_tree::{asp, fol};
 //use std::collections::HashSet;
 //use std::collections::hash_map::Entry;
 
@@ -229,19 +229,30 @@ fn main() {
     println!("{q}");*/
 
     /*let target: fol::Formula =
-            "not p(a)"
-                .parse()
-                .unwrap();
+                "not p(a)"
+                    .parse()
+                    .unwrap();
 
-    println!("{target}");
-*/
-    let atomic: asp::AtomicFormula = "X < 1..5".parse().unwrap();
+        println!("{target}");
+    */
+    /*let atomic: asp::AtomicFormula = "X < 1..5".parse().unwrap();
     let target: fol::Formula =
             "exists Z1$g Z2$g (Z1$g = 1 and (exists I1$i J1$i K1$i (I1$i = 1 and J1$i = 5 and Z2$g = K1$i and I1$i <= K1$i <= J1$i)) and Z1$g < Z2$g)"
                 .parse()
                 .unwrap();
 
-    println!("{target}");
+    println!("{target}");*/
+
+    let rule1: asp::Rule = "q :- not not p.".parse().unwrap();
+    let program = asp::Program { rules: vec![rule1] };
+    println!("{program}");
+
+    let form1: fol::Formula = "not p -> q".parse().unwrap();
+    let theory = fol::Theory {
+        formulas: vec![form1],
+    };
+    let theory = translating::tau_star::tau_star_program(program);
+    println!("{theory}");
 
     /*let completable = completable_theory(f1.clone());
     match completable {

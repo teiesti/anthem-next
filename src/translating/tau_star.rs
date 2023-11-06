@@ -670,10 +670,36 @@ pub fn tau_b(f: asp::AtomicFormula) -> fol::Formula {
                     },
                 }
             } else {
-                fol::Formula::AtomicFormula(fol::AtomicFormula::Atom(fol::Atom {
-                    predicate: atom.predicate,
-                    terms: vec![],
-                }))
+                match l.sign {
+                    syntax_tree::asp::Sign::NoSign => {
+                        fol::Formula::AtomicFormula(fol::AtomicFormula::Atom(fol::Atom {
+                            predicate: atom.predicate,
+                            terms: vec![],
+                        }))
+                    }
+                    syntax_tree::asp::Sign::Negation => fol::Formula::UnaryFormula {
+                        connective: fol::UnaryConnective::Negation,
+                        formula: fol::Formula::AtomicFormula(fol::AtomicFormula::Atom(fol::Atom {
+                            predicate: atom.predicate,
+                            terms: vec![],
+                        }))
+                        .into(),
+                    },
+                    syntax_tree::asp::Sign::DoubleNegation => fol::Formula::UnaryFormula {
+                        connective: fol::UnaryConnective::Negation,
+                        formula: fol::Formula::UnaryFormula {
+                            connective: fol::UnaryConnective::Negation,
+                            formula: fol::Formula::AtomicFormula(fol::AtomicFormula::Atom(
+                                fol::Atom {
+                                    predicate: atom.predicate,
+                                    terms: vec![],
+                                },
+                            ))
+                            .into(),
+                        }
+                        .into(),
+                    },
+                }
             }
         }
         asp::AtomicFormula::Comparison(c) => {
@@ -1013,10 +1039,7 @@ mod tests {
         let atomic: asp::AtomicFormula = "p(t)".parse().unwrap();
         let result: fol::Formula = super::tau_b(atomic);
 
-        let target: fol::Formula =
-            "exists Z1$g (Z1$g = t and p(Z1$g))"
-                .parse()
-                .unwrap();
+        let target: fol::Formula = "exists Z1$g (Z1$g = t and p(Z1$g))".parse().unwrap();
         assert_eq!(
             format!("{}", formatting::fol::default::Format(&result)),
             format!("{}", formatting::fol::default::Format(&target))

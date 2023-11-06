@@ -995,36 +995,34 @@ mod tests {
 
     #[test]
     fn parse_program() {
-        ProgramParser.should_parse_into([
-            (
-                "a. b :- a.",
-                Program {
-                    rules: vec![
-                        Rule {
-                            head: Head::Basic(Atom {
-                                predicate: "a".into(),
-                                terms: vec![],
-                            }),
-                            body: Body { formulas: vec![] },
+        ProgramParser.should_parse_into([(
+            "a. b :- a.",
+            Program {
+                rules: vec![
+                    Rule {
+                        head: Head::Basic(Atom {
+                            predicate: "a".into(),
+                            terms: vec![],
+                        }),
+                        body: Body { formulas: vec![] },
+                    },
+                    Rule {
+                        head: Head::Basic(Atom {
+                            predicate: "b".into(),
+                            terms: vec![],
+                        }),
+                        body: Body {
+                            formulas: vec![AtomicFormula::Literal(Literal {
+                                sign: Sign::NoSign,
+                                atom: Atom {
+                                    predicate: "a".into(),
+                                    terms: vec![],
+                                },
+                            })],
                         },
-                        Rule {
-                            head: Head::Basic(Atom {
-                                predicate: "b".into(),
-                                terms: vec![],
-                            }),
-                            body: Body {
-                                formulas: vec![AtomicFormula::Literal(Literal {
-                                    sign: Sign::NoSign,
-                                    atom: Atom {
-                                        predicate: "a".into(),
-                                        terms: vec![],
-                                    },
-                                })],
-                            },
-                        },
-                    ],
-                },
-            ),
-        ]);
+                    },
+                ],
+            },
+        )]);
     }
 }
