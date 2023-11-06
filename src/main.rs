@@ -243,14 +243,14 @@ fn main() {
 
     println!("{target}");*/
 
-    let rule1: asp::Rule = "q :- not not p.".parse().unwrap();
+    let rule1: asp::Rule = "{q(V)} :- p(V).".parse().unwrap();
     let program = asp::Program { rules: vec![rule1] };
-    println!("{program}");
 
-    let form1: fol::Formula = "not p -> q".parse().unwrap();
+    let form1: fol::Formula = "forall V V1 (V1 = V and exists Z1 (Z1 = V and p(Z1)) and not not q(V1) -> q(V1))".parse().unwrap();
     let theory = fol::Theory {
         formulas: vec![form1],
     };
+
     let theory = translating::tau_star::tau_star_program(program);
     println!("{theory}");
 

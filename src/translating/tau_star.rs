@@ -20,7 +20,7 @@ pub fn choose_fresh_global_variables(program: &asp::Program) -> Vec<String> {
     for var in taken_vars {
         match re.captures(&var) {
             Some(caps) => {
-                let taken: usize = (&caps["number"]).parse().unwrap();
+                let taken: usize = (&caps["number"]).parse().unwrap_or_else(|_| {0});
                 if taken > max_taken_var {
                     max_taken_var = taken;
                 }
@@ -1046,7 +1046,7 @@ mod tests {
         );
     }
 
-    /*#[test]
+    #[test]
     pub fn tau_b_test2() {
         let atomic: asp::AtomicFormula = "not p(t)".parse().unwrap();
         let result: fol::Formula = super::tau_b(atomic);
@@ -1059,7 +1059,7 @@ mod tests {
             format!("{}", formatting::fol::default::Format(&result)),
             format!("{}", formatting::fol::default::Format(&target))
         );
-    }*/
+    }
 
     #[test]
     pub fn tau_b_test3() {
@@ -1076,7 +1076,7 @@ mod tests {
         );
     }
 
-    /*#[test]
+    #[test]
     pub fn tau_b_test4() {
         let atomic: asp::AtomicFormula = "not not p(t)".parse().unwrap();
         let result: fol::Formula = super::tau_b(atomic);
@@ -1089,7 +1089,7 @@ mod tests {
             format!("{}", formatting::fol::default::Format(&result)),
             format!("{}", formatting::fol::default::Format(&target))
         );
-    }*/
+    }
 
     #[test]
     pub fn tau_star_test1() {
@@ -1155,6 +1155,40 @@ mod tests {
         let program = asp::Program { rules: vec![rule1] };
 
         let form1: fol::Formula = "not p -> q".parse().unwrap();
+        let theory = fol::Theory {
+            formulas: vec![form1],
+        };
+
+        let result: fol::Theory = super::tau_star_program(program);
+        assert_eq!(
+            format!("{}", formatting::fol::default::Format(&result)),
+            format!("{}", formatting::fol::default::Format(&theory))
+        );
+    }
+
+    #[test]
+    pub fn tau_star_test5() {
+        let rule1: asp::Rule = "{q(X)} :- p(X).".parse().unwrap();
+        let program = asp::Program { rules: vec![rule1] };
+
+        let form1: fol::Formula = "forall V1 X (V1 = X and exists Z1 (Z1 = X and p(Z1)) and not not q(V1) -> q(V1))".parse().unwrap();
+        let theory = fol::Theory {
+            formulas: vec![form1],
+        };
+
+        let result: fol::Theory = super::tau_star_program(program);
+        assert_eq!(
+            format!("{}", formatting::fol::default::Format(&result)),
+            format!("{}", formatting::fol::default::Format(&theory))
+        );
+    }
+
+    #[test]
+    pub fn tau_star_test6() {
+        let rule1: asp::Rule = "{q(V)} :- p(V).".parse().unwrap();
+        let program = asp::Program { rules: vec![rule1] };
+
+        let form1: fol::Formula = "forall V V1 (V1 = V and exists Z1 (Z1 = V and p(Z1)) and not not q(V1) -> q(V1))".parse().unwrap();
         let theory = fol::Theory {
             formulas: vec![form1],
         };
