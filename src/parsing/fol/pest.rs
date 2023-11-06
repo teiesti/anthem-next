@@ -863,6 +863,10 @@ mod tests {
         AtomicFormulaParser
             .should_parse_into([
                 (
+                    "#false",
+                    AtomicFormula::Falsity,
+                ),
+                (
                     "1 = N$g",
                     AtomicFormula::Comparison(Comparison {
                         term: GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(
@@ -1072,6 +1076,29 @@ mod tests {
                         predicate: "q".into(),
                         terms: vec![],
                     }))
+                    .into(),
+                },
+            ),
+            (
+                "forall A (p(A)) -> #false",
+                Formula::BinaryFormula {
+                    connective: BinaryConnective::Implication,
+                    lhs: Formula::QuantifiedFormula {
+                        quantification: Quantification {
+                            quantifier: Quantifier::Forall,
+                            variables: vec![Variable {
+                                name: "A".into(),
+                                sort: Sort::General,
+                            }],
+                        },
+                        formula: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                            predicate: "p".into(),
+                            terms: vec![GeneralTerm::GeneralVariable("A".into())],
+                        }))
+                        .into(),
+                    }
+                    .into(),
+                    rhs: Formula::AtomicFormula(AtomicFormula::Falsity)
                     .into(),
                 },
             ),

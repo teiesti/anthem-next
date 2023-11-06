@@ -243,15 +243,19 @@ fn main() {
 
     println!("{target}");*/
 
-    let rule1: asp::Rule = "{q(V)} :- p(V).".parse().unwrap();
+    let rule1: asp::Rule = ":- p(X,3), not q(X,a).".parse().unwrap();
     let program = asp::Program { rules: vec![rule1] };
 
-    let form1: fol::Formula = "forall V V1 (V1 = V and exists Z1 (Z1 = V and p(Z1)) and not not q(V1) -> q(V1))".parse().unwrap();
+    println!("{program}");
+
+    let form1: fol::Formula =
+        "forall X (exists (Z1 = X and Z2 = a and q(Z1,Z2)) -> #false)"
+            .parse()
+            .unwrap();
     let theory = fol::Theory {
         formulas: vec![form1],
     };
 
-    let theory = translating::tau_star::tau_star_program(program);
     println!("{theory}");
 
     /*let completable = completable_theory(f1.clone());
