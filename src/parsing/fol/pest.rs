@@ -862,10 +862,7 @@ mod tests {
     fn parse_atomic_formula() {
         AtomicFormulaParser
             .should_parse_into([
-                (
-                    "#false",
-                    AtomicFormula::Falsity,
-                ),
+                ("#false", AtomicFormula::Falsity),
                 (
                     "1 = N$g",
                     AtomicFormula::Comparison(Comparison {
@@ -1098,8 +1095,7 @@ mod tests {
                         .into(),
                     }
                     .into(),
-                    rhs: Formula::AtomicFormula(AtomicFormula::Falsity)
-                    .into(),
+                    rhs: Formula::AtomicFormula(AtomicFormula::Falsity).into(),
                 },
             ),
             (

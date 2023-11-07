@@ -1096,7 +1096,61 @@ mod tests {
         let atomic: asp::AtomicFormula = "not not x".parse().unwrap();
         let result: fol::Formula = super::tau_b(atomic);
 
-        let target: fol::Formula = "not not x"
+        let target: fol::Formula = "not not x".parse().unwrap();
+        assert_eq!(
+            format!("{}", formatting::fol::default::Format(&result)),
+            format!("{}", formatting::fol::default::Format(&target))
+        );
+    }
+
+    #[test]
+    pub fn tau_b_test6() {
+        let atomic: asp::AtomicFormula = "not p(X,5)".parse().unwrap();
+        let result: fol::Formula = super::tau_b(atomic);
+
+        let target: fol::Formula = "exists Z1 Z2 (Z1 = X and Z2 = 5 and not p(Z1,Z2))"
+            .parse()
+            .unwrap();
+        assert_eq!(
+            format!("{}", formatting::fol::default::Format(&result)),
+            format!("{}", formatting::fol::default::Format(&target))
+        );
+    }
+
+    #[test]
+    pub fn tau_b_test7() {
+        let atomic: asp::AtomicFormula = "not p(X,0-5)".parse().unwrap();
+        let result: fol::Formula = super::tau_b(atomic);
+
+        let target: fol::Formula = "exists Z1 Z2 (Z1 = X and exists I1$i J1$i (Z2 = I1$i - J1$i and I1$i = 0 and J1$i = 5) and not p(Z1,Z2))"
+            .parse()
+            .unwrap();
+        assert_eq!(
+            format!("{}", formatting::fol::default::Format(&result)),
+            format!("{}", formatting::fol::default::Format(&target))
+        );
+    }
+
+    #[test]
+    pub fn tau_b_test8() {
+        let atomic: asp::AtomicFormula = "p(X,-1..5)".parse().unwrap();
+        let result: fol::Formula = super::tau_b(atomic);
+
+        let target: fol::Formula = "exists Z1 Z2 (Z1 = X and exists I1$i J1$i K1$i (I1$i = -1 and J1$i = 5  and Z2 = K1$i and I1$i <= K1$i <= J1$i) and p(Z1,Z2))"
+            .parse()
+            .unwrap();
+        assert_eq!(
+            format!("{}", formatting::fol::default::Format(&result)),
+            format!("{}", formatting::fol::default::Format(&target))
+        );
+    }
+
+    #[test]
+    pub fn tau_b_test9() {
+        let atomic: asp::AtomicFormula = "p(X,-(1..5))".parse().unwrap();
+        let result: fol::Formula = super::tau_b(atomic);
+
+        let target: fol::Formula = "exists Z1 Z2 (Z1 = X and exists I1$i J1$i (Z2 = I1$i - J1$i and I1$i = 0 and exists I1$i J2$i K1$i (I1$i = 1 and J2$i = 5  and J1$i = K1$i and I1$i <= K1$i <= J2$i)) and p(Z1,Z2))"
             .parse()
             .unwrap();
         assert_eq!(
@@ -1265,10 +1319,24 @@ mod tests {
         let rule1: asp::Rule = ":- p.".parse().unwrap();
         let program = asp::Program { rules: vec![rule1] };
 
-        let form1: fol::Formula =
-            "p -> #false"
-                .parse()
-                .unwrap();
+        let form1: fol::Formula = "p -> #false".parse().unwrap();
+        let theory = fol::Theory {
+            formulas: vec![form1],
+        };
+
+        let result: fol::Theory = super::tau_star_program(program);
+        assert_eq!(
+            format!("{}", formatting::fol::default::Format(&result)),
+            format!("{}", formatting::fol::default::Format(&theory))
+        );
+    }
+
+    #[test]
+    pub fn tau_star_test10() {
+        let rule1: asp::Rule = "{p} :- q.".parse().unwrap();
+        let program = asp::Program { rules: vec![rule1] };
+
+        let form1: fol::Formula = "q and not not p -> p".parse().unwrap();
         let theory = fol::Theory {
             formulas: vec![form1],
         };

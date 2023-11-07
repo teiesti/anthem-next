@@ -248,10 +248,9 @@ fn main() {
 
     println!("{program}");
 
-    let form1: fol::Formula =
-        "forall X (exists (Z1 = X and Z2 = a and q(Z1,Z2)) -> #false)"
-            .parse()
-            .unwrap();
+    let form1: fol::Formula = "forall X (exists (Z1 = X and Z2 = a and q(Z1,Z2)) -> #false)"
+        .parse()
+        .unwrap();
     let theory = fol::Theory {
         formulas: vec![form1],
     };
