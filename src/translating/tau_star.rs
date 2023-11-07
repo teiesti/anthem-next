@@ -38,7 +38,7 @@ pub fn choose_fresh_global_variables(program: &asp::Program) -> Vec<String> {
     globals
 }
 
-// Choose <arity> variable names by varying <variant>, disjoint from <variables>
+// Choose <arity> variable names by incrementing <variant>, disjoint from <variables>
 pub fn choose_fresh_variable_names_v(
     variables: &HashSet<fol::Variable>,
     variant: &str,
@@ -49,7 +49,14 @@ pub fn choose_fresh_variable_names_v(
         taken_vars.push(var.name.to_string());
     }
     let mut fresh_vars = Vec::<String>::new();
-    for n in 1..(arity + 1) {
+    let arity_bound = match taken_vars.contains(&variant.to_string()) {
+        true => arity + 1,
+        false => {
+            fresh_vars.push(variant.to_string());
+            arity
+        }
+    };
+    for n in 1..arity_bound {
         let mut candidate: String = variant.to_owned();
         let number: &str = &n.to_string();
         candidate.push_str(number);
@@ -933,10 +940,9 @@ mod tests {
         };
         let val_term_var = super::val(term, var);
 
-        let target: fol::Formula =
-            "exists I1$i J1$i (Z1$g = I1$i + J1$i and I1$i = X and J1$i = 1)"
-                .parse()
-                .unwrap();
+        let target: fol::Formula = "exists I$i J$i (Z1$g = I$i + J$i and I$i = X and J$i = 1)"
+            .parse()
+            .unwrap();
         assert_eq!(
             format!("{}", formatting::fol::default::Format(&val_term_var)),
             format!("{}", formatting::fol::default::Format(&target))
@@ -952,10 +958,9 @@ mod tests {
         };
         let val_term_var = super::val(term, var);
 
-        let target: fol::Formula =
-            "exists I1$i J1$i (Z1$g = I1$i - J1$i and I1$i = 3 and J1$i = 5)"
-                .parse()
-                .unwrap();
+        let target: fol::Formula = "exists I$i J$i (Z1$g = I$i - J$i and I$i = 3 and J$i = 5)"
+            .parse()
+            .unwrap();
         assert_eq!(
             format!("{}", formatting::fol::default::Format(&val_term_var)),
             format!("{}", formatting::fol::default::Format(&target))
@@ -972,7 +977,7 @@ mod tests {
         let val_term_var = super::val(term, var);
 
         let target: fol::Formula =
-            "exists I1$i J1$i Q1$i R1$i (I1$i = J1$i * Q1$i + R1$i and (I1$i = Xanadu and J1$i = Yak) and (J1$i != 0 and R1$i >= 0 and R1$i < Q1$i) and Z1$g = Q1$i)"
+            "exists I$i J$i Q$i R$i (I$i = J$i * Q$i + R$i and (I$i = Xanadu and J$i = Yak) and (J$i != 0 and R$i >= 0 and R$i < Q$i) and Z1$g = Q$i)"
                 .parse()
                 .unwrap();
         assert_eq!(
@@ -991,7 +996,7 @@ mod tests {
         let val_term_var = super::val(term, var);
 
         let target: fol::Formula =
-            "exists I1$i J1$i Q1$i R1$i (I1$i = J1$i * Q1$i + R1$i and (I1$i = X and J1$i = 3) and (J1$i != 0 and R1$i >= 0 and R1$i < Q1$i) and Z1$g = R1$i)"
+            "exists I$i J$i Q$i R$i (I$i = J$i * Q$i + R$i and (I$i = X and J$i = 3) and (J$i != 0 and R$i >= 0 and R$i < Q$i) and Z1$g = R$i)"
                 .parse()
                 .unwrap();
         assert_eq!(
@@ -1004,13 +1009,13 @@ mod tests {
     pub fn val_test5() {
         let term: asp::Term = "X..Y".parse().unwrap();
         let var = fol::Variable {
-            name: "Z1".to_string(),
+            name: "Z".to_string(),
             sort: fol::Sort::General,
         };
         let val_term_var = super::val(term, var);
 
         let target: fol::Formula =
-            "exists I1$i J1$i K1$i (I1$i = X and J1$i = Y and Z1$g = K1$i and I1$i <= K1$i <= J1$i)"
+            "exists I$i J$i K$i (I$i = X and J$i = Y and Z$g = K$i and I$i <= K$i <= J$i)"
                 .parse()
                 .unwrap();
         assert_eq!(
@@ -1029,7 +1034,7 @@ mod tests {
         let val_term_var = super::val(term, var);
 
         let target: fol::Formula =
-            "exists I1$i J1$i K1$i ((exists I2$i J1$i (I1$i = I2$i + J1$i and I2$i = X and J1$i = 1)) and J1$i = Y and Z1$g = K1$i and I1$i <= K1$i <= J1$i )"
+            "exists I$i J$i K$i ((exists I1$i J$i (I$i = I1$i + J$i and I1$i = X and J$i = 1)) and J$i = Y and Z1 = K$i and I$i <= K$i <= J$i )"
                 .parse()
                 .unwrap();
         assert_eq!(
@@ -1043,7 +1048,7 @@ mod tests {
         let atomic: asp::AtomicFormula = "p(t)".parse().unwrap();
         let result: fol::Formula = super::tau_b(atomic);
 
-        let target: fol::Formula = "exists Z1$g (Z1$g = t and p(Z1$g))".parse().unwrap();
+        let target: fol::Formula = "exists Z (Z = t and p(Z))".parse().unwrap();
         assert_eq!(
             format!("{}", formatting::fol::default::Format(&result)),
             format!("{}", formatting::fol::default::Format(&target))
@@ -1055,7 +1060,7 @@ mod tests {
         let atomic: asp::AtomicFormula = "not p(t)".parse().unwrap();
         let result: fol::Formula = super::tau_b(atomic);
 
-        let target: fol::Formula = "exists Z1$g (Z1$g = t and not p(Z1$g))".parse().unwrap();
+        let target: fol::Formula = "exists Z (Z = t and not p(Z))".parse().unwrap();
         assert_eq!(
             format!("{}", formatting::fol::default::Format(&result)),
             format!("{}", formatting::fol::default::Format(&target))
@@ -1068,7 +1073,7 @@ mod tests {
         let result: fol::Formula = super::tau_b(atomic);
 
         let target: fol::Formula =
-        "exists Z1$g Z2$g (Z1$g = X and exists I1$i J1$i K1$i (I1$i = 1 and J1$i = 5 and Z2$g = K1$i and I1$i <= K1$i <= J1$i) and Z1$g < Z2$g)"
+        "exists Z Z1 (Z = X and exists I$i J$i K$i (I$i = 1 and J$i = 5 and Z1 = K$i and I$i <= K$i <= J$i) and Z < Z1)"
                 .parse()
                 .unwrap();
         assert_eq!(
@@ -1082,9 +1087,7 @@ mod tests {
         let atomic: asp::AtomicFormula = "not not p(t)".parse().unwrap();
         let result: fol::Formula = super::tau_b(atomic);
 
-        let target: fol::Formula = "exists Z1$g (Z1$g = t and not not p(Z1$g))"
-            .parse()
-            .unwrap();
+        let target: fol::Formula = "exists Z (Z = t and not not p(Z))".parse().unwrap();
         assert_eq!(
             format!("{}", formatting::fol::default::Format(&result)),
             format!("{}", formatting::fol::default::Format(&target))
@@ -1108,7 +1111,7 @@ mod tests {
         let atomic: asp::AtomicFormula = "not p(X,5)".parse().unwrap();
         let result: fol::Formula = super::tau_b(atomic);
 
-        let target: fol::Formula = "exists Z1 Z2 (Z1 = X and Z2 = 5 and not p(Z1,Z2))"
+        let target: fol::Formula = "exists Z Z1 (Z = X and Z1 = 5 and not p(Z,Z1))"
             .parse()
             .unwrap();
         assert_eq!(
@@ -1122,7 +1125,7 @@ mod tests {
         let atomic: asp::AtomicFormula = "not p(X,0-5)".parse().unwrap();
         let result: fol::Formula = super::tau_b(atomic);
 
-        let target: fol::Formula = "exists Z1 Z2 (Z1 = X and exists I1$i J1$i (Z2 = I1$i - J1$i and I1$i = 0 and J1$i = 5) and not p(Z1,Z2))"
+        let target: fol::Formula = "exists Z Z1 (Z = X and exists I$i J$i (Z1 = I$i - J$i and I$i = 0 and J$i = 5) and not p(Z,Z1))"
             .parse()
             .unwrap();
         assert_eq!(
@@ -1136,7 +1139,7 @@ mod tests {
         let atomic: asp::AtomicFormula = "p(X,-1..5)".parse().unwrap();
         let result: fol::Formula = super::tau_b(atomic);
 
-        let target: fol::Formula = "exists Z1 Z2 (Z1 = X and exists I1$i J1$i K1$i (I1$i = -1 and J1$i = 5  and Z2 = K1$i and I1$i <= K1$i <= J1$i) and p(Z1,Z2))"
+        let target: fol::Formula = "exists Z Z1 (Z = X and exists I$i J$i K$i (I$i = -1 and J$i = 5  and Z1 = K$i and I$i <= K$i <= J$i) and p(Z,Z1))"
             .parse()
             .unwrap();
         assert_eq!(
@@ -1150,7 +1153,7 @@ mod tests {
         let atomic: asp::AtomicFormula = "p(X,-(1..5))".parse().unwrap();
         let result: fol::Formula = super::tau_b(atomic);
 
-        let target: fol::Formula = "exists Z1 Z2 (Z1 = X and exists I1$i J1$i (Z2 = I1$i - J1$i and I1$i = 0 and exists I1$i J2$i K1$i (I1$i = 1 and J2$i = 5  and J1$i = K1$i and I1$i <= K1$i <= J2$i)) and p(Z1,Z2))"
+        let target: fol::Formula = "exists Z Z1 (Z = X and exists I$i J$i (Z1 = I$i - J$i and I$i = 0 and exists I$i J1$i K$i (I$i = 1 and J1$i = 5  and J$i = K$i and I$i <= K$i <= J1$i)) and p(Z,Z1))"
             .parse()
             .unwrap();
         assert_eq!(
@@ -1188,7 +1191,7 @@ mod tests {
 
         let form1: fol::Formula = "forall V1 (V1 = a -> p(V1))".parse().unwrap();
         let form2: fol::Formula = "forall V1 (V1 = b -> p(V1))".parse().unwrap();
-        let form3: fol::Formula = "forall X Y V1 V2 (V1 = X and V2 = Y and (exists Z1 (Z1 = X and p(Z1)) and exists Z1 (Z1 = Y and p(Z1))) -> q(V1,V2))".parse().unwrap();
+        let form3: fol::Formula = "forall X Y V1 V2 (V1 = X and V2 = Y and (exists Z (Z = X and p(Z)) and exists Z (Z = Y and p(Z))) -> q(V1,V2))".parse().unwrap();
         let theory = fol::Theory {
             formulas: vec![form1, form2, form3],
         };
@@ -1240,7 +1243,7 @@ mod tests {
         let program = asp::Program { rules: vec![rule1] };
 
         let form1: fol::Formula =
-            "forall V1 X (V1 = X and exists Z1 (Z1 = X and p(Z1)) and not not q(V1) -> q(V1))"
+            "forall V1 X (V1 = X and exists Z (Z = X and p(Z)) and not not q(V1) -> q(V1))"
                 .parse()
                 .unwrap();
         let theory = fol::Theory {
@@ -1260,7 +1263,7 @@ mod tests {
         let program = asp::Program { rules: vec![rule1] };
 
         let form1: fol::Formula =
-            "forall V V1 (V1 = V and exists Z1 (Z1 = V and p(Z1)) and not not q(V1) -> q(V1))"
+            "forall V V1 (V1 = V and exists Z (Z = V and p(Z)) and not not q(V1) -> q(V1))"
                 .parse()
                 .unwrap();
         let theory = fol::Theory {
@@ -1280,7 +1283,7 @@ mod tests {
         let program = asp::Program { rules: vec![rule1] };
 
         let form1: fol::Formula =
-            "forall V V1 X (exists I1$i J1$i (V1 = I1$i + J1$i and I1$i = V and J1$i = 1) and (exists Z1 (Z1 = V and p(Z1)) and exists Z1 (Z1 = X and not q(Z1))) and not not q(V1) -> q(V1))"
+            "forall V V1 X (exists I$i J$i (V1 = I$i + J$i and I$i = V and J$i = 1) and (exists Z (Z = V and p(Z)) and exists Z (Z = X and not q(Z))) and not not q(V1) -> q(V1))"
                 .parse()
                 .unwrap();
         let theory = fol::Theory {
@@ -1300,7 +1303,7 @@ mod tests {
         let program = asp::Program { rules: vec![rule1] };
 
         let form1: fol::Formula =
-            "forall X (exists Z1 Z2 (Z1 = X and Z2 = 3 and p(Z1,Z2)) and exists Z1 Z2 (Z1 = X and Z2 = a and not q(Z1,Z2)) -> #false)"
+            "forall X (exists Z Z1 (Z = X and Z1 = 3 and p(Z,Z1)) and exists Z Z1 (Z = X and Z1 = a and not q(Z,Z1)) -> #false)"
                 .parse()
                 .unwrap();
         let theory = fol::Theory {
