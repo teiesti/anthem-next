@@ -105,9 +105,9 @@ impl_node!(Atom, Format, AtomParser);
 impl Atom {
     pub fn get_predicate_symbol(&self) -> String {
         let mut predicate_symbol: String = self.predicate.clone().to_owned();
-        let predicate_arity: &str = &self.terms.len().to_string();
+        /*let predicate_arity: &str = &self.terms.len().to_string();
         predicate_symbol.push_str("/");
-        predicate_symbol.push_str(predicate_arity);
+        predicate_symbol.push_str(predicate_arity);*/
         predicate_symbol
     }
 
@@ -248,6 +248,33 @@ pub struct Rule {
 impl_node!(Rule, Format, RuleParser);
 
 impl Rule {
+    pub fn is_propositional_fact(&self) -> bool {
+        if *(&self.body.formulas.len()) == 0 {
+            match &self.head {
+                Head::Basic(Atom{ predicate: _, terms: t}) => {
+                    if t.len() == 0 {
+                        true
+                    } else {
+                        false
+                    }
+                },
+                Head::Choice(_) => {
+                    false
+                },
+                Head::Falsity => todo!(),
+            }
+        } else {
+            false
+        }
+    }
+
+    pub fn is_constraint(&self) -> bool {
+        match &self.head {
+            Head::Basic(_) | Head::Choice(_) => false,
+            Head::Falsity => true,
+        }
+    }
+
     pub fn get_head_symbol(&self) -> Option<String> {
         match &self.head {
             Head::Basic(a) => Some(a.get_predicate_symbol()),
