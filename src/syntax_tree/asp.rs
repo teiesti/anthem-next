@@ -261,7 +261,16 @@ impl Rule {
                         false
                     }
                 }
-                Head::Choice(_) => false,
+                Head::Choice(Atom {
+                    predicate: _,
+                    terms: t,
+                }) => {
+                    if t.len() == 0 {
+                        true
+                    } else {
+                        false
+                    }
+                }
                 Head::Falsity => todo!(),
             }
         } else {

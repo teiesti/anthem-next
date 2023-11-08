@@ -875,10 +875,36 @@ pub fn tau_star_prop_head_rule(r: &asp::Rule) -> fol::Formula {
 
     if r.is_propositional_fact() {
         // Corner case: tau*(Pi) produces a formula of form "p." rather than an implication "forall V (F -> G)"
-        fol::Formula::AtomicFormula(fol::AtomicFormula::Atom(fol::Atom {
-            predicate: head_symbol,
-            terms: vec![],
-        }))
+        match &r.head {
+            asp::Head::Basic(_) => {
+                fol::Formula::AtomicFormula(fol::AtomicFormula::Atom(fol::Atom {
+                    predicate: head_symbol,
+                    terms: vec![],
+                }))
+            }
+            asp::Head::Choice(_) => fol::Formula::BinaryFormula {
+                connective: fol::BinaryConnective::Implication,
+                lhs: fol::Formula::UnaryFormula {
+                    connective: fol::UnaryConnective::Negation,
+                    formula: fol::Formula::UnaryFormula {
+                        connective: fol::UnaryConnective::Negation,
+                        formula: fol::Formula::AtomicFormula(fol::AtomicFormula::Atom(fol::Atom {
+                            predicate: head_symbol.clone(),
+                            terms: vec![],
+                        }))
+                        .into(),
+                    }
+                    .into(),
+                }
+                .into(),
+                rhs: fol::Formula::AtomicFormula(fol::AtomicFormula::Atom(fol::Atom {
+                    predicate: head_symbol,
+                    terms: vec![],
+                }))
+                .into(),
+            },
+            asp::Head::Falsity => panic!(),
+        }
     } else {
         let new_head = fol::Formula::AtomicFormula(fol::AtomicFormula::Atom(fol::Atom {
             predicate: head_symbol,
@@ -1411,4 +1437,101 @@ mod tests {
             format!("{}", formatting::fol::default::Format(&theory))
         );
     }
+
+    #[test]
+    pub fn tau_star_test11() {
+        let rule1: asp::Rule = "{p}.".parse().unwrap();
+        let program = asp::Program { rules: vec![rule1] };
+
+        let form1: fol::Formula = "not not p -> p".parse().unwrap();
+        let theory = fol::Theory {
+            formulas: vec![form1],
+        };
+
+        let result: fol::Theory = super::tau_star_program(program);
+        assert_eq!(
+            format!("{}", formatting::fol::default::Format(&result)),
+            format!("{}", formatting::fol::default::Format(&theory))
+        );
+    }
+
+    #[test]
+    pub fn tau_star_test12() {
+        let rule1: asp::Rule = "{p(5)}.".parse().unwrap();
+        let program = asp::Program { rules: vec![rule1] };
+
+        let form1: fol::Formula = "forall V1 (V1 = 5 and not not p(V1) -> p(V1))"
+            .parse()
+            .unwrap();
+        let theory = fol::Theory {
+            formulas: vec![form1],
+        };
+
+        let result: fol::Theory = super::tau_star_program(program);
+        assert_eq!(
+            format!("{}", formatting::fol::default::Format(&result)),
+            format!("{}", formatting::fol::default::Format(&theory))
+        );
+    }
+
+    #[test]
+    pub fn tau_star_test13() {
+        let rule1: asp::Rule = "edge(1,2).".parse().unwrap();
+        let rule2: asp::Rule = "edge(2,3).".parse().unwrap();
+        let rule3: asp::Rule = "edge(3,1).".parse().unwrap();
+        let rule4: asp::Rule = "ra(X,Y) :- edge(X,Y).".parse().unwrap();
+        let rule5: asp::Rule = "ra(X,Z) :- ra(X,Y), ra(Y,Z).".parse().unwrap();
+        let program = asp::Program {
+            rules: vec![rule1, rule2, rule3, rule4, rule5],
+        };
+
+        let form1: fol::Formula = "forall V1 V2 (V1 = 1 and V2 = 2 -> edge(V1,V2))"
+            .parse()
+            .unwrap();
+        let form2: fol::Formula = "forall V1 V2 (V1 = 2 and V2 = 3 -> edge(V1,V2))"
+            .parse()
+            .unwrap();
+        let form3: fol::Formula = "forall V1 V2 (V1 = 3 and V2 = 1 -> edge(V1,V2))"
+            .parse()
+            .unwrap();
+        let form4: fol::Formula = "forall V1 V2 X Y (V1 = X and V2 = Y and exists Z Z1(Z = X and Z1 = Y and edge(Z,Z1)) -> ra(V1,V2))".parse().unwrap();
+        let form5: fol::Formula = "forall V1 V2 X Y Z (V1 = X and V2 = Z and (exists Z Z1(Z = X and Z1 = Y and ra(Z,Z1)) and exists Z1 Z2 (Z1 = Y and Z2 = Z and ra(Z1,Z2))) -> ra(V1,V2))".parse().unwrap();
+        let theory = fol::Theory {
+            formulas: vec![form1, form2, form3, form4, form5],
+        };
+
+        let result: fol::Theory = super::tau_star_program(program);
+        assert_eq!(
+            format!("{}", formatting::fol::default::Format(&result)),
+            format!("{}", formatting::fol::default::Format(&theory))
+        );
+    }
+
+    #[test]
+    pub fn tau_star_test14() {
+        let program: asp::Program = "p.\nq.".parse().unwrap();
+
+        let theory: fol::Theory = "p.\nq.".parse().unwrap();
+
+        let result: fol::Theory = super::tau_star_program(program);
+        assert_eq!(
+            format!("{}", formatting::fol::default::Format(&result)),
+            format!("{}", formatting::fol::default::Format(&theory))
+        );
+    }
+
+    /*  #[test]
+    pub fn tau_star_test15() {
+        let program: asp::Program = "{ra(X,a)} :- ga(X).\nra(5,a).".parse().unwrap();
+
+        //(V1 = X and V2 = a) and exists Z (Z = X and ga(Z)) and (not not ra(V1,V2)) ->
+
+        let theory: fol::Theory = "forall V1 V2 X (V1 = X and V2 = a and exists Z (Z = X and ga(Z)) and not not ra(V1, V2) -> ra(V1, V2))\nforall V1 V2 (V1 = 5 and V2 = a -> ra(V1, V2))\n".parse().unwrap();
+
+        let result: fol::Theory = super::tau_star_program(program);
+        assert_eq!(
+            format!("{}", formatting::fol::default::Format(&result)),
+            format!("{}", formatting::fol::default::Format(&theory))
+        );
+    }*/
 }
