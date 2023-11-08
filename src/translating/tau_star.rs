@@ -1520,13 +1520,13 @@ mod tests {
         );
     }
 
-    /*  #[test]
+    /*#[test]
     pub fn tau_star_test15() {
         let program: asp::Program = "{ra(X,a)} :- ga(X).\nra(5,a).".parse().unwrap();
 
         //(V1 = X and V2 = a) and exists Z (Z = X and ga(Z)) and (not not ra(V1,V2)) ->
 
-        let theory: fol::Theory = "forall V1 V2 X (V1 = X and V2 = a and exists Z (Z = X and ga(Z)) and not not ra(V1, V2) -> ra(V1, V2))\nforall V1 V2 (V1 = 5 and V2 = a -> ra(V1, V2))\n".parse().unwrap();
+        let theory: fol::Theory = "forall V1 V2 (exists Z (Z = X and pa) and not not ra(V1, V2) -> ra(V1, V2)).\nforall V1 V2 (V1 = 5 and V2 = a -> ra(V1, V2)).".parse().unwrap();
 
         let result: fol::Theory = super::tau_star_program(program);
         assert_eq!(
