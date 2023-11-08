@@ -271,7 +271,7 @@ impl Rule {
                         false
                     }
                 }
-                Head::Falsity => todo!(),
+                Head::Falsity => todo!(), // technically, someone could write "#false." as a fact, making the program immediately unsat
             }
         } else {
             false

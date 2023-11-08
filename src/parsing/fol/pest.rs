@@ -1075,9 +1075,9 @@ mod tests {
             (
                 "g",
                 Formula::AtomicFormula(AtomicFormula::Atom(Atom {
-                        predicate: "g".into(),
-                        terms: vec![],
-                    })),
+                    predicate: "g".into(),
+                    terms: vec![],
+                })),
             ),
             (
                 "not i",
@@ -1140,9 +1140,9 @@ mod tests {
             ),
             (
                 "forall V1 V2 (not not ra(V1, V2) -> ra(V1, V2))",
-                Formula::QuantifiedFormula { 
-                    quantification: Quantification { 
-                        quantifier: Quantifier::Forall, 
+                Formula::QuantifiedFormula {
+                    quantification: Quantification {
+                        quantifier: Quantifier::Forall,
                         variables: vec![
                             Variable {
                                 name: "V1".into(),
@@ -1151,38 +1151,44 @@ mod tests {
                             Variable {
                                 name: "V2".into(),
                                 sort: Sort::General,
-                            },], 
-                    }, 
-                    formula: Formula::BinaryFormula { 
-                        connective: BinaryConnective::Implication, 
-                        lhs: Formula::UnaryFormula { 
-                            connective: UnaryConnective::Negation, 
-                            formula: Formula::UnaryFormula { 
-                                connective: UnaryConnective::Negation, 
-                                formula: Formula::AtomicFormula(AtomicFormula::Atom(Atom { 
+                            },
+                        ],
+                    },
+                    formula: Formula::BinaryFormula {
+                        connective: BinaryConnective::Implication,
+                        lhs: Formula::UnaryFormula {
+                            connective: UnaryConnective::Negation,
+                            formula: Formula::UnaryFormula {
+                                connective: UnaryConnective::Negation,
+                                formula: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
                                     predicate: "ra".to_string(),
                                     terms: vec![
                                         GeneralTerm::GeneralVariable("V1".into()),
                                         GeneralTerm::GeneralVariable("V2".into()),
-                                    ] 
-                                })).into(),
-                            }.into(), 
-                        }.into(), 
-                        rhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom { 
+                                    ],
+                                }))
+                                .into(),
+                            }
+                            .into(),
+                        }
+                        .into(),
+                        rhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
                             predicate: "ra".to_string(),
                             terms: vec![
                                 GeneralTerm::GeneralVariable("V1".into()),
                                 GeneralTerm::GeneralVariable("V2".into()),
-                            ] 
-                        })).into(),
-                    }.into(),
+                            ],
+                        }))
+                        .into(),
+                    }
+                    .into(),
                 },
             ),
             (
                 "forall V1 V2 (not not ga(V1, V2) -> ga(V1, V2))",
-                Formula::QuantifiedFormula { 
-                    quantification: Quantification { 
-                        quantifier: Quantifier::Forall, 
+                Formula::QuantifiedFormula {
+                    quantification: Quantification {
+                        quantifier: Quantifier::Forall,
                         variables: vec![
                             Variable {
                                 name: "V1".into(),
@@ -1191,31 +1197,37 @@ mod tests {
                             Variable {
                                 name: "V2".into(),
                                 sort: Sort::General,
-                            },], 
-                    }, 
-                    formula: Formula::BinaryFormula { 
-                        connective: BinaryConnective::Implication, 
-                        lhs: Formula::UnaryFormula { 
-                            connective: UnaryConnective::Negation, 
-                            formula: Formula::UnaryFormula { 
-                                connective: UnaryConnective::Negation, 
-                                formula: Formula::AtomicFormula(AtomicFormula::Atom(Atom { 
+                            },
+                        ],
+                    },
+                    formula: Formula::BinaryFormula {
+                        connective: BinaryConnective::Implication,
+                        lhs: Formula::UnaryFormula {
+                            connective: UnaryConnective::Negation,
+                            formula: Formula::UnaryFormula {
+                                connective: UnaryConnective::Negation,
+                                formula: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
                                     predicate: "ga".to_string(),
                                     terms: vec![
                                         GeneralTerm::GeneralVariable("V1".into()),
                                         GeneralTerm::GeneralVariable("V2".into()),
-                                    ] 
-                                })).into(),
-                            }.into(), 
-                        }.into(), 
-                        rhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom { 
+                                    ],
+                                }))
+                                .into(),
+                            }
+                            .into(),
+                        }
+                        .into(),
+                        rhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
                             predicate: "ga".to_string(),
                             terms: vec![
                                 GeneralTerm::GeneralVariable("V1".into()),
                                 GeneralTerm::GeneralVariable("V2".into()),
-                            ] 
-                        })).into(),
-                    }.into(),
+                            ],
+                        }))
+                        .into(),
+                    }
+                    .into(),
                 },
             ),
             (

@@ -5,6 +5,7 @@ use std::collections::HashSet;
 
 use crate::syntax_tree;
 
+// Choose fresh variants of V# by incrementing #
 pub fn choose_fresh_global_variables(program: &asp::Program) -> Vec<String> {
     let mut max_arity = 0;
     let mut head_arity;
@@ -176,7 +177,9 @@ fn construct_total_function_formula(
     }
 }
 
-// Division, modulo
+// Are these definitions correct?
+// Division: exists I J Q R (I = J * Q + R & val_t1(I) & val_t2(J) & J != 0 & R >= 0 & R < Q & Z = Q)
+// Modulo:   exists I J Q R (I = J * Q + R & val_t1(I) & val_t2(J) & J != 0 & R >= 0 & R < Q & Z = R)
 fn construct_partial_function_formula(
     valti: fol::Formula,
     valtj: fol::Formula,
@@ -369,6 +372,7 @@ fn construct_partial_function_formula(
 }
 
 // t1..t2
+// exists I J K (val_t1(I) & val_t2(J) & I <= K <= J & Z = K)
 fn construct_interval_formula(
     valti: fol::Formula,
     valtj: fol::Formula,
@@ -782,6 +786,7 @@ pub fn tau_body(b: asp::Body) -> fol::Formula {
     conjoin((formulas, first_formula.clone()))
 }
 
+// Handles the case when we have a rule with a first-order atom or choice atom in the head
 pub fn tau_star_fo_head_rule(r: &asp::Rule, globals: &Vec<String>) -> fol::Formula {
     let head_symbol = r.get_head_symbol().unwrap();
     let head_arity = r.head.get_arity(); // n
@@ -1520,18 +1525,33 @@ mod tests {
         );
     }
 
-    /*#[test]
+    #[test]
     pub fn tau_star_test15() {
-        let program: asp::Program = "{ra(X,a)} :- ga(X).\nra(5,a).".parse().unwrap();
+        let program: asp::Program = "{ra(X,a)} :- ta(X).\nra(5,a).".parse().unwrap();
 
         //(V1 = X and V2 = a) and exists Z (Z = X and ga(Z)) and (not not ra(V1,V2)) ->
 
-        let theory: fol::Theory = "forall V1 V2 (exists Z (Z = X and pa) and not not ra(V1, V2) -> ra(V1, V2)).\nforall V1 V2 (V1 = 5 and V2 = a -> ra(V1, V2)).".parse().unwrap();
+        let theory: fol::Theory = "forall V1 V2 X (V1 = X and V2 = a and exists Z (Z = X and ta(Z)) and not not ra(V1, V2) -> ra(V1, V2)).\nforall V1 V2 (V1 = 5 and V2 = a -> ra(V1, V2)).".parse().unwrap();
 
         let result: fol::Theory = super::tau_star_program(program);
         assert_eq!(
             format!("{}", formatting::fol::default::Format(&result)),
             format!("{}", formatting::fol::default::Format(&theory))
         );
-    }*/
+    }
+
+    #[test]
+    pub fn tau_star_test16() {
+        let program: asp::Program = "{ra(X,a)} :- ga(X).\nra(5,a).".parse().unwrap();
+
+        //(V1 = X and V2 = a) and exists Z (Z = X and ga(Z)) and (not not ra(V1,V2)) ->
+
+        let theory: fol::Theory = "forall V1 V2 X (V1 = X and V2 = a and exists Z (Z = X and ga(Z)) and not not ra(V1, V2) -> ra(V1, V2)).\nforall V1 V2 (V1 = 5 and V2 = a -> ra(V1, V2)).".parse().unwrap();
+
+        let result: fol::Theory = super::tau_star_program(program);
+        assert_eq!(
+            format!("{}", formatting::fol::default::Format(&result)),
+            format!("{}", formatting::fol::default::Format(&theory))
+        );
+    }
 }
