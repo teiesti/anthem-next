@@ -757,6 +757,14 @@ mod tests {
                     },
                 ),
                 (
+                    // Parsing "g" caused issues ealier because "g" is also a sort declaration.
+                    "g",
+                    Atom {
+                        predicate: "g".into(),
+                        terms: vec![],
+                    },
+                ),
+                (
                     "p()",
                     Atom {
                         predicate: "p".into(),
