@@ -480,14 +480,14 @@ mod tests {
             AtomParser, AtomicFormulaParser, BasicIntegerTermParser, BinaryConnectiveParser,
             BinaryOperatorParser, ComparisonParser, FormulaParser, GeneralTermParser, GuardParser,
             IntegerTermParser, QuantificationParser, QuantifierParser, RelationParser,
-            UnaryConnectiveParser, UnaryOperatorParser, VariableParser,
+            TheoryParser, UnaryConnectiveParser, UnaryOperatorParser, VariableParser,
         },
         crate::{
             parsing::TestedParser,
             syntax_tree::fol::{
                 Atom, AtomicFormula, BasicIntegerTerm, BinaryConnective, BinaryOperator,
                 Comparison, Formula, GeneralTerm, Guard, IntegerTerm, Quantification, Quantifier,
-                Relation, Sort, UnaryConnective, UnaryOperator, Variable,
+                Relation, Sort, Theory, UnaryConnective, UnaryOperator, Variable,
             },
         },
     };
@@ -1147,7 +1147,21 @@ mod tests {
                 },
             ),
         ]);
+    }
 
-        // TODO Add more tests
+    #[test]
+    fn parse_theory() {
+        TheoryParser.should_parse_into([
+            ("", Theory { formulas: vec![] }),
+            (
+                "a.\n",
+                Theory {
+                    formulas: vec![Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                        predicate: "a".into(),
+                        terms: vec![],
+                    }))],
+                },
+            ),
+        ]);
     }
 }

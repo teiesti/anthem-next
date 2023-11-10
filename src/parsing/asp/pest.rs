@@ -1026,6 +1026,18 @@ mod tests {
                     ],
                 },
             ),
+            (
+                "a.\n",
+                Program {
+                    rules: vec![Rule {
+                        head: Head::Basic(Atom {
+                            predicate: "a".into(),
+                            terms: vec![],
+                        }),
+                        body: Body { formulas: vec![] },
+                    }],
+                },
+            ),
         ]);
     }
 }

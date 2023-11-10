@@ -79,4 +79,5 @@ formula = { prefix* ~ primary ~ (infix ~ prefix* ~ primary)* }
     infix   = _{ binary_connective }
     primary = _{ "(" ~ formula ~ ")" | atomic_formula }
 
-theory = { (formula ~ ".")+ }
+// TODO: Think about a proper way to handle the whitespace at the end of programs
+theory = { (formula ~ ".")* ~ WHITESPACE* }
