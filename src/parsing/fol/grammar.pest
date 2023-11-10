@@ -8,7 +8,7 @@
 
 WHITESPACE = _{ " " | NEWLINE }
 
-keyword = _{ primitive | binary_connective | unary_connective | quantifier | sort }
+keyword = _{ primitive | binary_connective | unary_connective | quantifier }
 
     primitive = _{ infimum | supremum }
         infimum  = { "#inf" }
@@ -79,4 +79,4 @@ formula = { prefix* ~ primary ~ (infix ~ prefix* ~ primary)* }
     infix   = _{ binary_connective }
     primary = _{ "(" ~ formula ~ ")" | atomic_formula }
 
-theory = { (formula ~ ".")+ }
+theory = { (formula ~ ".")* }

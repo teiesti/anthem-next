@@ -221,7 +221,7 @@ pub struct Quantification {
 
 impl_node!(Quantification, Format, QuantificationParser);
 
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash, PartialOrd, Ord)]
 pub enum Sort {
     Integer,
     General,
@@ -229,7 +229,7 @@ pub enum Sort {
 
 // TODO: Should Sort be a Node?
 
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash, PartialOrd, Ord)]
 pub struct Variable {
     pub name: String,
     pub sort: Sort,
@@ -237,7 +237,7 @@ pub struct Variable {
 
 impl_node!(Variable, Format, VariableParser);
 
-impl Ord for Variable {
+/*impl Ord for Variable {
     fn cmp(&self, other: &Self) -> Ordering {
         (&self.name).cmp(&other.name)
     }
@@ -255,7 +255,7 @@ impl PartialOrd for Variable {
             Some(Ordering::Equal)
         }
     }
-}
+}*/
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub enum BinaryConnective {

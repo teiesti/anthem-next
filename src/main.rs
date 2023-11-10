@@ -4,11 +4,12 @@ pub mod syntax_tree;
 pub mod translating;
 
 use crate::syntax_tree::{asp, fol};
-//use std::collections::HashSet;
-//use std::collections::hash_map::Entry;
+use std::collections::HashSet;
+use std::collections::HashMap;
+use std::collections::hash_map::Entry;
 
 // If a sentence is completable, it returns the head
-/*pub fn completable_beheader(sentence: fol::Formula) -> Option<fol::AtomicFormula> {
+pub fn completable_beheader(sentence: fol::Formula) -> Option<fol::AtomicFormula> {
     match sentence {
         fol::Formula::QuantifiedFormula {
             quantification: q,
@@ -109,11 +110,8 @@ pub fn completable_theory(theory: fol::Theory) -> Option<HashMap::<fol::Formula,
     }
 }
 
-
-// What about facts? p(5) is actually an abbreviation for p(5) :- .
-// <theory> must be a completable theory, so we know it has the form forall V (body -> head)
-// <formula_heads[formula] = head(formula)>
-pub fn completion(theory: fol::Theory, formula_heads: HashMap::<fol::Formula, fol::AtomicFormula>) -> fol::Theory {
+// Produces a map from each unique head to a vector of F_i formula bodies (definitions)
+pub fn definitions(theory: &fol::Theory, formula_heads: &HashMap::<fol::Formula, fol::AtomicFormula>) -> HashMap::<fol::AtomicFormula, Vec<fol::Formula>> {
     let mut definitions = HashMap::<fol::AtomicFormula, Vec<fol::Formula>>::new();
     for sentence in theory.formulas.iter() {
         match sentence {
@@ -141,7 +139,14 @@ pub fn completion(theory: fol::Theory, formula_heads: HashMap::<fol::Formula, fo
             _ => {},
         }
     }
-    // By this point, we should have a map from each unique head to a vector of F_i formula bodies (definitions)
+    definitions
+}
+
+// What about facts? p(5) is actually an abbreviation for p(5) :- .
+// <theory> must be a completable theory, so we know it has the form forall V (body -> head)
+// <formula_heads[formula] = head(formula)>
+pub fn completion(theory: fol::Theory, formula_heads: HashMap::<fol::Formula, fol::AtomicFormula>) -> fol::Theory {
+    let definitions = definitions(&theory, &formula_heads);
     // Now we need the completed definitions of each unique head
     let mut completions = Vec::<fol::Formula>::new();
     for (formula, head) in formula_heads.iter() {
@@ -158,6 +163,8 @@ pub fn completion(theory: fol::Theory, formula_heads: HashMap::<fol::Formula, fo
             _ => {                                                  // TODO distinguish between intensional and extensional predicate symbols
                 let mut bodies = Vec::<fol::Formula>::new();
                 for body in body_vec.iter() {
+                    let body_vars = body.get_variables();
+                    println!("{:?}", body_vars);
                     let qbod = fol::Formula::QuantifiedFormula{
                         quantification: fol::Quantification{
                             quantifier: fol::Quantifier::Exists,
@@ -168,7 +175,7 @@ pub fn completion(theory: fol::Theory, formula_heads: HashMap::<fol::Formula, fo
                     bodies.push(qbod);
                 }
                 let f1: fol::Formula = bodies.pop().unwrap();
-                let full_body = disjoin((bodies, f1));
+                let full_body = translating::tau_star::disjoin((bodies, f1));
                 let head_var_names = head.get_variables();
                 let mut head_vars = Vec::<fol::Variable>::new();
                 for name in head_var_names.iter() {
@@ -191,88 +198,30 @@ pub fn completion(theory: fol::Theory, formula_heads: HashMap::<fol::Formula, fo
     }
     fol::Theory{ formulas: completions }
 }
-*/
 
 fn main() {
-    /*let rule1: asp::Rule = "p(a).".parse().unwrap();
-    let rule2: asp::Rule = "p(b).".parse().unwrap();
-    let rule3: asp::Rule = "q(X,Y) :- p(X), p(Y).".parse().unwrap();
-    let program = asp::Program {
-        rules: vec![rule1, rule2, rule3],
-    };
-
-    let f1 = translating::tau_star::tau_star_program(program);
-    let thing = formatting::fol::default::Format(&f1);
-    println!("{thing}");
-
-    let form1: fol::Formula = "forall V1 (V1 = a -> p(V1))".parse().unwrap();
-    let form2: fol::Formula = "forall V1 (V1 = b -> p(V1))".parse().unwrap();
-    let form3: fol::Formula = "forall X Y V1 V2 (V1 = X and V2 = Y and (exists Z1 (Z1 = X and p(Z1)) and exists Z1 (Z1 = Y and p(Z1))) -> q(V1,V2))".parse().unwrap();
-    let theory = fol::Theory {
-        formulas: vec![form1, form2, form3],
-    };
-    println!("{theory}");*/
-
-    /*let x = fol::Variable {
-        name: "X".to_string(),
-        sort: fol::Sort::General,
-    };
-    let y = fol::Variable {
-        name: "Y".to_string(),
-        sort: fol::Sort::General,
-    };
-    let q = fol::Quantification {
-        quantifier: fol::Quantifier::Forall,
-        variables: vec![y, x],
-    };
-
-    println!("{q}");*/
-
-    /*let target: fol::Formula =
-                "not p(a)"
-                    .parse()
-                    .unwrap();
-
-        println!("{target}");
-    */
-    /*let atomic: asp::AtomicFormula = "X < 1..5".parse().unwrap();
-    let target: fol::Formula =
-            "exists Z1$g Z2$g (Z1$g = 1 and (exists I1$i J1$i K1$i (I1$i = 1 and J1$i = 5 and Z2$g = K1$i and I1$i <= K1$i <= J1$i)) and Z1$g < Z2$g)"
-                .parse()
-                .unwrap();
-
-    println!("{target}");*/
-
-    let rule1: asp::Rule = ":- p(X,3), not q(X,a).".parse().unwrap();
-    let program = asp::Program { rules: vec![rule1] };
+    let program: asp::Program = "q(X,a) :- p(X,3). q(X,Y). q(X,Y) :- t(X), t(Y).".parse().unwrap();
+    //let program: asp::Program = "".parse().unwrap();
 
     println!("{program}");
 
-    let form1: fol::Formula = "forall X (exists (Z1 = X and Z2 = a and q(Z1,Z2)) -> #false)"
-        .parse()
-        .unwrap();
-    let theory = fol::Theory {
-        formulas: vec![form1],
-    };
-
+    let theory: fol::Theory = translating::tau_star::tau_star_program(program);
     println!("{theory}");
 
-    /*let completable = completable_theory(f1.clone());
+    let completable = completable_theory(theory.clone());
     match completable {
         Some(m) => {
             for (key, val) in m.iter() {
                 println!("{}", formatting::fol::default::Format(val));
             }
             println!("");
-            let completion = completion(f1.clone(), m);
+            let completion = completion(theory.clone(), m);
             for c in completion.formulas.iter() {
                 println!("{}", formatting::fol::default::Format(c));
             }
         },
-        None => {println!("uh oh");},
-    }*/
-    //println!("{f1}");
-
-    //let formula: fol::Formula = "a -> b".parse().unwrap();
-    //println!("{formula}");
+        None => {
+            println!("uh oh");
+        },
+    }
 }
