@@ -9,7 +9,7 @@ use crate::{
     syntax_tree::{impl_node, Node},
 };
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub enum BasicIntegerTerm {
     Infimum,
     Supremum,
@@ -19,14 +19,14 @@ pub enum BasicIntegerTerm {
 
 impl_node!(BasicIntegerTerm, Format, BasicIntegerTermParser);
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub enum UnaryOperator {
     Negative,
 }
 
 impl_node!(UnaryOperator, Format, UnaryOperatorParser);
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub enum BinaryOperator {
     Add,
     Subtract,
@@ -35,7 +35,7 @@ pub enum BinaryOperator {
 
 impl_node!(BinaryOperator, Format, BinaryOperatorParser);
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub enum IntegerTerm {
     BasicIntegerTerm(BasicIntegerTerm),
     UnaryOperation {
@@ -51,7 +51,7 @@ pub enum IntegerTerm {
 
 impl_node!(IntegerTerm, Format, IntegerTermParser);
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub enum GeneralTerm {
     Symbol(String),
     GeneralVariable(String),
@@ -60,7 +60,7 @@ pub enum GeneralTerm {
 
 impl_node!(GeneralTerm, Format, GeneralTermParser);
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Atom {
     pub predicate: String,
     pub terms: Vec<GeneralTerm>,
@@ -68,7 +68,7 @@ pub struct Atom {
 
 impl_node!(Atom, Format, AtomParser);
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub enum Relation {
     Equal,
     NotEqual,
@@ -80,7 +80,7 @@ pub enum Relation {
 
 impl_node!(Relation, Format, RelationParser);
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Guard {
     pub relation: Relation,
     pub term: GeneralTerm,
@@ -88,7 +88,7 @@ pub struct Guard {
 
 impl_node!(Guard, Format, GuardParser);
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Comparison {
     pub term: GeneralTerm,
     pub guards: Vec<Guard>,
@@ -96,7 +96,7 @@ pub struct Comparison {
 
 impl_node!(Comparison, Format, ComparisonParser);
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub enum AtomicFormula {
     Truth,
     Falsity,
@@ -106,14 +106,14 @@ pub enum AtomicFormula {
 
 impl_node!(AtomicFormula, Format, AtomicFormulaParser);
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub enum UnaryConnective {
     Negation,
 }
 
 impl_node!(UnaryConnective, Format, UnaryConnectiveParser);
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub enum Quantifier {
     Forall,
     Exists,
@@ -121,7 +121,7 @@ pub enum Quantifier {
 
 impl_node!(Quantifier, Format, QuantifierParser);
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Quantification {
     pub quantifier: Quantifier,
     pub variables: Vec<Variable>,
@@ -129,7 +129,7 @@ pub struct Quantification {
 
 impl_node!(Quantification, Format, QuantificationParser);
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub enum Sort {
     Integer,
     General,
@@ -137,7 +137,7 @@ pub enum Sort {
 
 // TODO: Should Sort be a Node?
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Variable {
     pub name: String,
     pub sort: Sort,
@@ -145,7 +145,7 @@ pub struct Variable {
 
 impl_node!(Variable, Format, VariableParser);
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub enum BinaryConnective {
     Conjunction,
     Disjunction,
@@ -156,7 +156,7 @@ pub enum BinaryConnective {
 
 impl_node!(BinaryConnective, Format, BinaryConnectiveParser);
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub enum Formula {
     AtomicFormula(AtomicFormula),
     UnaryFormula {
@@ -176,7 +176,7 @@ pub enum Formula {
 
 impl_node!(Formula, Format, FormulaParser);
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Theory {
     pub formulas: Vec<Formula>,
 }

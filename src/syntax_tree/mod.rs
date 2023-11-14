@@ -1,12 +1,12 @@
 use std::{
     fmt::{Debug, Display},
-    str::FromStr,
+    str::FromStr, hash::Hash,
 };
 
 pub mod asp;
 pub mod fol;
 
-pub trait Node: Clone + Debug + Eq + PartialEq + FromStr + Display {}
+pub trait Node: Clone + Debug + Eq + PartialEq + FromStr + Display + Hash {}
 
 macro_rules! impl_node {
     ($node:ty, $format:expr, $parser:ty) => {
