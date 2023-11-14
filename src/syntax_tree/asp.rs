@@ -174,6 +174,30 @@ pub enum Head {
 impl_node!(Head, Format, HeadParser);
 
 impl Head {
+    pub fn predicate(&self) -> Option<&str> {
+        match self {
+            Head::Basic(a) => Some(&a.predicate),
+            Head::Choice(a) => Some(&a.predicate),
+            Head::Falsity => None,
+        }
+    }
+
+    pub fn terms(&self) -> Option<&[Term]> {
+        match self {
+            Head::Basic(a) => Some(&a.terms),
+            Head::Choice(a) => Some(&a.terms),
+            Head::Falsity => None,
+        }
+    }
+
+    pub fn arity(&self) -> usize {
+        match self {
+            Head::Basic(a) => a.terms.len(),
+            Head::Choice(a) => a.terms.len(),
+            Head::Falsity => 0,
+        }
+    }
+
     pub fn variables(&self) -> HashSet<Variable> {
         match &self {
             Head::Basic(a) | Head::Choice(a) => a.variables(),
