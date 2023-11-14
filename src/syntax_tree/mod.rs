@@ -1,6 +1,7 @@
 use std::{
     fmt::{Debug, Display},
-    str::FromStr, hash::Hash,
+    hash::Hash,
+    str::FromStr,
 };
 
 pub mod asp;

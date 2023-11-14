@@ -1,11 +1,14 @@
-use crate::{
-    formatting::asp::default::Format,
-    parsing::asp::pest::{
-        AtomParser, AtomicFormulaParser, BinaryOperatorParser, BodyParser, ComparisonParser,
-        HeadParser, LiteralParser, PrecomputedTermParser, ProgramParser, RelationParser,
-        RuleParser, SignParser, TermParser, UnaryOperatorParser, VariableParser,
+use {
+    crate::{
+        formatting::asp::default::Format,
+        parsing::asp::pest::{
+            AtomParser, AtomicFormulaParser, BinaryOperatorParser, BodyParser, ComparisonParser,
+            HeadParser, LiteralParser, PrecomputedTermParser, ProgramParser, RelationParser,
+            RuleParser, SignParser, TermParser, UnaryOperatorParser, VariableParser,
+        },
+        syntax_tree::{impl_node, Node},
     },
-    syntax_tree::{impl_node, Node},
+    std::collections::HashSet,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
@@ -59,6 +62,21 @@ pub enum Term {
 
 impl_node!(Term, Format, TermParser);
 
+impl Term {
+    pub fn variables(&self) -> HashSet<Variable> {
+        match &self {
+            Term::PrecomputedTerm(_) => HashSet::new(),
+            Term::Variable(v) => HashSet::from([v.clone()]),
+            Term::UnaryOperation { arg, .. } => arg.variables(),
+            Term::BinaryOperation { lhs, rhs, .. } => {
+                let mut vars = lhs.variables();
+                vars.extend(rhs.variables());
+                vars
+            }
+        }
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Atom {
     pub predicate: String,
@@ -66,6 +84,16 @@ pub struct Atom {
 }
 
 impl_node!(Atom, Format, AtomParser);
+
+impl Atom {
+    pub fn variables(&self) -> HashSet<Variable> {
+        let mut vars = HashSet::new();
+        for term in self.terms.iter() {
+            vars.extend(term.variables())
+        }
+        vars
+    }
+}
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub enum Sign {
@@ -83,6 +111,12 @@ pub struct Literal {
 }
 
 impl_node!(Literal, Format, LiteralParser);
+
+impl Literal {
+    pub fn variables(&self) -> HashSet<Variable> {
+        self.atom.variables()
+    }
+}
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub enum Relation {
@@ -105,6 +139,14 @@ pub struct Comparison {
 
 impl_node!(Comparison, Format, ComparisonParser);
 
+impl Comparison {
+    pub fn variables(&self) -> HashSet<Variable> {
+        let mut vars = self.lhs.variables();
+        vars.extend(self.rhs.variables());
+        vars
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub enum AtomicFormula {
     Literal(Literal),
@@ -112,6 +154,15 @@ pub enum AtomicFormula {
 }
 
 impl_node!(AtomicFormula, Format, AtomicFormulaParser);
+
+impl AtomicFormula {
+    pub fn variables(&self) -> HashSet<Variable> {
+        match &self {
+            AtomicFormula::Literal(l) => l.variables(),
+            AtomicFormula::Comparison(c) => c.variables(),
+        }
+    }
+}
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub enum Head {
@@ -122,12 +173,31 @@ pub enum Head {
 
 impl_node!(Head, Format, HeadParser);
 
+impl Head {
+    pub fn variables(&self) -> HashSet<Variable> {
+        match &self {
+            Head::Basic(a) | Head::Choice(a) => a.variables(),
+            Head::Falsity => HashSet::new(),
+        }
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Body {
     pub formulas: Vec<AtomicFormula>,
 }
 
 impl_node!(Body, Format, BodyParser);
+
+impl Body {
+    pub fn variables(&self) -> HashSet<Variable> {
+        let mut vars = HashSet::new();
+        for formula in self.formulas.iter() {
+            vars.extend(formula.variables())
+        }
+        vars
+    }
+}
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Rule {
@@ -137,9 +207,27 @@ pub struct Rule {
 
 impl_node!(Rule, Format, RuleParser);
 
+impl Rule {
+    pub fn variables(&self) -> HashSet<Variable> {
+        let mut vars = self.head.variables();
+        vars.extend(self.body.variables());
+        vars
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Program {
     pub rules: Vec<Rule>,
 }
 
 impl_node!(Program, Format, ProgramParser);
+
+impl Program {
+    pub fn variables(&self) -> HashSet<Variable> {
+        let mut vars = HashSet::new();
+        for rule in self.rules.iter() {
+            vars.extend(rule.variables())
+        }
+        vars
+    }
+}
