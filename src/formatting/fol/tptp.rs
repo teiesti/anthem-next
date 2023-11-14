@@ -150,6 +150,7 @@ impl Display for Format<'_, Comparison> {
 impl Display for Format<'_, AtomicFormula> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self.0 {
+            AtomicFormula::Truth => write!(f, "$true"),
             AtomicFormula::Falsity => write!(f, "$false"),
             AtomicFormula::Atom(a) => Format(a).fmt(f),
             AtomicFormula::Comparison(c) => Format(c).fmt(f),

@@ -281,6 +281,7 @@ impl PestParser for AtomicFormulaParser {
             internal::Rule::atomic_formula => {
                 AtomicFormulaParser::translate_pairs(pair.into_inner())
             }
+            internal::Rule::truth => AtomicFormula::Truth,
             internal::Rule::falsity => AtomicFormula::Falsity,
             internal::Rule::atom => AtomicFormula::Atom(AtomParser::translate_pair(pair)),
             internal::Rule::comparison => {
