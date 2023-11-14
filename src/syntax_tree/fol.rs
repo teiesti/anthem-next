@@ -98,6 +98,7 @@ impl_node!(Comparison, Format, ComparisonParser);
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum AtomicFormula {
+    Truth,
     Falsity,
     Atom(Atom),
     Comparison(Comparison),
