@@ -20,7 +20,7 @@ jobs:
           - stable
           - beta
           - nightly
-          - 1.67.0
+          - 1.70.0
 
     steps:
       - uses: actions/checkout@v3
