@@ -1,12 +1,15 @@
-use crate::{
-    formatting::fol::default::Format,
-    parsing::fol::pest::{
-        AtomParser, AtomicFormulaParser, BasicIntegerTermParser, BinaryConnectiveParser,
-        BinaryOperatorParser, ComparisonParser, FormulaParser, GeneralTermParser, GuardParser,
-        IntegerTermParser, QuantificationParser, QuantifierParser, RelationParser, TheoryParser,
-        UnaryConnectiveParser, UnaryOperatorParser, VariableParser,
+use {
+    crate::{
+        formatting::fol::default::Format,
+        parsing::fol::pest::{
+            AtomParser, AtomicFormulaParser, BasicIntegerTermParser, BinaryConnectiveParser,
+            BinaryOperatorParser, ComparisonParser, FormulaParser, GeneralTermParser, GuardParser,
+            IntegerTermParser, QuantificationParser, QuantifierParser, RelationParser,
+            TheoryParser, UnaryConnectiveParser, UnaryOperatorParser, VariableParser,
+        },
+        syntax_tree::{impl_node, Node},
     },
-    syntax_tree::{impl_node, Node},
+    std::{collections::HashSet, hash::Hash},
 };
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
@@ -18,6 +21,18 @@ pub enum BasicIntegerTerm {
 }
 
 impl_node!(BasicIntegerTerm, Format, BasicIntegerTermParser);
+
+impl BasicIntegerTerm {
+    pub fn variables(&self) -> HashSet<Variable> {
+        match &self {
+            BasicIntegerTerm::IntegerVariable(v) => HashSet::from([Variable {
+                name: v.to_string(),
+                sort: Sort::Integer,
+            }]),
+            _ => HashSet::new(),
+        }
+    }
+}
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub enum UnaryOperator {
@@ -51,6 +66,20 @@ pub enum IntegerTerm {
 
 impl_node!(IntegerTerm, Format, IntegerTermParser);
 
+impl IntegerTerm {
+    pub fn variables(&self) -> HashSet<Variable> {
+        match &self {
+            IntegerTerm::BasicIntegerTerm(t) => t.variables(),
+            IntegerTerm::UnaryOperation { arg: t, .. } => t.variables(),
+            IntegerTerm::BinaryOperation { lhs, rhs, .. } => {
+                let mut vars = lhs.variables();
+                vars.extend(rhs.variables());
+                vars
+            }
+        }
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub enum GeneralTerm {
     Symbol(String),
@@ -59,6 +88,19 @@ pub enum GeneralTerm {
 }
 
 impl_node!(GeneralTerm, Format, GeneralTermParser);
+
+impl GeneralTerm {
+    pub fn variables(&self) -> HashSet<Variable> {
+        match &self {
+            GeneralTerm::Symbol(_) => HashSet::new(),
+            GeneralTerm::GeneralVariable(v) => HashSet::from([Variable {
+                name: v.to_string(),
+                sort: Sort::General,
+            }]),
+            GeneralTerm::IntegerTerm(t) => t.variables(),
+        }
+    }
+}
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Atom {
@@ -88,6 +130,12 @@ pub struct Guard {
 
 impl_node!(Guard, Format, GuardParser);
 
+impl Guard {
+    pub fn variables(&self) -> HashSet<Variable> {
+        self.term.variables()
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Comparison {
     pub term: GeneralTerm,
@@ -105,6 +153,28 @@ pub enum AtomicFormula {
 }
 
 impl_node!(AtomicFormula, Format, AtomicFormulaParser);
+
+impl AtomicFormula {
+    pub fn variables(&self) -> HashSet<Variable> {
+        match &self {
+            AtomicFormula::Falsity | AtomicFormula::Truth => HashSet::new(),
+            AtomicFormula::Atom(a) => {
+                let mut vars = HashSet::new();
+                for t in a.terms.iter() {
+                    vars.extend(t.variables());
+                }
+                vars
+            }
+            AtomicFormula::Comparison(c) => {
+                let mut vars = c.term.variables();
+                for guard in c.guards.iter() {
+                    vars.extend(guard.variables())
+                }
+                vars
+            }
+        }
+    }
+}
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub enum UnaryConnective {
@@ -129,7 +199,7 @@ pub struct Quantification {
 
 impl_node!(Quantification, Format, QuantificationParser);
 
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash, Ord, PartialOrd)]
 pub enum Sort {
     Integer,
     General,
@@ -137,7 +207,7 @@ pub enum Sort {
 
 // TODO: Should Sort be a Node?
 
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash, Ord, PartialOrd)]
 pub struct Variable {
     pub name: String,
     pub sort: Sort,
@@ -175,6 +245,21 @@ pub enum Formula {
 }
 
 impl_node!(Formula, Format, FormulaParser);
+
+impl Formula {
+    pub fn variables(&self) -> HashSet<Variable> {
+        match &self {
+            Formula::AtomicFormula(f) => f.variables(),
+            Formula::UnaryFormula { formula, .. } => formula.variables(),
+            Formula::BinaryFormula { lhs, rhs, .. } => {
+                let mut vars = lhs.variables();
+                vars.extend(rhs.variables());
+                vars
+            }
+            Formula::QuantifiedFormula { formula, .. } => formula.variables(),
+        }
+    }
+}
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Theory {
