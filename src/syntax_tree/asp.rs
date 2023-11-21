@@ -78,6 +78,12 @@ impl Term {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
+pub struct Predicate {
+    pub symbol: String,
+    pub arity: usize,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Atom {
     pub predicate: String,
     pub terms: Vec<Term>,
@@ -115,6 +121,10 @@ impl_node!(Literal, Format, LiteralParser);
 impl Literal {
     pub fn variables(&self) -> HashSet<Variable> {
         self.atom.variables()
+    }
+
+    pub fn predicates(&self) -> HashSet<Predicate> {
+        HashSet::from([self.atom.predicate()])
     }
 }
 
@@ -162,6 +172,13 @@ impl AtomicFormula {
             AtomicFormula::Comparison(c) => c.variables(),
         }
     }
+
+    pub fn predicates(&self) -> HashSet<Predicate> {
+        match &self {
+            AtomicFormula::Literal(l) => l.predicates(),
+            AtomicFormula::Comparison(c) => HashSet::new(),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
@@ -179,6 +196,13 @@ impl Head {
             Head::Basic(a) => Some(&a.predicate),
             Head::Choice(a) => Some(&a.predicate),
             Head::Falsity => None,
+        }
+    }
+
+    pub fn predicates(&self) -> HashSet<Predicate> {
+        match self {
+            Head::Basic(a) | Head::Choice(a) => HashSet::from([a.predicate()]),
+            Head::Falsity => HashSet::new(),
         }
     }
 
@@ -214,6 +238,26 @@ pub struct Body {
 impl_node!(Body, Format, BodyParser);
 
 impl Body {
+    pub fn predicates(&self) -> HashSet<Predicate> {
+        let mut preds = HashSet::<Predicate>::new();
+        for form in self.formulas.iter() {
+            preds.extend(form.predicates());
+        }
+        preds
+    }
+}
+
+impl Body {
+    pub fn predicates(&self) -> HashSet<Predicate> {
+        let mut preds = HashSet::<Predicate>::new();
+        for form in self.formulas.iter() {
+            preds.extend(form.predicates());
+        }
+        preds
+    }
+}
+
+impl Body {
     pub fn variables(&self) -> HashSet<Variable> {
         let mut vars = HashSet::new();
         for formula in self.formulas.iter() {
@@ -237,6 +281,18 @@ impl Rule {
         vars.extend(self.body.variables());
         vars
     }
+
+    pub fn predicates(&self) -> HashSet<Predicate> {
+        let mut preds = self.body.predicates();
+        preds.extend(self.head.predicates());
+        preds
+    }
+
+    pub fn predicates(&self) -> HashSet<Predicate> {
+        let mut preds = self.body.predicates();
+        preds.extend(self.head.predicates());
+        preds
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
@@ -253,5 +309,13 @@ impl Program {
             vars.extend(rule.variables())
         }
         vars
+    }
+
+    pub fn predicates(&self) -> HashSet<Predicate> {
+        let mut preds = HashSet::new();
+        for rule in self.rules.iter() {
+            preds.extend(rule.predicates())
+        }
+        preds
     }
 }
