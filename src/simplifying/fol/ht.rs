@@ -1,4 +1,7 @@
-use crate::syntax_tree::fol::{AtomicFormula, BinaryConnective, Formula, UnboxedFormula};
+use crate::{
+    convenience::unbox::{fol::UnboxedFormula, Unbox as _},
+    syntax_tree::fol::{AtomicFormula, BinaryConnective, Formula},
+};
 
 pub fn simplify(formula: Formula) -> Formula {
     simplify_outer(match formula {
