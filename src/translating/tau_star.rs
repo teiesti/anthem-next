@@ -631,4 +631,116 @@ mod tests {
             format!("{}", formatting::fol::default::Format(&dest))
         );
     }
+    
+    #[test]
+    pub fn val_test1() {
+        let term: asp::Term = "X+1".parse().unwrap();
+        let var = fol::Variable {
+            name: "Z1".to_string(),
+            sort: fol::Sort::General,
+        };
+        let val_term_var = super::val(term, var);
+
+        let target: fol::Formula = "exists I$i J$i (Z1$g = I$i + J$i and I$i = X and J$i = 1)"
+            .parse()
+            .unwrap();
+        assert_eq!(
+            format!("{}", formatting::fol::default::Format(&val_term_var)),
+            format!("{}", formatting::fol::default::Format(&target))
+        );
+    }
+
+    #[test]
+    pub fn val_test2() {
+        let term: asp::Term = "3-5".parse().unwrap();
+        let var = fol::Variable {
+            name: "Z1".to_string(),
+            sort: fol::Sort::General,
+        };
+        let val_term_var = super::val(term, var);
+
+        let target: fol::Formula = "exists I$i J$i (Z1$g = I$i - J$i and I$i = 3 and J$i = 5)"
+            .parse()
+            .unwrap();
+        assert_eq!(
+            format!("{}", formatting::fol::default::Format(&val_term_var)),
+            format!("{}", formatting::fol::default::Format(&target))
+        );
+    }
+
+    #[test]
+    pub fn val_test3() {
+        let term: asp::Term = "Xanadu/Yak".parse().unwrap();
+        let var = fol::Variable {
+            name: "Z1".to_string(),
+            sort: fol::Sort::General,
+        };
+        let val_term_var = super::val(term, var);
+
+        let target: fol::Formula =
+            "exists I$i J$i Q$i R$i (I$i = J$i * Q$i + R$i and (I$i = Xanadu and J$i = Yak) and (J$i != 0 and R$i >= 0 and R$i < Q$i) and Z1$g = Q$i)"
+                .parse()
+                .unwrap();
+        assert_eq!(
+            format!("{}", formatting::fol::default::Format(&val_term_var)),
+            format!("{}", formatting::fol::default::Format(&target))
+        );
+    }
+
+    #[test]
+    pub fn val_test4() {
+        let term: asp::Term = "X\\3".parse().unwrap();
+        let var = fol::Variable {
+            name: "Z1".to_string(),
+            sort: fol::Sort::General,
+        };
+        let val_term_var = super::val(term, var);
+
+        let target: fol::Formula =
+            "exists I$i J$i Q$i R$i (I$i = J$i * Q$i + R$i and (I$i = X and J$i = 3) and (J$i != 0 and R$i >= 0 and R$i < Q$i) and Z1$g = R$i)"
+                .parse()
+                .unwrap();
+        assert_eq!(
+            format!("{}", formatting::fol::default::Format(&val_term_var)),
+            format!("{}", formatting::fol::default::Format(&target))
+        );
+    }
+
+    #[test]
+    pub fn val_test5() {
+        let term: asp::Term = "X..Y".parse().unwrap();
+        let var = fol::Variable {
+            name: "Z".to_string(),
+            sort: fol::Sort::General,
+        };
+        let val_term_var = super::val(term, var);
+
+        let target: fol::Formula =
+            "exists I$i J$i K$i (I$i = X and J$i = Y and Z$g = K$i and I$i <= K$i <= J$i)"
+                .parse()
+                .unwrap();
+        assert_eq!(
+            format!("{}", formatting::fol::default::Format(&val_term_var)),
+            format!("{}", formatting::fol::default::Format(&target))
+        );
+    }
+
+    #[test]
+    pub fn val_test6() {
+        let term: asp::Term = "X+1..Y".parse().unwrap();
+        let var = fol::Variable {
+            name: "Z1".to_string(),
+            sort: fol::Sort::General,
+        };
+        let val_term_var = super::val(term, var);
+
+        let target: fol::Formula =
+            "exists I$i J$i K$i ((exists I1$i J$i (I$i = I1$i + J$i and I1$i = X and J$i = 1)) and J$i = Y and Z1 = K$i and I$i <= K$i <= J$i )"
+                .parse()
+                .unwrap();
+        assert_eq!(
+            format!("{}", formatting::fol::default::Format(&val_term_var)),
+            format!("{}", formatting::fol::default::Format(&target))
+        );
+    }
 }
