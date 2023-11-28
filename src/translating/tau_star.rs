@@ -71,3 +71,89 @@ pub fn choose_fresh_variable_names_v(
     }
     fresh_vars
 }
+
+// Recursively turn a list of formulas into a conjunction tree
+pub fn conjoin(mut formulas: Vec<fol::Formula>) -> fol::Formula {
+    if formulas.len() == 0 {
+        fol::Formula::AtomicFormula(fol::AtomicFormula::Truth)
+    } else {
+        fol::Formula::BinaryFormula {
+            connective: fol::BinaryConnective::Conjunction,
+            rhs: formulas.pop().unwrap().into(),
+            lhs: conjoin(formulas).into(),
+        }
+    }
+}
+
+// Recursively turn a list of formulas into a tree of disjunctions
+pub fn disjoin(mut formulas: Vec<fol::Formula>) -> fol::Formula {
+    if formulas.len() == 0 {
+        fol::Formula::AtomicFormula(fol::AtomicFormula::Falsity)
+    } else {
+        fol::Formula::BinaryFormula {
+            connective: fol::BinaryConnective::Disjunction,
+            rhs: formulas.pop().unwrap().into(),
+            lhs: disjoin(formulas).into(),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::formatting;
+    use crate::{syntax_tree::asp, syntax_tree::fol};
+
+    #[test]
+    pub fn conjoin_test1() {
+        let f1: fol::Formula = "X = Y".parse().unwrap();
+        let f2: fol::Formula = "p(a)".parse().unwrap();
+        let f3: fol::Formula = "q(X)".parse().unwrap();
+        let formulas = vec![f1, f2, f3];
+
+        let src = super::conjoin(formulas);
+        let dest: fol::Formula = "#true and X = Y and p(a) and q(X)".parse().unwrap();
+        assert_eq!(
+            format!("{}", formatting::fol::default::Format(&src)),
+            format!("{}", formatting::fol::default::Format(&dest))
+        );
+    }
+
+    #[test]
+    pub fn conjoin_test2() {
+        let formulas = vec![];
+
+        let src = super::conjoin(formulas);
+        let dest: fol::Formula = "#true".parse().unwrap();
+        assert_eq!(
+            format!("{}", formatting::fol::default::Format(&src)),
+            format!("{}", formatting::fol::default::Format(&dest))
+        );
+    }
+
+    #[test]
+    pub fn disjoin_test1() {
+        let f1: fol::Formula = "X = Y".parse().unwrap();
+        let f2: fol::Formula = "p(a)".parse().unwrap();
+        let f3: fol::Formula = "q(X)".parse().unwrap();
+        let formulas = vec![f1, f2, f3];
+
+        let src = super::disjoin(formulas);
+        let dest: fol::Formula = "#false or X = Y or p(a) or q(X)".parse().unwrap();
+        assert_eq!(
+            format!("{}", formatting::fol::default::Format(&src)),
+            format!("{}", formatting::fol::default::Format(&dest))
+        );
+    }
+
+    #[test]
+    pub fn disjoin_test2() {
+        let formulas = vec![];
+
+        let src = super::disjoin(formulas);
+        let dest: fol::Formula = "#false".parse().unwrap();
+        assert_eq!(
+            format!("{}", formatting::fol::default::Format(&src)),
+            format!("{}", formatting::fol::default::Format(&dest))
+        );
+    }
+}
