@@ -183,6 +183,16 @@ impl AtomicFormula {
             }
         }
     }
+
+    // TODO
+    pub fn contains_variable(&self, v: &Variable) -> bool {
+        self.variables().contains(v)
+    }
+
+    // TODO
+    pub fn contains_free_variable(&self, v: &Variable) -> bool {
+        self.contains_variable(v)
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
@@ -207,6 +217,12 @@ pub struct Quantification {
 }
 
 impl_node!(Quantification, Format, QuantificationParser);
+
+impl Quantification {
+    pub fn occurs(&self, v: &Variable) -> bool {
+        self.variables.contains(v)
+    }
+}
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash, Ord, PartialOrd)]
 pub enum Sort {
@@ -268,6 +284,25 @@ impl Formula {
             Formula::QuantifiedFormula { formula, .. } => formula.variables(),
         }
     }
+
+    pub fn contains_free_variable(&self, v: &Variable) -> bool {
+        match &self {
+            Formula::AtomicFormula(a) => a.contains_free_variable(v),
+            Formula::UnaryFormula {
+                connective: _,
+                formula: f,
+            } => f.contains_free_variable(v),
+            Formula::QuantifiedFormula {
+                quantification: q,
+                formula: f,
+            } => f.contains_free_variable(v) && !q.occurs(v),
+            Formula::BinaryFormula {
+                connective: _,
+                lhs: f1,
+                rhs: f2,
+            } => f1.contains_free_variable(v) || f2.contains_free_variable(v),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
@@ -276,3 +311,19 @@ pub struct Theory {
 }
 
 impl_node!(Theory, Format, TheoryParser);
+
+impl Theory {
+    pub fn identical(&self, t: &Theory) -> bool {
+        //let t1 = HashSet::<Formula>::from_iter(self.formulas.clone());
+        //let t2 = HashSet::<Formula>::from_iter(t.formulas.clone());
+        let mut source = HashSet::<String>::new();
+        for f in self.formulas.iter() {
+            source.insert(format!("{}", Format(f)));
+        }
+        let mut target = HashSet::<String>::new();
+        for f in (*t).formulas.iter() {
+            target.insert(format!("{}", Format(f)));
+        }
+        source == target
+    }
+}
