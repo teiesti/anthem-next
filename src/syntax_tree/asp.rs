@@ -260,6 +260,14 @@ pub struct Rule {
 impl_node!(Rule, Format, RuleParser);
 
 impl Rule {
+    pub fn head_symbol(&self) -> Option<Predicate> {
+        match &self.head {
+            Head::Basic(a) => Some(a.predicate().clone()),
+            Head::Choice(a) => Some(a.predicate().clone()),
+            Head::Falsity => None,
+        }
+    }
+
     pub fn variables(&self) -> HashSet<Variable> {
         let mut vars = self.head.variables();
         vars.extend(self.body.variables());
