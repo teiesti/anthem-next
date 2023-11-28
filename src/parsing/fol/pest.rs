@@ -215,8 +215,7 @@ impl PestParser for PredicateParser {
         let arity_string: &str = pairs
             .next()
             .unwrap_or_else(|| Self::report_missing_pair())
-            .as_str()
-            .into();
+            .as_str();
         let arity: usize = arity_string.parse().unwrap();
 
         Predicate { symbol, arity }
