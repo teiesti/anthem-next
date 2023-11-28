@@ -102,6 +102,41 @@ pub fn disjoin(mut formulas: Vec<fol::Formula>) -> fol::Formula {
     }
 }
 
+// Z = t
+fn construct_equality_formula(term: asp::Term, z: fol::Variable) -> fol::Formula {
+    let z_var_term = match z.sort {
+        fol::Sort::General => fol::GeneralTerm::GeneralVariable(z.name),
+        fol::Sort::Integer => fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::BasicIntegerTerm(
+            fol::BasicIntegerTerm::IntegerVariable(z.name),
+        )),
+    };
+
+    let rhs = match term {
+        asp::Term::PrecomputedTerm(t) => match t {
+            asp::PrecomputedTerm::Infimum => fol::GeneralTerm::IntegerTerm(
+                fol::IntegerTerm::BasicIntegerTerm(fol::BasicIntegerTerm::Infimum),
+            ),
+            asp::PrecomputedTerm::Supremum => fol::GeneralTerm::IntegerTerm(
+                fol::IntegerTerm::BasicIntegerTerm(fol::BasicIntegerTerm::Supremum),
+            ),
+            asp::PrecomputedTerm::Numeral(i) => fol::GeneralTerm::IntegerTerm(
+                fol::IntegerTerm::BasicIntegerTerm(fol::BasicIntegerTerm::Numeral(i)),
+            ),
+            asp::PrecomputedTerm::Symbol(s) => fol::GeneralTerm::Symbol(s),
+        },
+        asp::Term::Variable(v) => fol::GeneralTerm::GeneralVariable(v.0),
+        _ => panic!(), // Error
+    };
+
+    fol::Formula::AtomicFormula(fol::AtomicFormula::Comparison(fol::Comparison {
+        term: z_var_term,
+        guards: vec![fol::Guard {
+            relation: fol::Relation::Equal,
+            term: rhs,
+        }],
+    }))
+}
+
 #[cfg(test)]
 mod tests {
     use super::{conjoin, disjoin};
