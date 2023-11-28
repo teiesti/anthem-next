@@ -97,7 +97,7 @@ pub fn head_mismatch(s1: &fol::AtomicFormula, s2: &fol::AtomicFormula) -> bool {
 // Returns a mapping from <theory> formulas to their heads if <theory> is completable
 // Otherwise returns None
 pub fn completable_theory(
-    theory: fol::Theory,
+    theory: &fol::Theory,
 ) -> Option<HashMap<fol::Formula, fol::AtomicFormula>> {
     if theory.formulas.len() > 0 {
         let mut formulas = Vec::<fol::Formula>::new();
@@ -209,77 +209,82 @@ pub fn definitions(theory: &fol::Theory) -> HashMap<fol::AtomicFormula, Vec<fol:
 
 // <theory> must be a completable theory, so we know it has the form forall V (body -> head) OR body -> head
 // <formula_heads[formula] = head(formula)>
-pub fn completion(
-    theory: fol::Theory,
-    formula_heads: HashMap<fol::Formula, fol::AtomicFormula>,
-) -> fol::Theory {
-    let definitions = definitions(&theory);
-    let mut completions = Vec::<fol::Formula>::new(); // Now we need the completed definitions of each unique head
-    for (formula, head) in formula_heads.iter() {
-        match head {
-            fol::AtomicFormula::Falsity => {
-                // Every constraint gets its own "completed definition"
-                completions.push(formula.clone());
-            }
-            _ => {}
-        }
-    }
-    for (head, body_vec) in definitions.iter() {
-        // p(V), { Fi }
-        match head {
-            fol::AtomicFormula::Falsity => {}
-            _ => {
-                // TODO distinguish between intensional and extensional predicate symbols
-                let head_vars = head.variables();
-                let mut bodies = Vec::<fol::Formula>::new();
-                for body in body_vec.iter() {
-                    let mut free_vars = Vec::<fol::Variable>::new();
-                    for var in body.variables().iter() {
-                        // Ui (Ui are free variables in Fi that do not belong to V)
-                        if body.contains_free_variable(&var) && !head_vars.contains(&var) {
-                            free_vars.push(var.clone());
-                        }
+pub fn completion(theory: &fol::Theory) -> Option<fol::Theory> {
+    match completable_theory(theory) {
+        Some(formula_heads) => {
+            let definitions = definitions(theory);
+            let mut completions = Vec::<fol::Formula>::new(); // Now we need the completed definitions of each unique head
+            for (formula, head) in formula_heads.iter() {
+                match head {
+                    fol::AtomicFormula::Falsity => {
+                        // Every constraint gets its own "completed definition"
+                        completions.push(formula.clone());
                     }
-                    if free_vars.len() > 0 {
-                        let qbod = fol::Formula::QuantifiedFormula {
-                            quantification: fol::Quantification {
-                                quantifier: fol::Quantifier::Exists,
-                                variables: free_vars,
+                    _ => {}
+                }
+            }
+            for (head, body_vec) in definitions.iter() {
+                // p(V), { Fi }
+                match head {
+                    fol::AtomicFormula::Falsity => {}
+                    _ => {
+                        // TODO distinguish between intensional and extensional predicate symbols
+                        let head_vars = head.variables();
+                        let mut bodies = Vec::<fol::Formula>::new();
+                        for body in body_vec.iter() {
+                            let mut free_vars = Vec::<fol::Variable>::new();
+                            for var in body.variables().iter() {
+                                // Ui (Ui are free variables in Fi that do not belong to V)
+                                if body.contains_free_variable(&var) && !head_vars.contains(&var) {
+                                    free_vars.push(var.clone());
+                                }
+                            }
+                            if free_vars.len() > 0 {
+                                let qbod = fol::Formula::QuantifiedFormula {
+                                    quantification: fol::Quantification {
+                                        quantifier: fol::Quantifier::Exists,
+                                        variables: free_vars,
+                                    },
+                                    formula: body.clone().into(),
+                                };
+                                bodies.push(qbod);
+                            } else {
+                                bodies.push(body.clone());
+                            }
+                        }
+                        //let f1 = bodies.pop().unwrap();
+                        let full_body = ht::simplify(super::tau_star::disjoin(bodies));
+                        let comp = match head_vars.len() {
+                            0 => fol::Formula::BinaryFormula {
+                                connective: fol::BinaryConnective::Equivalence,
+                                lhs: fol::Formula::AtomicFormula(head.clone()).into(),
+                                rhs: full_body.into(),
                             },
-                            formula: body.clone().into(),
+                            _ => fol::Formula::QuantifiedFormula {
+                                quantification: fol::Quantification {
+                                    quantifier: fol::Quantifier::Forall,
+                                    variables: Vec::from_iter(head_vars),
+                                },
+                                formula: fol::Formula::BinaryFormula {
+                                    connective: fol::BinaryConnective::Equivalence,
+                                    lhs: Box::new(fol::Formula::AtomicFormula(head.clone())),
+                                    rhs: full_body.into(),
+                                }
+                                .into(),
+                            },
                         };
-                        bodies.push(qbod);
-                    } else {
-                        bodies.push(body.clone());
+                        completions.push(comp);
                     }
                 }
-                //let f1 = bodies.pop().unwrap();
-                let full_body = ht::simplify(super::tau_star::disjoin(bodies));
-                let comp = match head_vars.len() {
-                    0 => fol::Formula::BinaryFormula {
-                        connective: fol::BinaryConnective::Equivalence,
-                        lhs: fol::Formula::AtomicFormula(head.clone()).into(),
-                        rhs: full_body.into(),
-                    },
-                    _ => fol::Formula::QuantifiedFormula {
-                        quantification: fol::Quantification {
-                            quantifier: fol::Quantifier::Forall,
-                            variables: Vec::from_iter(head_vars),
-                        },
-                        formula: fol::Formula::BinaryFormula {
-                            connective: fol::BinaryConnective::Equivalence,
-                            lhs: Box::new(fol::Formula::AtomicFormula(head.clone())),
-                            rhs: full_body.into(),
-                        }
-                        .into(),
-                    },
-                };
-                completions.push(comp);
             }
+            Some(fol::Theory {
+                formulas: completions,
+            })
         }
-    }
-    fol::Theory {
-        formulas: completions,
+        None => {
+            println!("Not a completable theory!");
+            None
+        }
     }
 }
 
@@ -322,11 +327,8 @@ mod tests {
             "forall V1 (p(V1) <-> exists X (V1 = X and exists Z (Z = X and q(Z))))."
                 .parse()
                 .unwrap();
-
-        let completable = completion::completable_theory(theory.clone());
-        match completable {
-            Some(m) => {
-                let completion = completion::completion(theory.clone(), m);
+        match completion::completion(&theory) {
+            Some(completion) => {
                 assert_eq!(
                     format!("{}", formatting::fol::default::Format(&completion)),
                     format!("{}", formatting::fol::default::Format(&target))
@@ -336,7 +338,6 @@ mod tests {
                 assert!(false)
             }
         }
-        assert!(true)
     }
 
     #[test]
@@ -351,10 +352,8 @@ mod tests {
             formulas: vec![f1, f2],
         };
 
-        let completable = completion::completable_theory(theory.clone());
-        match completable {
-            Some(m) => {
-                let completion = completion::completion(theory.clone(), m);
+        match completion::completion(&theory) {
+            Some(completion) => {
                 assert!(completion.identical(&target))
             }
             None => {
@@ -369,10 +368,8 @@ mod tests {
         let theory = crate::translating::tau_star::tau_star_program(program);
         let target: fol::Theory = "forall V1 (p(V1) <-> exists X (exists I$i J$i (V1 = I$i + J$i and I$i = X and J$i = 1) and exists Z (Z = X and q(Z)) and not not p(V1))).".parse().unwrap();
 
-        let completable = completion::completable_theory(theory.clone());
-        match completable {
-            Some(m) => {
-                let completion = completion::completion(theory.clone(), m);
+        match completion::completion(&theory) {
+            Some(completion) => {
                 assert!(completion.identical(&target))
             }
             None => {
@@ -394,10 +391,8 @@ mod tests {
             formulas: vec![f1, f2],
         };
 
-        let completable = completion::completable_theory(theory.clone());
-        match completable {
-            Some(m) => {
-                let completion = completion::completion(theory.clone(), m);
+        match completion::completion(&theory) {
+            Some(completion) => {
                 assert!(completion.identical(&target))
             }
             None => {
@@ -419,10 +414,8 @@ mod tests {
             formulas: vec![f1, f2],
         };
 
-        let completable = completion::completable_theory(theory.clone());
-        match completable {
-            Some(m) => {
-                let completion = completion::completion(theory.clone(), m);
+        match completion::completion(&theory) {
+            Some(completion) => {
                 assert!(completion.identical(&target))
             }
             None => {
