@@ -54,6 +54,9 @@ general_term = { integer_term | symbolic_constant | general_variable }
 
 variable = { integer_variable | general_variable }
 
+predicate = { predicate_symbol ~ "/" ~ arity }
+    arity = { ASCII_DIGIT+ }
+
 atom = { predicate_symbol ~ term_tuple? }
     predicate_symbol  = _{ symbolic_constant }
     term_tuple = _{ "(" ~ (general_term ~ ("," ~ general_term)*)? ~ ")" }
