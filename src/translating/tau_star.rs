@@ -577,9 +577,204 @@ pub fn val(t: asp::Term, z: fol::Variable) -> fol::Formula {
     }
 }
 
+// val_t1(Z1) & val_t2(Z2) & ... & val_tn(Zn)
+pub fn valtz(terms: Vec<asp::Term>, variables: Vec<fol::Variable>) -> fol::Formula {
+    let mut formulas: Vec<fol::Formula> = Vec::with_capacity(terms.len() as usize);
+    for (i, t) in terms.iter().enumerate() {
+        let val_ti_zi = val(t.clone(), variables[i].clone());
+        formulas.push(val_ti_zi);
+    }
+    conjoin(formulas)
+}
+
+// Translate a first-order body literal
+pub fn tau_b_first_order_literal(
+    l: asp::Literal,
+    taken_vars: HashSet<fol::Variable>,
+) -> fol::Formula {
+    let atom = l.atom;
+    let terms = atom.terms;
+    let arity = terms.len();
+    let varnames = choose_fresh_variable_names_v(&taken_vars, "Z", arity);
+
+    // Compute val_t1(Z1) & val_t2(Z2) & ... & val_tk(Zk)
+    let mut var_terms: Vec<fol::GeneralTerm> = Vec::with_capacity(arity as usize);
+    let mut var_vars: Vec<fol::Variable> = Vec::with_capacity(arity as usize);
+    let mut valtz_vec: Vec<fol::Formula> = Vec::with_capacity(arity as usize);
+    for (i, t) in terms.iter().enumerate() {
+        let var = fol::Variable {
+            sort: fol::Sort::General,
+            name: varnames[i].clone(),
+        };
+        valtz_vec.push(val(t.clone(), var.clone()));
+        var_terms.push(fol::GeneralTerm::GeneralVariable(varnames[i].clone()));
+        var_vars.push(var);
+    }
+    let valtz = conjoin(valtz_vec);
+
+    // Compute p(Z1, Z2, ..., Zk)
+    let p_zk = fol::Formula::AtomicFormula(fol::AtomicFormula::Atom(fol::Atom {
+        predicate_symbol: atom.predicate_symbol,
+        terms: var_terms,
+    }));
+
+    // Compute tau^b(B)
+    match l.sign {
+        asp::Sign::NoSign => fol::Formula::QuantifiedFormula {
+            quantification: fol::Quantification {
+                quantifier: fol::Quantifier::Exists,
+                variables: var_vars,
+            },
+            formula: fol::Formula::BinaryFormula {
+                connective: fol::BinaryConnective::Conjunction,
+                lhs: valtz.into(),
+                rhs: p_zk.into(),
+            }
+            .into(),
+        },
+        asp::Sign::Negation => fol::Formula::QuantifiedFormula {
+            quantification: fol::Quantification {
+                quantifier: fol::Quantifier::Exists,
+                variables: var_vars,
+            },
+            formula: fol::Formula::BinaryFormula {
+                connective: fol::BinaryConnective::Conjunction,
+                lhs: valtz.into(),
+                rhs: fol::Formula::UnaryFormula {
+                    connective: fol::UnaryConnective::Negation,
+                    formula: p_zk.into(),
+                }
+                .into(),
+            }
+            .into(),
+        },
+        asp::Sign::DoubleNegation => fol::Formula::QuantifiedFormula {
+            quantification: fol::Quantification {
+                quantifier: fol::Quantifier::Exists,
+                variables: var_vars,
+            },
+            formula: fol::Formula::BinaryFormula {
+                connective: fol::BinaryConnective::Conjunction,
+                lhs: valtz.into(),
+                rhs: fol::Formula::UnaryFormula {
+                    connective: fol::UnaryConnective::Negation,
+                    formula: fol::Formula::UnaryFormula {
+                        connective: fol::UnaryConnective::Negation,
+                        formula: p_zk.into(),
+                    }
+                    .into(),
+                }
+                .into(),
+            }
+            .into(),
+        },
+    }
+}
+
+// Translate a propositional body literal
+pub fn tau_b_propositional_literal(l: asp::Literal) -> fol::Formula {
+    let atom = l.atom;
+    match l.sign {
+        asp::Sign::NoSign => fol::Formula::AtomicFormula(fol::AtomicFormula::Atom(fol::Atom {
+            predicate_symbol: atom.predicate_symbol,
+
+            terms: vec![],
+        })),
+        asp::Sign::Negation => fol::Formula::UnaryFormula {
+            connective: fol::UnaryConnective::Negation,
+            formula: fol::Formula::AtomicFormula(fol::AtomicFormula::Atom(fol::Atom {
+                predicate_symbol: atom.predicate_symbol,
+                terms: vec![],
+            }))
+            .into(),
+        },
+        asp::Sign::DoubleNegation => fol::Formula::UnaryFormula {
+            connective: fol::UnaryConnective::Negation,
+            formula: fol::Formula::UnaryFormula {
+                connective: fol::UnaryConnective::Negation,
+                formula: fol::Formula::AtomicFormula(fol::AtomicFormula::Atom(fol::Atom {
+                    predicate_symbol: atom.predicate_symbol,
+                    terms: vec![],
+                }))
+                .into(),
+            }
+            .into(),
+        },
+    }
+}
+
+// Translate a body comparison
+pub fn tau_b_comparison(c: asp::Comparison, taken_vars: HashSet<fol::Variable>) -> fol::Formula {
+    let varnames = choose_fresh_variable_names_v(&taken_vars, "Z", 2);
+
+    // Compute val_t1(Z1) & val_t2(Z2)
+    let term_z1 = fol::GeneralTerm::GeneralVariable(varnames[0].clone());
+    let term_z2 = fol::GeneralTerm::GeneralVariable(varnames[1].clone());
+    let var_z1 = fol::Variable {
+        sort: fol::Sort::General,
+        name: varnames[0].clone(),
+    };
+    let var_z2 = fol::Variable {
+        sort: fol::Sort::General,
+        name: varnames[1].clone(),
+    };
+    let valtz = conjoin(vec![val(c.lhs, var_z1.clone()), val(c.rhs, var_z2.clone())]);
+
+    // Compute Z1 rel Z2
+    let z1_rel_z2 = fol::Formula::AtomicFormula(fol::AtomicFormula::Comparison(fol::Comparison {
+        term: term_z1,
+        guards: vec![fol::Guard {
+            relation: match c.relation {
+                asp::Relation::Equal => fol::Relation::Equal,
+                asp::Relation::NotEqual => fol::Relation::NotEqual,
+                asp::Relation::Greater => fol::Relation::Greater,
+                asp::Relation::Less => fol::Relation::Less,
+                asp::Relation::GreaterEqual => fol::Relation::GreaterEqual,
+                asp::Relation::LessEqual => fol::Relation::LessEqual,
+            },
+            term: term_z2,
+        }],
+    }));
+
+    fol::Formula::QuantifiedFormula {
+        quantification: fol::Quantification {
+            quantifier: fol::Quantifier::Exists,
+            variables: vec![var_z1, var_z2],
+        },
+        formula: fol::Formula::BinaryFormula {
+            connective: fol::BinaryConnective::Conjunction,
+            lhs: valtz.into(),
+            rhs: z1_rel_z2.into(),
+        }
+        .into(),
+    }
+}
+
+// Translate a body literal or comparison
+pub fn tau_b(f: asp::AtomicFormula) -> fol::Formula {
+    let mut taken_vars = HashSet::<fol::Variable>::new();
+    for var in f.variables().iter() {
+        taken_vars.insert(fol::Variable {
+            name: var.to_string(),
+            sort: fol::Sort::General,
+        });
+    }
+    match f {
+        asp::AtomicFormula::Literal(l) => {
+            let arity = l.atom.terms.len();
+            if arity > 0 {
+                tau_b_first_order_literal(l, taken_vars)
+            } else {
+                tau_b_propositional_literal(l)
+            }
+        }
+        asp::AtomicFormula::Comparison(c) => tau_b_comparison(c, taken_vars),
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{conjoin, disjoin, val};
+    use super::{conjoin, disjoin, tau_b, val};
 
     #[test]
     fn test_conjoin() {
@@ -622,6 +817,26 @@ mod tests {
             assert_eq!(
                 val(term.parse().unwrap(), var.parse().unwrap()),
                 target.parse().unwrap()
+            )
+        }
+    }
+
+    #[test]
+    fn test_tau_b() {
+        for (src, target) in [
+            ("p(t)", "exists Z (Z = t and p(Z))"),
+            ("not p(t)", "exists Z (Z = t and not p(Z))"),
+            ("X < 1..5", "exists Z Z1 (Z = X and exists I$i J$i K$i (I$i = 1 and J$i = 5 and Z1 = K$i and I$i <= K$i <= J$i) and Z < Z1)"),
+            ("not not p(t)", "exists Z (Z = t and not not p(Z))"),
+            ("not not x", "not not x"),
+            ("not p(X,5)", "exists Z Z1 (Z = X and Z1 = 5 and not p(Z,Z1))"),
+            ("not p(X,0-5)", "exists Z Z1 (Z = X and exists I$i J$i (Z1 = I$i - J$i and I$i = 0 and J$i = 5) and not p(Z,Z1))"),
+            ("p(X,-1..5)", "exists Z Z1 (Z = X and exists I$i J$i K$i (I$i = -1 and J$i = 5 and Z1 = K$i and I$i <= K$i <= J$i) and p(Z,Z1))"),
+            ("p(X,-(1..5))", "exists Z Z1 (Z = X and exists I$i J$i (Z1 = I$i - J$i and I$i = 0 and exists I$i J1$i K$i (I$i = 1 and J1$i = 5  and J$i = K$i and I$i <= K$i <= J1$i)) and p(Z,Z1))")
+        ] {
+            assert_eq!(
+                tau_b(src.parse().unwrap()),
+                target.parse().unwrap(),
             )
         }
     }
