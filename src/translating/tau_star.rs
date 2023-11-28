@@ -71,3 +71,66 @@ pub fn choose_fresh_variable_names_v(
     }
     fresh_vars
 }
+
+// Recursively turn a list of formulas into a conjunction tree
+pub fn conjoin(mut formulas: Vec<fol::Formula>) -> fol::Formula {
+    if formulas.len() == 0 {
+        fol::Formula::AtomicFormula(fol::AtomicFormula::Truth)
+    } else if formulas.len() == 1 {
+        formulas.pop().unwrap()
+    } else {
+        fol::Formula::BinaryFormula {
+            connective: fol::BinaryConnective::Conjunction,
+            rhs: formulas.pop().unwrap().into(),
+            lhs: conjoin(formulas).into(),
+        }
+    }
+}
+
+// Recursively turn a list of formulas into a tree of disjunctions
+pub fn disjoin(mut formulas: Vec<fol::Formula>) -> fol::Formula {
+    if formulas.len() == 0 {
+        fol::Formula::AtomicFormula(fol::AtomicFormula::Falsity)
+    } else if formulas.len() == 1 {
+        formulas.pop().unwrap()
+    } else {
+        fol::Formula::BinaryFormula {
+            connective: fol::BinaryConnective::Disjunction,
+            rhs: formulas.pop().unwrap().into(),
+            lhs: disjoin(formulas).into(),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{conjoin, disjoin};
+
+    #[test]
+    fn test_conjoin() {
+        for (src, target) in [
+            (vec![], "#true"),
+            (vec!["X = Y"], "X = Y"),
+            (vec!["X = Y", "p(a)", "q(X)"], "X = Y and p(a) and q(X)"),
+        ] {
+            assert_eq!(
+                conjoin(src.iter().map(|x| x.parse().unwrap()).collect()),
+                target.parse().unwrap(),
+            )
+        }
+    }
+
+    #[test]
+    fn test_disjoin() {
+        for (src, target) in [
+            (vec![], "#false"),
+            (vec!["X = Y"], "X = Y"),
+            (vec!["X = Y", "p(a)", "q(X)"], "X = Y or p(a) or q(X)"),
+        ] {
+            assert_eq!(
+                disjoin(src.iter().map(|x| x.parse().unwrap()).collect()),
+                target.parse().unwrap(),
+            )
+        }
+    }
+}
