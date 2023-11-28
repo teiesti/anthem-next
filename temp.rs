@@ -1,3 +1,5 @@
+use std::hash::Hash;
+
 use {
     crate::{
         formatting::asp::default::Format,
@@ -11,7 +13,7 @@ use {
     std::collections::HashSet,
 };
 
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum PrecomputedTerm {
     Infimum,
     Numeral(isize),
@@ -26,14 +28,14 @@ pub struct Variable(pub String);
 
 impl_node!(Variable, Format, VariableParser);
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum UnaryOperator {
     Negative,
 }
 
 impl_node!(UnaryOperator, Format, UnaryOperatorParser);
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum BinaryOperator {
     Add,
     Subtract,
@@ -45,7 +47,7 @@ pub enum BinaryOperator {
 
 impl_node!(BinaryOperator, Format, BinaryOperatorParser);
 
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Term {
     PrecomputedTerm(PrecomputedTerm),
     Variable(Variable),
@@ -83,7 +85,7 @@ pub struct Predicate {
     pub arity: usize,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Atom {
     pub predicate: Predicate,
     pub terms: Vec<Term>,
@@ -92,6 +94,10 @@ pub struct Atom {
 impl_node!(Atom, Format, AtomParser);
 
 impl Atom {
+    pub fn predicate(&self) -> Predicate {
+        self.predicate.clone()
+    }
+
     pub fn variables(&self) -> HashSet<Variable> {
         let mut vars = HashSet::new();
         for term in self.terms.iter() {
@@ -99,13 +105,9 @@ impl Atom {
         }
         vars
     }
-
-    pub fn predicate(&self) -> Predicate {
-        self.predicate.clone()
-    }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Sign {
     NoSign,
     Negation,
@@ -114,7 +116,7 @@ pub enum Sign {
 
 impl_node!(Sign, Format, SignParser);
 
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Literal {
     pub sign: Sign,
     pub atom: Atom,
@@ -132,7 +134,7 @@ impl Literal {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Relation {
     Equal,
     NotEqual,
@@ -144,7 +146,7 @@ pub enum Relation {
 
 impl_node!(Relation, Format, RelationParser);
 
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Comparison {
     pub relation: Relation,
     pub lhs: Term,
@@ -161,7 +163,7 @@ impl Comparison {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum AtomicFormula {
     Literal(Literal),
     Comparison(Comparison),
@@ -185,7 +187,7 @@ impl AtomicFormula {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Head {
     Basic(Atom),
     Choice(Atom),
@@ -195,6 +197,14 @@ pub enum Head {
 impl_node!(Head, Format, HeadParser);
 
 impl Head {
+    pub fn predicate(&self) -> Option<&Predicate> {
+        match self {
+            Head::Basic(a) => Some(&a.predicate),
+            Head::Choice(a) => Some(&a.predicate),
+            Head::Falsity => None,
+        }
+    }
+
     pub fn predicates(&self) -> HashSet<Predicate> {
         match self {
             Head::Basic(a) | Head::Choice(a) => HashSet::from([a.predicate()]),
@@ -217,16 +227,9 @@ impl Head {
             Head::Falsity => 0,
         }
     }
-
-    pub fn variables(&self) -> HashSet<Variable> {
-        match &self {
-            Head::Basic(a) | Head::Choice(a) => a.variables(),
-            Head::Falsity => HashSet::new(),
-        }
-    }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Body {
     pub formulas: Vec<AtomicFormula>,
 }
@@ -241,17 +244,9 @@ impl Body {
         }
         preds
     }
-
-    pub fn variables(&self) -> HashSet<Variable> {
-        let mut vars = HashSet::new();
-        for formula in self.formulas.iter() {
-            vars.extend(formula.variables())
-        }
-        vars
-    }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Rule {
     pub head: Head,
     pub body: Body,
@@ -260,9 +255,40 @@ pub struct Rule {
 impl_node!(Rule, Format, RuleParser);
 
 impl Rule {
+    // TODO: Drop?
+    pub fn is_constraint(&self) -> bool {
+        match &self.head {
+            Head::Basic(_) | Head::Choice(_) => false,
+            Head::Falsity => true,
+        }
+    }
+
+    pub fn head_symbol(&self) -> Option<Predicate> {
+        match &self.head {
+            Head::Basic(a) => Some(a.predicate().clone()),
+            Head::Choice(a) => Some(a.predicate().clone()),
+            Head::Falsity => None,
+        }
+    }
+
     pub fn variables(&self) -> HashSet<Variable> {
-        let mut vars = self.head.variables();
-        vars.extend(self.body.variables());
+        let mut vars = self.head_variables();
+        vars.extend(self.body_variables());
+        vars
+    }
+
+    pub fn head_variables(&self) -> HashSet<Variable> {
+        match &self.head {
+            Head::Basic(a) | Head::Choice(a) => a.variables(),
+            Head::Falsity => HashSet::new(),
+        }
+    }
+
+    pub fn body_variables(&self) -> HashSet<Variable> {
+        let mut vars = HashSet::new();
+        for formula in self.body.formulas.iter() {
+            vars.extend(formula.variables())
+        }
         vars
     }
 
@@ -273,7 +299,7 @@ impl Rule {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Program {
     pub rules: Vec<Rule>,
 }
@@ -297,3 +323,4 @@ impl Program {
         preds
     }
 }
+

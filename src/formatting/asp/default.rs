@@ -108,7 +108,7 @@ impl Display for Format<'_, Term> {
 
 impl Display for Format<'_, Atom> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let predicate = &self.0.predicate;
+        let predicate = &self.0.predicate.symbol;
         let terms = &self.0.terms;
 
         write!(f, "{predicate}")?;
@@ -228,7 +228,7 @@ mod tests {
         formatting::asp::default::Format,
         syntax_tree::asp::{
             Atom, AtomicFormula, BinaryOperator, Body, Comparison, Head, Literal, PrecomputedTerm,
-            Program, Relation, Rule, Sign, Term, UnaryOperator, Variable,
+            Predicate, Program, Relation, Rule, Sign, Term, UnaryOperator, Variable,
         },
     };
 
@@ -342,7 +342,10 @@ mod tests {
     fn format_atom() {
         assert_eq!(
             Format(&Atom {
-                predicate: "p".into(),
+                predicate: Predicate {
+                    symbol: "p".into(),
+                    arity: 0,
+                },
                 terms: vec![],
             })
             .to_string(),
@@ -351,7 +354,10 @@ mod tests {
 
         assert_eq!(
             Format(&Atom {
-                predicate: "p".into(),
+                predicate: Predicate {
+                    symbol: "p".into(),
+                    arity: 1,
+                },
                 terms: vec![Term::PrecomputedTerm(PrecomputedTerm::Numeral(1))],
             })
             .to_string(),
@@ -360,7 +366,10 @@ mod tests {
 
         assert_eq!(
             Format(&Atom {
-                predicate: "p".into(),
+                predicate: Predicate {
+                    symbol: "p".into(),
+                    arity: 2,
+                },
                 terms: vec![
                     Term::PrecomputedTerm(PrecomputedTerm::Numeral(1)),
                     Term::PrecomputedTerm(PrecomputedTerm::Numeral(2))
@@ -384,7 +393,10 @@ mod tests {
             Format(&Literal {
                 sign: Sign::Negation,
                 atom: Atom {
-                    predicate: "p".into(),
+                    predicate: Predicate {
+                        symbol: "p".into(),
+                        arity: 0,
+                    },
                     terms: vec![]
                 }
             })
@@ -422,7 +434,10 @@ mod tests {
             Format(&AtomicFormula::Literal(Literal {
                 sign: Sign::DoubleNegation,
                 atom: Atom {
-                    predicate: "p".into(),
+                    predicate: Predicate {
+                        symbol: "p".into(),
+                        arity: 0,
+                    },
                     terms: vec![]
                 }
             }))
@@ -445,7 +460,10 @@ mod tests {
     fn format_head() {
         assert_eq!(
             Format(&Head::Basic(Atom {
-                predicate: "p".into(),
+                predicate: Predicate {
+                    symbol: "p".into(),
+                    arity: 0,
+                },
                 terms: vec![]
             }))
             .to_string(),
@@ -454,7 +472,10 @@ mod tests {
 
         assert_eq!(
             Format(&Head::Choice(Atom {
-                predicate: "p".into(),
+                predicate: Predicate {
+                    symbol: "p".into(),
+                    arity: 0,
+                },
                 terms: vec![]
             }))
             .to_string(),
@@ -474,7 +495,10 @@ mod tests {
                     AtomicFormula::Literal(Literal {
                         sign: Sign::NoSign,
                         atom: Atom {
-                            predicate: "p".into(),
+                            predicate: Predicate {
+                                symbol: "p".into(),
+                                arity: 1,
+                            },
                             terms: vec![Term::Variable(Variable("X".into()))]
                         }
                     }),
@@ -502,21 +526,30 @@ mod tests {
                 rules: vec![
                     Rule {
                         head: Head::Basic(Atom {
-                            predicate: "a".into(),
+                            predicate: Predicate {
+                                symbol: "a".into(),
+                                arity: 0,
+                            },
                             terms: vec![]
                         }),
                         body: Body { formulas: vec![] }
                     },
                     Rule {
                         head: Head::Basic(Atom {
-                            predicate: "b".into(),
+                            predicate: Predicate {
+                                symbol: "b".into(),
+                                arity: 0,
+                            },
                             terms: vec![]
                         }),
                         body: Body {
                             formulas: vec![AtomicFormula::Literal(Literal {
                                 sign: Sign::Negation,
                                 atom: Atom {
-                                    predicate: "a".into(),
+                                    predicate: Predicate {
+                                        symbol: "a".into(),
+                                        arity: 0,
+                                    },
                                     terms: vec![]
                                 }
                             })]

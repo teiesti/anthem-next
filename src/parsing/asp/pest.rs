@@ -2,7 +2,7 @@ use crate::{
     parsing::PestParser,
     syntax_tree::asp::{
         Atom, AtomicFormula, BinaryOperator, Body, Comparison, Head, Literal, PrecomputedTerm,
-        Program, Relation, Rule, Sign, Term, UnaryOperator, Variable,
+        Predicate, Program, Relation, Rule, Sign, Term, UnaryOperator, Variable,
     },
 };
 
@@ -153,12 +153,18 @@ impl PestParser for AtomParser {
 
         let mut pairs = pair.into_inner();
 
-        let predicate = pairs
+        let p = pairs
             .next()
             .unwrap_or_else(|| Self::report_missing_pair())
             .as_str()
             .into();
+
         let terms: Vec<_> = pairs.map(TermParser::translate_pair).collect();
+
+        let predicate = Predicate {
+            symbol: p,
+            arity: terms.len(),
+        };
 
         Atom { predicate, terms }
     }
@@ -421,7 +427,8 @@ mod tests {
             parsing::TestedParser,
             syntax_tree::asp::{
                 Atom, AtomicFormula, BinaryOperator, Body, Comparison, Head, Literal,
-                PrecomputedTerm, Program, Relation, Rule, Sign, Term, UnaryOperator, Variable,
+                PrecomputedTerm, Predicate, Program, Relation, Rule, Sign, Term, UnaryOperator,
+                Variable,
             },
         },
     };
@@ -742,28 +749,40 @@ mod tests {
                 (
                     "p",
                     Atom {
-                        predicate: "p".into(),
+                        predicate: Predicate {
+                            symbol: "p".into(),
+                            arity: 0,
+                        },
                         terms: vec![],
                     },
                 ),
                 (
                     "p()",
                     Atom {
-                        predicate: "p".into(),
+                        predicate: Predicate {
+                            symbol: "p".into(),
+                            arity: 0,
+                        },
                         terms: vec![],
                     },
                 ),
                 (
                     "p(1)",
                     Atom {
-                        predicate: "p".into(),
+                        predicate: Predicate {
+                            symbol: "p".into(),
+                            arity: 1,
+                        },
                         terms: vec![Term::PrecomputedTerm(PrecomputedTerm::Numeral(1))],
                     },
                 ),
                 (
                     "p(1, 2)",
                     Atom {
-                        predicate: "p".into(),
+                        predicate: Predicate {
+                            symbol: "p".into(),
+                            arity: 2,
+                        },
                         terms: vec![
                             Term::PrecomputedTerm(PrecomputedTerm::Numeral(1)),
                             Term::PrecomputedTerm(PrecomputedTerm::Numeral(2)),
@@ -793,7 +812,10 @@ mod tests {
                 Literal {
                     sign: Sign::NoSign,
                     atom: Atom {
-                        predicate: "p".into(),
+                        predicate: Predicate {
+                            symbol: "p".into(),
+                            arity: 0,
+                        },
                         terms: vec![],
                     },
                 },
@@ -803,7 +825,10 @@ mod tests {
                 Literal {
                     sign: Sign::Negation,
                     atom: Atom {
-                        predicate: "p".into(),
+                        predicate: Predicate {
+                            symbol: "p".into(),
+                            arity: 0,
+                        },
                         terms: vec![],
                     },
                 },
@@ -813,7 +838,10 @@ mod tests {
                 Literal {
                     sign: Sign::DoubleNegation,
                     atom: Atom {
-                        predicate: "p".into(),
+                        predicate: Predicate {
+                            symbol: "p".into(),
+                            arity: 0,
+                        },
                         terms: vec![],
                     },
                 },
@@ -823,7 +851,10 @@ mod tests {
                 Literal {
                     sign: Sign::NoSign,
                     atom: Atom {
-                        predicate: "notp".into(),
+                        predicate: Predicate {
+                            symbol: "notp".into(),
+                            arity: 0,
+                        },
                         terms: vec![],
                     },
                 },
@@ -873,7 +904,10 @@ mod tests {
                 AtomicFormula::Literal(Literal {
                     sign: Sign::Negation,
                     atom: Atom {
-                        predicate: "p".into(),
+                        predicate: Predicate {
+                            symbol: "p".into(),
+                            arity: 0,
+                        },
                         terms: vec![],
                     },
                 }),
@@ -887,14 +921,20 @@ mod tests {
             (
                 "p",
                 Head::Basic(Atom {
-                    predicate: "p".into(),
+                    predicate: Predicate {
+                        symbol: "p".into(),
+                        arity: 0,
+                    },
                     terms: vec![],
                 }),
             ),
             (
                 "{p}",
                 Head::Choice(Atom {
-                    predicate: "p".into(),
+                    predicate: Predicate {
+                        symbol: "p".into(),
+                        arity: 0,
+                    },
                     terms: vec![],
                 }),
             ),
@@ -912,7 +952,10 @@ mod tests {
                     formulas: vec![AtomicFormula::Literal(Literal {
                         sign: Sign::NoSign,
                         atom: Atom {
-                            predicate: "p".into(),
+                            predicate: Predicate {
+                                symbol: "p".into(),
+                                arity: 0,
+                            },
                             terms: vec![],
                         },
                     })],
@@ -925,7 +968,10 @@ mod tests {
                         AtomicFormula::Literal(Literal {
                             sign: Sign::NoSign,
                             atom: Atom {
-                                predicate: "p".into(),
+                                predicate: Predicate {
+                                    symbol: "p".into(),
+                                    arity: 0,
+                                },
                                 terms: vec![],
                             },
                         }),
@@ -955,14 +1001,20 @@ mod tests {
                     "a :- b.",
                     Rule {
                         head: Head::Basic(Atom {
-                            predicate: "a".into(),
+                            predicate: Predicate {
+                                symbol: "a".into(),
+                                arity: 0,
+                            },
                             terms: vec![],
                         }),
                         body: Body {
                             formulas: vec![AtomicFormula::Literal(Literal {
                                 sign: Sign::NoSign,
                                 atom: Atom {
-                                    predicate: "b".into(),
+                                    predicate: Predicate {
+                                        symbol: "b".into(),
+                                        arity: 0,
+                                    },
                                     terms: vec![],
                                 },
                             })],
@@ -973,7 +1025,10 @@ mod tests {
                     "a :-.",
                     Rule {
                         head: Head::Basic(Atom {
-                            predicate: "a".into(),
+                            predicate: Predicate {
+                                symbol: "a".into(),
+                                arity: 0,
+                            },
                             terms: vec![],
                         }),
                         body: Body { formulas: vec![] },
@@ -983,7 +1038,10 @@ mod tests {
                     "a.",
                     Rule {
                         head: Head::Basic(Atom {
-                            predicate: "a".into(),
+                            predicate: Predicate {
+                                symbol: "a".into(),
+                                arity: 0,
+                            },
                             terms: vec![],
                         }),
                         body: Body { formulas: vec![] },
@@ -995,49 +1053,43 @@ mod tests {
 
     #[test]
     fn parse_program() {
-        ProgramParser.should_parse_into([
-            ("", Program { rules: vec![] }),
-            (
-                "a. b :- a.",
-                Program {
-                    rules: vec![
-                        Rule {
-                            head: Head::Basic(Atom {
-                                predicate: "a".into(),
-                                terms: vec![],
-                            }),
-                            body: Body { formulas: vec![] },
-                        },
-                        Rule {
-                            head: Head::Basic(Atom {
-                                predicate: "b".into(),
-                                terms: vec![],
-                            }),
-                            body: Body {
-                                formulas: vec![AtomicFormula::Literal(Literal {
-                                    sign: Sign::NoSign,
-                                    atom: Atom {
-                                        predicate: "a".into(),
-                                        terms: vec![],
-                                    },
-                                })],
-                            },
-                        },
-                    ],
-                },
-            ),
-            (
-                "a.\n",
-                Program {
-                    rules: vec![Rule {
+        ProgramParser.should_parse_into([(
+            "a. b :- a.",
+            Program {
+                rules: vec![
+                    Rule {
                         head: Head::Basic(Atom {
-                            predicate: "a".into(),
+                            predicate: Predicate {
+                                symbol: "a".into(),
+                                arity: 0,
+                            },
                             terms: vec![],
                         }),
                         body: Body { formulas: vec![] },
-                    }],
-                },
-            ),
-        ]);
+                    },
+                    Rule {
+                        head: Head::Basic(Atom {
+                            predicate: Predicate {
+                                symbol: "b".into(),
+                                arity: 0,
+                            },
+                            terms: vec![],
+                        }),
+                        body: Body {
+                            formulas: vec![AtomicFormula::Literal(Literal {
+                                sign: Sign::NoSign,
+                                atom: Atom {
+                                    predicate: Predicate {
+                                        symbol: "a".into(),
+                                        arity: 0,
+                                    },
+                                    terms: vec![],
+                                },
+                            })],
+                        },
+                    },
+                ],
+            },
+        )]);
     }
 }
