@@ -202,6 +202,377 @@ fn construct_total_function_formula(
     }
 }
 
+// Are these definitions correct?
+// Division: exists I J Q R (I = J * Q + R & val_t1(I) & val_t2(J) & J != 0 & R >= 0 & R < Q & Z = Q)
+// Modulo:   exists I J Q R (I = J * Q + R & val_t1(I) & val_t2(J) & J != 0 & R >= 0 & R < Q & Z = R)
+fn construct_partial_function_formula(
+    valti: fol::Formula,
+    valtj: fol::Formula,
+    binop: asp::BinaryOperator,
+    i_var: fol::Variable,
+    j_var: fol::Variable,
+    z: fol::Variable,
+) -> fol::Formula {
+    let i = i_var.name;
+    let j = j_var.name;
+
+    let mut taken_vars = HashSet::<fol::Variable>::new();
+    for var in valti.variables().iter() {
+        taken_vars.insert(fol::Variable {
+            name: var.to_string(),
+            sort: fol::Sort::General,
+        });
+    }
+    for var in valtj.variables().iter() {
+        taken_vars.insert(fol::Variable {
+            name: var.to_string(),
+            sort: fol::Sort::General,
+        });
+    }
+
+    let z_var_term = match z.sort {
+        fol::Sort::General => fol::GeneralTerm::GeneralVariable(z.name.into()),
+        fol::Sort::Integer => fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::BasicIntegerTerm(
+            fol::BasicIntegerTerm::IntegerVariable(z.name.into()),
+        )),
+    };
+
+    // I = J * Q + R
+    let qvar = choose_fresh_variable_names_v(&taken_vars, "Q", 1)
+        .pop()
+        .unwrap();
+    let rvar = choose_fresh_variable_names_v(&taken_vars, "R", 1)
+        .pop()
+        .unwrap();
+    let iequals = fol::Formula::AtomicFormula(fol::AtomicFormula::Comparison(fol::Comparison {
+        term: fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::BasicIntegerTerm(
+            fol::BasicIntegerTerm::IntegerVariable(i.clone()),
+        )),
+        guards: vec![fol::Guard {
+            relation: fol::Relation::Equal,
+            term: fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::BinaryOperation {
+                op: fol::BinaryOperator::Add,
+                lhs: fol::IntegerTerm::BinaryOperation {
+                    op: fol::BinaryOperator::Multiply,
+                    lhs: fol::IntegerTerm::BasicIntegerTerm(
+                        fol::BasicIntegerTerm::IntegerVariable(j.clone()),
+                    )
+                    .into(),
+                    rhs: fol::IntegerTerm::BasicIntegerTerm(
+                        fol::BasicIntegerTerm::IntegerVariable(qvar.clone().into()),
+                    )
+                    .into(),
+                }
+                .into(),
+                rhs: fol::IntegerTerm::BasicIntegerTerm(fol::BasicIntegerTerm::IntegerVariable(
+                    rvar.clone().into(),
+                ))
+                .into(),
+            }),
+        }],
+    }));
+
+    // J != 0 & R >= 0 & R < Q
+    let conditions = fol::Formula::BinaryFormula {
+        connective: fol::BinaryConnective::Conjunction,
+        lhs: fol::Formula::BinaryFormula {
+            connective: fol::BinaryConnective::Conjunction,
+            lhs: fol::Formula::AtomicFormula(fol::AtomicFormula::Comparison(fol::Comparison {
+                term: fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::BasicIntegerTerm(
+                    fol::BasicIntegerTerm::IntegerVariable(j.clone()),
+                )),
+                guards: vec![fol::Guard {
+                    relation: fol::Relation::NotEqual,
+                    term: fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::BasicIntegerTerm(
+                        fol::BasicIntegerTerm::Numeral(0),
+                    )),
+                }],
+            }))
+            .into(),
+            rhs: fol::Formula::AtomicFormula(fol::AtomicFormula::Comparison(fol::Comparison {
+                term: fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::BasicIntegerTerm(
+                    fol::BasicIntegerTerm::IntegerVariable(rvar.clone().into()),
+                )),
+                guards: vec![fol::Guard {
+                    relation: fol::Relation::GreaterEqual,
+                    term: fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::BasicIntegerTerm(
+                        fol::BasicIntegerTerm::Numeral(0),
+                    )),
+                }],
+            }))
+            .into(),
+        }
+        .into(),
+        rhs: fol::Formula::AtomicFormula(fol::AtomicFormula::Comparison(fol::Comparison {
+            term: fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::BasicIntegerTerm(
+                fol::BasicIntegerTerm::IntegerVariable(rvar.clone().into()),
+            )),
+            guards: vec![fol::Guard {
+                relation: fol::Relation::Less,
+                term: fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::BasicIntegerTerm(
+                    fol::BasicIntegerTerm::IntegerVariable(qvar.clone().into()),
+                )),
+            }],
+        }))
+        .into(),
+    };
+
+    // val_t1(I) & val_t2(J)
+    let inner_vals = fol::Formula::BinaryFormula {
+        connective: fol::BinaryConnective::Conjunction,
+        lhs: valti.into(),
+        rhs: valtj.into(),
+    };
+
+    // (( I = J * Q + R ) & ( val_t1(I) & val_t2(J) )) & ( J != 0 & R >= 0 & R < Q )
+    let subformula = {
+        fol::Formula::BinaryFormula {
+            connective: fol::BinaryConnective::Conjunction,
+            lhs: fol::Formula::BinaryFormula {
+                connective: fol::BinaryConnective::Conjunction,
+                lhs: iequals.into(),
+                rhs: inner_vals.into(),
+            }
+            .into(),
+            rhs: conditions.into(),
+        }
+    };
+
+    // Z = Q or Z = R
+    let zequals = match binop {
+        asp::BinaryOperator::Divide => {
+            fol::Formula::AtomicFormula(fol::AtomicFormula::Comparison(fol::Comparison {
+                term: z_var_term,
+                guards: vec![fol::Guard {
+                    relation: fol::Relation::Equal,
+                    term: fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::BasicIntegerTerm(
+                        fol::BasicIntegerTerm::IntegerVariable(qvar.clone().into()),
+                    )),
+                }],
+            }))
+        }
+        asp::BinaryOperator::Modulo => {
+            fol::Formula::AtomicFormula(fol::AtomicFormula::Comparison(fol::Comparison {
+                term: z_var_term,
+                guards: vec![fol::Guard {
+                    relation: fol::Relation::Equal,
+                    term: fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::BasicIntegerTerm(
+                        fol::BasicIntegerTerm::IntegerVariable(rvar.clone().into()),
+                    )),
+                }],
+            }))
+        }
+        _ => panic!(), // Error
+    };
+
+    fol::Formula::QuantifiedFormula {
+        quantification: fol::Quantification {
+            quantifier: fol::Quantifier::Exists,
+            variables: vec![
+                fol::Variable {
+                    name: i.into(),
+                    sort: fol::Sort::Integer,
+                },
+                fol::Variable {
+                    name: j.into(),
+                    sort: fol::Sort::Integer,
+                },
+                fol::Variable {
+                    name: qvar.into(),
+                    sort: fol::Sort::Integer,
+                },
+                fol::Variable {
+                    name: rvar.into(),
+                    sort: fol::Sort::Integer,
+                },
+            ],
+        },
+        formula: fol::Formula::BinaryFormula {
+            connective: fol::BinaryConnective::Conjunction,
+            lhs: subformula.into(),
+            rhs: zequals.into(),
+        }
+        .into(),
+    }
+}
+
+// t1..t2
+// exists I J K (val_t1(I) & val_t2(J) & I <= K <= J & Z = K)
+fn construct_interval_formula(
+    valti: fol::Formula,
+    valtj: fol::Formula,
+    i_var: fol::Variable,
+    j_var: fol::Variable,
+    k_var: fol::Variable,
+    z: fol::Variable,
+) -> fol::Formula {
+    let z_var_term = match z.sort {
+        fol::Sort::General => fol::GeneralTerm::GeneralVariable(z.name.into()),
+        fol::Sort::Integer => fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::BasicIntegerTerm(
+            fol::BasicIntegerTerm::IntegerVariable(z.name.into()),
+        )),
+    };
+
+    // I <= K <= J
+    let range = fol::Formula::AtomicFormula(fol::AtomicFormula::Comparison(fol::Comparison {
+        term: fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::BasicIntegerTerm(
+            fol::BasicIntegerTerm::IntegerVariable(i_var.name.clone().into()),
+        )),
+        guards: vec![
+            fol::Guard {
+                relation: fol::Relation::LessEqual,
+                term: fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::BasicIntegerTerm(
+                    fol::BasicIntegerTerm::IntegerVariable(k_var.name.clone().into()),
+                )),
+            },
+            fol::Guard {
+                relation: fol::Relation::LessEqual,
+                term: fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::BasicIntegerTerm(
+                    fol::BasicIntegerTerm::IntegerVariable(j_var.name.clone().into()),
+                )),
+            },
+        ],
+    }));
+
+    // val_t1(I) & val_t2(J) & Z = k
+    let subformula = fol::Formula::BinaryFormula {
+        connective: fol::BinaryConnective::Conjunction,
+        lhs: fol::Formula::BinaryFormula {
+            connective: fol::BinaryConnective::Conjunction,
+            lhs: valti.into(),
+            rhs: valtj.into(),
+        }
+        .into(),
+        rhs: fol::Formula::AtomicFormula(fol::AtomicFormula::Comparison(fol::Comparison {
+            term: z_var_term,
+            guards: vec![fol::Guard {
+                relation: fol::Relation::Equal,
+                term: fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::BasicIntegerTerm(
+                    fol::BasicIntegerTerm::IntegerVariable(k_var.name.clone().into()),
+                )),
+            }],
+        }))
+        .into(),
+    };
+
+    fol::Formula::QuantifiedFormula {
+        quantification: fol::Quantification {
+            quantifier: fol::Quantifier::Exists,
+            variables: vec![i_var.clone(), j_var.clone(), k_var.clone()],
+        },
+        formula: fol::Formula::BinaryFormula {
+            connective: fol::BinaryConnective::Conjunction,
+            lhs: subformula.into(),
+            rhs: range.into(),
+        }
+        .into(),
+    }
+}
+
+// val_t(Z)
+pub fn val(t: asp::Term, z: fol::Variable) -> fol::Formula {
+    let mut taken_vars = HashSet::<fol::Variable>::new();
+    for var in t.variables().iter() {
+        taken_vars.insert(fol::Variable {
+            name: var.to_string(),
+            sort: fol::Sort::General,
+        });
+    }
+    taken_vars.insert(z.clone());
+
+    let mut fresh_ivar = choose_fresh_variable_names_v(&taken_vars, "I", 1);
+    let mut fresh_jvar = choose_fresh_variable_names_v(&taken_vars, "J", 1);
+    let mut fresh_kvar = choose_fresh_variable_names_v(&taken_vars, "K", 1);
+
+    // Fresh integer variables
+    let var1 = fol::Variable {
+        name: fresh_ivar.pop().unwrap().into(),
+        sort: fol::Sort::Integer,
+    };
+    let var2 = fol::Variable {
+        name: fresh_jvar.pop().unwrap().into(),
+        sort: fol::Sort::Integer,
+    };
+    let var3 = fol::Variable {
+        name: fresh_kvar.pop().unwrap().into(),
+        sort: fol::Sort::Integer,
+    };
+    match t {
+        asp::Term::PrecomputedTerm(_) | asp::Term::Variable(_) => construct_equality_formula(t, z),
+        asp::Term::UnaryOperation { op, arg } => {
+            match op {
+                asp::UnaryOperator::Negative => {
+                    let lhs = asp::Term::PrecomputedTerm(asp::PrecomputedTerm::Numeral(0)); // Shorthand for 0 - t
+                    let valti = val(lhs, var1.clone()); // val_t1(I)
+                    let valtj = val(*arg, var2.clone()); // val_t2(J)
+                    construct_total_function_formula(
+                        valti,
+                        valtj,
+                        asp::BinaryOperator::Subtract,
+                        var1.clone(),
+                        var2.clone(),
+                        z,
+                    )
+                }
+            }
+        }
+        asp::Term::BinaryOperation { op, lhs, rhs } => {
+            let valti = val(*lhs, var1.clone()); // val_t1(I)
+            let valtj = val(*rhs, var2.clone()); // val_t2(J)
+            match op {
+                syntax_tree::asp::BinaryOperator::Add => construct_total_function_formula(
+                    valti,
+                    valtj,
+                    asp::BinaryOperator::Add,
+                    var1.clone(),
+                    var2.clone(),
+                    z,
+                ),
+                syntax_tree::asp::BinaryOperator::Subtract => construct_total_function_formula(
+                    valti,
+                    valtj,
+                    asp::BinaryOperator::Subtract,
+                    var1.clone(),
+                    var2.clone(),
+                    z,
+                ),
+                syntax_tree::asp::BinaryOperator::Multiply => construct_total_function_formula(
+                    valti,
+                    valtj,
+                    asp::BinaryOperator::Multiply,
+                    var1.clone(),
+                    var2.clone(),
+                    z,
+                ),
+                syntax_tree::asp::BinaryOperator::Divide => construct_partial_function_formula(
+                    valti,
+                    valtj,
+                    asp::BinaryOperator::Divide,
+                    var1.clone(),
+                    var2.clone(),
+                    z,
+                ),
+                syntax_tree::asp::BinaryOperator::Modulo => construct_partial_function_formula(
+                    valti,
+                    valtj,
+                    asp::BinaryOperator::Modulo,
+                    var1.clone(),
+                    var2.clone(),
+                    z,
+                ),
+                syntax_tree::asp::BinaryOperator::Interval => construct_interval_formula(
+                    valti,
+                    valtj,
+                    var1.clone(),
+                    var2.clone(),
+                    var3.clone(),
+                    z,
+                ),
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::formatting;
