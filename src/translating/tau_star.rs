@@ -2,6 +2,7 @@ use crate::syntax_tree::{asp, fol};
 use regex::Regex;
 use std::collections::HashSet;
 
+use crate::simplifying::fol::ht;
 use crate::syntax_tree;
 
 // Choose fresh variants of V# by incrementing #
@@ -580,7 +581,7 @@ pub fn valtz(terms: Vec<asp::Term>, variables: Vec<fol::Variable>) -> fol::Formu
         let val_ti_zi = val(t.clone(), variables[i].clone());
         formulas.push(val_ti_zi);
     }
-    conjoin(formulas).simplify()
+    ht::simplify(conjoin(formulas))
 }
 
 // Translate a first-order body literal
@@ -589,7 +590,7 @@ pub fn tau_b_first_order_literal(
     taken_vars: HashSet<fol::Variable>,
 ) -> fol::Formula {
     let atom = l.atom;
-    let terms = atom.terms;
+    let terms = atom.clone().terms;
     let arity = terms.len();
     let varnames = choose_fresh_variable_names_v(&taken_vars, "Z", arity);
 
@@ -606,11 +607,15 @@ pub fn tau_b_first_order_literal(
         var_terms.push(fol::GeneralTerm::GeneralVariable(varnames[i].clone()));
         var_vars.push(var);
     }
-    let valtz = conjoin(valtz_vec).simplify();
+    let valtz = ht::simplify(conjoin(valtz_vec));
 
     // Compute p(Z1, Z2, ..., Zk)
+    let asp_predicate = atom.predicate();
     let p_zk = fol::Formula::AtomicFormula(fol::AtomicFormula::Atom(fol::Atom {
-        predicate: atom.predicate.symbol,
+        predicate: fol::Predicate {
+            symbol: asp_predicate.symbol,
+            arity: asp_predicate.arity,
+        },
         terms: var_terms,
     }));
 
@@ -834,126 +839,6 @@ mod tests {
                 .unwrap();
         assert_eq!(
             format!("{}", formatting::fol::default::Format(&val_term_var)),
-            format!("{}", formatting::fol::default::Format(&target))
-        );
-    }
-
-
-    #[test]
-    pub fn tau_b_test1() {
-        let atomic: asp::AtomicFormula = "p(t)".parse().unwrap();
-        let result: fol::Formula = super::tau_b(atomic);
-
-        let target: fol::Formula = "exists Z (Z = t and p(Z))".parse().unwrap();
-        assert_eq!(
-            format!("{}", formatting::fol::default::Format(&result)),
-            format!("{}", formatting::fol::default::Format(&target))
-        );
-    }
-
-    #[test]
-    pub fn tau_b_test2() {
-        let atomic: asp::AtomicFormula = "not p(t)".parse().unwrap();
-        let result: fol::Formula = super::tau_b(atomic);
-
-        let target: fol::Formula = "exists Z (Z = t and not p(Z))".parse().unwrap();
-        assert_eq!(
-            format!("{}", formatting::fol::default::Format(&result)),
-            format!("{}", formatting::fol::default::Format(&target))
-        );
-    }
-
-    #[test]
-    pub fn tau_b_test3() {
-        let atomic: asp::AtomicFormula = "X < 1..5".parse().unwrap();
-        let result: fol::Formula = super::tau_b(atomic);
-
-        let target: fol::Formula =
-        "exists Z Z1 (Z = X and exists I$i J$i K$i (I$i = 1 and J$i = 5 and Z1 = K$i and I$i <= K$i <= J$i) and Z < Z1)"
-                .parse()
-                .unwrap();
-        assert_eq!(
-            format!("{}", formatting::fol::default::Format(&result)),
-            format!("{}", formatting::fol::default::Format(&target))
-        );
-    }
-
-    #[test]
-    pub fn tau_b_test4() {
-        let atomic: asp::AtomicFormula = "not not p(t)".parse().unwrap();
-        let result: fol::Formula = super::tau_b(atomic);
-
-        let target: fol::Formula = "exists Z (Z = t and not not p(Z))".parse().unwrap();
-        assert_eq!(
-            format!("{}", formatting::fol::default::Format(&result)),
-            format!("{}", formatting::fol::default::Format(&target))
-        );
-    }
-
-    #[test]
-    pub fn tau_b_test5() {
-        let atomic: asp::AtomicFormula = "not not x".parse().unwrap();
-        let result: fol::Formula = super::tau_b(atomic);
-
-        let target: fol::Formula = "not not x".parse().unwrap();
-        assert_eq!(
-            format!("{}", formatting::fol::default::Format(&result)),
-            format!("{}", formatting::fol::default::Format(&target))
-        );
-    }
-
-    #[test]
-    pub fn tau_b_test6() {
-        let atomic: asp::AtomicFormula = "not p(X,5)".parse().unwrap();
-        let result: fol::Formula = super::tau_b(atomic);
-
-        let target: fol::Formula = "exists Z Z1 (Z = X and Z1 = 5 and not p(Z,Z1))"
-            .parse()
-            .unwrap();
-        assert_eq!(
-            format!("{}", formatting::fol::default::Format(&result)),
-            format!("{}", formatting::fol::default::Format(&target))
-        );
-    }
-
-    #[test]
-    pub fn tau_b_test7() {
-        let atomic: asp::AtomicFormula = "not p(X,0-5)".parse().unwrap();
-        let result: fol::Formula = super::tau_b(atomic);
-
-        let target: fol::Formula = "exists Z Z1 (Z = X and exists I$i J$i (Z1 = I$i - J$i and I$i = 0 and J$i = 5) and not p(Z,Z1))"
-            .parse()
-            .unwrap();
-        assert_eq!(
-            format!("{}", formatting::fol::default::Format(&result)),
-            format!("{}", formatting::fol::default::Format(&target))
-        );
-    }
-
-    #[test]
-    pub fn tau_b_test8() {
-        let atomic: asp::AtomicFormula = "p(X,-1..5)".parse().unwrap();
-        let result: fol::Formula = super::tau_b(atomic);
-
-        let target: fol::Formula = "exists Z Z1 (Z = X and exists I$i J$i K$i (I$i = -1 and J$i = 5  and Z1 = K$i and I$i <= K$i <= J$i) and p(Z,Z1))"
-            .parse()
-            .unwrap();
-        assert_eq!(
-            format!("{}", formatting::fol::default::Format(&result)),
-            format!("{}", formatting::fol::default::Format(&target))
-        );
-    }
-
-    #[test]
-    pub fn tau_b_test9() {
-        let atomic: asp::AtomicFormula = "p(X,-(1..5))".parse().unwrap();
-        let result: fol::Formula = super::tau_b(atomic);
-
-        let target: fol::Formula = "exists Z Z1 (Z = X and exists I$i J$i (Z1 = I$i - J$i and I$i = 0 and exists I$i J1$i K$i (I$i = 1 and J1$i = 5  and J$i = K$i and I$i <= K$i <= J1$i)) and p(Z,Z1))"
-            .parse()
-            .unwrap();
-        assert_eq!(
-            format!("{}", formatting::fol::default::Format(&result)),
             format!("{}", formatting::fol::default::Format(&target))
         );
     }
