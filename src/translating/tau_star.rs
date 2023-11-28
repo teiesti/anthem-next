@@ -573,6 +573,100 @@ pub fn val(t: asp::Term, z: fol::Variable) -> fol::Formula {
     }
 }
 
+// val_t1(Z1) & val_t2(Z2) & ... & val_tn(Zn)
+pub fn valtz(terms: Vec<asp::Term>, variables: Vec<fol::Variable>) -> fol::Formula {
+    let mut formulas: Vec<fol::Formula> = Vec::with_capacity(terms.len() as usize);
+    for (i, t) in terms.iter().enumerate() {
+        let val_ti_zi = val(t.clone(), variables[i].clone());
+        formulas.push(val_ti_zi);
+    }
+    conjoin(formulas).simplify()
+}
+
+// Translate a first-order body literal
+pub fn tau_b_first_order_literal(
+    l: asp::Literal,
+    taken_vars: HashSet<fol::Variable>,
+) -> fol::Formula {
+    let atom = l.atom;
+    let terms = atom.terms;
+    let arity = terms.len();
+    let varnames = choose_fresh_variable_names_v(&taken_vars, "Z", arity);
+
+    // Compute val_t1(Z1) & val_t2(Z2) & ... & val_tk(Zk)
+    let mut var_terms: Vec<fol::GeneralTerm> = Vec::with_capacity(arity as usize);
+    let mut var_vars: Vec<fol::Variable> = Vec::with_capacity(arity as usize);
+    let mut valtz_vec: Vec<fol::Formula> = Vec::with_capacity(arity as usize);
+    for (i, t) in terms.iter().enumerate() {
+        let var = fol::Variable {
+            sort: fol::Sort::General,
+            name: varnames[i].clone(),
+        };
+        valtz_vec.push(val(t.clone(), var.clone()));
+        var_terms.push(fol::GeneralTerm::GeneralVariable(varnames[i].clone()));
+        var_vars.push(var);
+    }
+    let valtz = conjoin(valtz_vec).simplify();
+
+    // Compute p(Z1, Z2, ..., Zk)
+    let p_zk = fol::Formula::AtomicFormula(fol::AtomicFormula::Atom(fol::Atom {
+        predicate: atom.predicate.symbol,
+        terms: var_terms,
+    }));
+
+    // Compute tau^b(B)
+    match l.sign {
+        syntax_tree::asp::Sign::NoSign => fol::Formula::QuantifiedFormula {
+            quantification: fol::Quantification {
+                quantifier: fol::Quantifier::Exists,
+                variables: var_vars,
+            },
+            formula: fol::Formula::BinaryFormula {
+                connective: fol::BinaryConnective::Conjunction,
+                lhs: valtz.into(),
+                rhs: p_zk.into(),
+            }
+            .into(),
+        },
+        syntax_tree::asp::Sign::Negation => fol::Formula::QuantifiedFormula {
+            quantification: fol::Quantification {
+                quantifier: fol::Quantifier::Exists,
+                variables: var_vars,
+            },
+            formula: fol::Formula::BinaryFormula {
+                connective: fol::BinaryConnective::Conjunction,
+                lhs: valtz.into(),
+                rhs: fol::Formula::UnaryFormula {
+                    connective: fol::UnaryConnective::Negation,
+                    formula: p_zk.into(),
+                }
+                .into(),
+            }
+            .into(),
+        },
+        syntax_tree::asp::Sign::DoubleNegation => fol::Formula::QuantifiedFormula {
+            quantification: fol::Quantification {
+                quantifier: fol::Quantifier::Exists,
+                variables: var_vars,
+            },
+            formula: fol::Formula::BinaryFormula {
+                connective: fol::BinaryConnective::Conjunction,
+                lhs: valtz.into(),
+                rhs: fol::Formula::UnaryFormula {
+                    connective: fol::UnaryConnective::Negation,
+                    formula: fol::Formula::UnaryFormula {
+                        connective: fol::UnaryConnective::Negation,
+                        formula: p_zk.into(),
+                    }
+                    .into(),
+                }
+                .into(),
+            }
+            .into(),
+        },
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::formatting;
@@ -631,7 +725,7 @@ mod tests {
             format!("{}", formatting::fol::default::Format(&dest))
         );
     }
-    
+
     #[test]
     pub fn val_test1() {
         let term: asp::Term = "X+1".parse().unwrap();
@@ -740,6 +834,126 @@ mod tests {
                 .unwrap();
         assert_eq!(
             format!("{}", formatting::fol::default::Format(&val_term_var)),
+            format!("{}", formatting::fol::default::Format(&target))
+        );
+    }
+
+
+    #[test]
+    pub fn tau_b_test1() {
+        let atomic: asp::AtomicFormula = "p(t)".parse().unwrap();
+        let result: fol::Formula = super::tau_b(atomic);
+
+        let target: fol::Formula = "exists Z (Z = t and p(Z))".parse().unwrap();
+        assert_eq!(
+            format!("{}", formatting::fol::default::Format(&result)),
+            format!("{}", formatting::fol::default::Format(&target))
+        );
+    }
+
+    #[test]
+    pub fn tau_b_test2() {
+        let atomic: asp::AtomicFormula = "not p(t)".parse().unwrap();
+        let result: fol::Formula = super::tau_b(atomic);
+
+        let target: fol::Formula = "exists Z (Z = t and not p(Z))".parse().unwrap();
+        assert_eq!(
+            format!("{}", formatting::fol::default::Format(&result)),
+            format!("{}", formatting::fol::default::Format(&target))
+        );
+    }
+
+    #[test]
+    pub fn tau_b_test3() {
+        let atomic: asp::AtomicFormula = "X < 1..5".parse().unwrap();
+        let result: fol::Formula = super::tau_b(atomic);
+
+        let target: fol::Formula =
+        "exists Z Z1 (Z = X and exists I$i J$i K$i (I$i = 1 and J$i = 5 and Z1 = K$i and I$i <= K$i <= J$i) and Z < Z1)"
+                .parse()
+                .unwrap();
+        assert_eq!(
+            format!("{}", formatting::fol::default::Format(&result)),
+            format!("{}", formatting::fol::default::Format(&target))
+        );
+    }
+
+    #[test]
+    pub fn tau_b_test4() {
+        let atomic: asp::AtomicFormula = "not not p(t)".parse().unwrap();
+        let result: fol::Formula = super::tau_b(atomic);
+
+        let target: fol::Formula = "exists Z (Z = t and not not p(Z))".parse().unwrap();
+        assert_eq!(
+            format!("{}", formatting::fol::default::Format(&result)),
+            format!("{}", formatting::fol::default::Format(&target))
+        );
+    }
+
+    #[test]
+    pub fn tau_b_test5() {
+        let atomic: asp::AtomicFormula = "not not x".parse().unwrap();
+        let result: fol::Formula = super::tau_b(atomic);
+
+        let target: fol::Formula = "not not x".parse().unwrap();
+        assert_eq!(
+            format!("{}", formatting::fol::default::Format(&result)),
+            format!("{}", formatting::fol::default::Format(&target))
+        );
+    }
+
+    #[test]
+    pub fn tau_b_test6() {
+        let atomic: asp::AtomicFormula = "not p(X,5)".parse().unwrap();
+        let result: fol::Formula = super::tau_b(atomic);
+
+        let target: fol::Formula = "exists Z Z1 (Z = X and Z1 = 5 and not p(Z,Z1))"
+            .parse()
+            .unwrap();
+        assert_eq!(
+            format!("{}", formatting::fol::default::Format(&result)),
+            format!("{}", formatting::fol::default::Format(&target))
+        );
+    }
+
+    #[test]
+    pub fn tau_b_test7() {
+        let atomic: asp::AtomicFormula = "not p(X,0-5)".parse().unwrap();
+        let result: fol::Formula = super::tau_b(atomic);
+
+        let target: fol::Formula = "exists Z Z1 (Z = X and exists I$i J$i (Z1 = I$i - J$i and I$i = 0 and J$i = 5) and not p(Z,Z1))"
+            .parse()
+            .unwrap();
+        assert_eq!(
+            format!("{}", formatting::fol::default::Format(&result)),
+            format!("{}", formatting::fol::default::Format(&target))
+        );
+    }
+
+    #[test]
+    pub fn tau_b_test8() {
+        let atomic: asp::AtomicFormula = "p(X,-1..5)".parse().unwrap();
+        let result: fol::Formula = super::tau_b(atomic);
+
+        let target: fol::Formula = "exists Z Z1 (Z = X and exists I$i J$i K$i (I$i = -1 and J$i = 5  and Z1 = K$i and I$i <= K$i <= J$i) and p(Z,Z1))"
+            .parse()
+            .unwrap();
+        assert_eq!(
+            format!("{}", formatting::fol::default::Format(&result)),
+            format!("{}", formatting::fol::default::Format(&target))
+        );
+    }
+
+    #[test]
+    pub fn tau_b_test9() {
+        let atomic: asp::AtomicFormula = "p(X,-(1..5))".parse().unwrap();
+        let result: fol::Formula = super::tau_b(atomic);
+
+        let target: fol::Formula = "exists Z Z1 (Z = X and exists I$i J$i (Z1 = I$i - J$i and I$i = 0 and exists I$i J1$i K$i (I$i = 1 and J1$i = 5  and J$i = K$i and I$i <= K$i <= J1$i)) and p(Z,Z1))"
+            .parse()
+            .unwrap();
+        assert_eq!(
+            format!("{}", formatting::fol::default::Format(&result)),
             format!("{}", formatting::fol::default::Format(&target))
         );
     }
