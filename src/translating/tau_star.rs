@@ -579,7 +579,7 @@ pub fn val(t: asp::Term, z: fol::Variable) -> fol::Formula {
 
 #[cfg(test)]
 mod tests {
-    use super::{conjoin, disjoin};
+    use super::{conjoin, disjoin, val};
 
     #[test]
     fn test_conjoin() {
@@ -605,6 +605,23 @@ mod tests {
             assert_eq!(
                 disjoin(src.iter().map(|x| x.parse().unwrap()).collect()),
                 target.parse().unwrap(),
+            )
+        }
+    }
+
+    #[test]
+    fn test_val() {
+        for (term, var, target) in [
+            ("X + 1", "Z1", "exists I$i J$i (Z1$g = I$i + J$i and I$i = X and J$i = 1)"),
+            ("3 - 5", "Z1", "exists I$i J$i (Z1$g = I$i - J$i and I$i = 3 and J$i = 5)"),
+            ("Xanadu/Yak", "Z1", "exists I$i J$i Q$i R$i (I$i = J$i * Q$i + R$i and (I$i = Xanadu and J$i = Yak) and (J$i != 0 and R$i >= 0 and R$i < Q$i) and Z1$g = Q$i)"),
+            ("X \\ 3", "Z1", "exists I$i J$i Q$i R$i (I$i = J$i * Q$i + R$i and (I$i = X and J$i = 3) and (J$i != 0 and R$i >= 0 and R$i < Q$i) and Z1$g = R$i)"),
+            ("X..Y", "Z", "exists I$i J$i K$i (I$i = X and J$i = Y and Z$g = K$i and I$i <= K$i <= J$i)"),
+            ("X+1..Y", "Z1", "exists I$i J$i K$i ((exists I1$i J$i (I$i = I1$i + J$i and I1$i = X and J$i = 1)) and J$i = Y and Z1 = K$i and I$i <= K$i <= J$i)"),
+        ] {
+            assert_eq!(
+                val(term.parse().unwrap(), var.parse().unwrap()),
+                target.parse().unwrap()
             )
         }
     }
