@@ -320,13 +320,16 @@ impl Display for Format<'_, Theory> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        formatting::fol::default::Format,
-        syntax_tree::fol::{
-            Atom, AtomicFormula, BasicIntegerTerm, BinaryConnective, BinaryOperator, Comparison,
-            Formula, GeneralTerm, Guard, IntegerTerm, Quantification, Quantifier, Relation, Sort,
-            UnaryConnective, Variable,
+    use {
+        crate::{
+            formatting::fol::default::Format,
+            syntax_tree::fol::{
+                Atom, AtomicFormula, BasicIntegerTerm, BinaryConnective, BinaryOperator,
+                Comparison, Formula, GeneralTerm, Guard, IntegerTerm, Quantification, Quantifier,
+                Relation, Sort, UnaryConnective, Variable,
+            },
         },
+        std::collections::BTreeSet,
     };
 
     #[test]
@@ -421,7 +424,7 @@ mod tests {
         assert_eq!(
             Format(&Quantification {
                 quantifier: Quantifier::Forall,
-                variables: vec![
+                variables: BTreeSet::from([
                     Variable {
                         name: "X".into(),
                         sort: Sort::General,
@@ -434,10 +437,10 @@ mod tests {
                         name: "N".into(),
                         sort: Sort::General,
                     },
-                ]
+                ])
             })
             .to_string(),
-            "forall X Y$i N"
+            "forall N X Y$i"
         );
     }
 
@@ -500,10 +503,10 @@ mod tests {
             Format(&Formula::QuantifiedFormula {
                 quantification: Quantification {
                     quantifier: Quantifier::Forall,
-                    variables: vec![Variable {
+                    variables: BTreeSet::from([Variable {
                         name: "X".into(),
                         sort: Sort::General
-                    }]
+                    }])
                 },
                 formula: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
                     predicate: "p".into(),

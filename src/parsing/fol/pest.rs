@@ -1,3 +1,5 @@
+use std::collections::BTreeSet;
+
 use crate::{
     parsing::PestParser,
     syntax_tree::fol::{
@@ -364,7 +366,7 @@ impl PestParser for QuantificationParser {
             pairs.next().unwrap_or_else(|| Self::report_missing_pair()),
         );
 
-        let variables: Vec<_> = pairs.map(VariableParser::translate_pair).collect();
+        let variables: BTreeSet<_> = pairs.map(VariableParser::translate_pair).collect();
 
         Quantification {
             quantifier,
@@ -474,8 +476,6 @@ impl PestParser for TheoryParser {
 
 #[cfg(test)]
 mod tests {
-    use std::vec;
-
     use {
         super::{
             AtomParser, AtomicFormulaParser, BasicIntegerTermParser, BinaryConnectiveParser,
@@ -491,6 +491,7 @@ mod tests {
                 Relation, Sort, Theory, UnaryConnective, UnaryOperator, Variable,
             },
         },
+        std::{collections::BTreeSet, vec},
     };
 
     #[test]
@@ -1006,17 +1007,17 @@ mod tests {
                     "exists X",
                     Quantification {
                         quantifier: Quantifier::Exists,
-                        variables: vec![Variable {
+                        variables: BTreeSet::from([Variable {
                             name: "X".into(),
                             sort: Sort::General,
-                        }],
+                        }]),
                     },
                 ),
                 (
                     "forall X$i Y Z$g",
                     Quantification {
                         quantifier: Quantifier::Forall,
-                        variables: vec![
+                        variables: BTreeSet::from([
                             Variable {
                                 name: "X".into(),
                                 sort: Sort::Integer,
@@ -1029,14 +1030,14 @@ mod tests {
                                 name: "Z".into(),
                                 sort: Sort::General,
                             },
-                        ],
+                        ]),
                     },
                 ),
                 (
                     "exists G1 G1$i",
                     Quantification {
                         quantifier: Quantifier::Exists,
-                        variables: vec![
+                        variables: BTreeSet::from([
                             Variable {
                                 name: "G1".into(),
                                 sort: Sort::General,
@@ -1045,7 +1046,7 @@ mod tests {
                                 name: "G1".into(),
                                 sort: Sort::Integer,
                             },
-                        ],
+                        ]),
                     },
                 ),
             ])
@@ -1079,10 +1080,10 @@ mod tests {
                     lhs: Formula::QuantifiedFormula {
                         quantification: Quantification {
                             quantifier: Quantifier::Forall,
-                            variables: vec![Variable {
+                            variables: BTreeSet::from([Variable {
                                 name: "A".into(),
                                 sort: Sort::General,
-                            }],
+                            }]),
                         },
                         formula: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
                             predicate: "p".into(),
@@ -1105,10 +1106,10 @@ mod tests {
                     lhs: Formula::QuantifiedFormula {
                         quantification: Quantification {
                             quantifier: Quantifier::Forall,
-                            variables: vec![Variable {
+                            variables: BTreeSet::from([Variable {
                                 name: "A".into(),
                                 sort: Sort::General,
-                            }],
+                            }]),
                         },
                         formula: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
                             predicate: "p".into(),
@@ -1127,10 +1128,10 @@ mod tests {
                     lhs: Formula::QuantifiedFormula {
                         quantification: Quantification {
                             quantifier: Quantifier::Forall,
-                            variables: vec![Variable {
+                            variables: BTreeSet::from([Variable {
                                 name: "A".into(),
                                 sort: Sort::General,
-                            }],
+                            }]),
                         },
                         formula: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
                             predicate: "p".into(),
@@ -1155,7 +1156,7 @@ mod tests {
                 Formula::QuantifiedFormula {
                     quantification: Quantification {
                         quantifier: Quantifier::Forall,
-                        variables: vec![
+                        variables: BTreeSet::from([
                             Variable {
                                 name: "V1".into(),
                                 sort: Sort::General,
@@ -1164,7 +1165,7 @@ mod tests {
                                 name: "V2".into(),
                                 sort: Sort::General,
                             },
-                        ],
+                        ]),
                     },
                     formula: Formula::BinaryFormula {
                         connective: BinaryConnective::Implication,
@@ -1201,7 +1202,7 @@ mod tests {
                 Formula::QuantifiedFormula {
                     quantification: Quantification {
                         quantifier: Quantifier::Exists,
-                        variables: vec![
+                        variables: BTreeSet::from([
                             Variable {
                                 name: "X".into(),
                                 sort: Sort::Integer,
@@ -1210,7 +1211,7 @@ mod tests {
                                 name: "G".into(),
                                 sort: Sort::General,
                             },
-                        ],
+                        ]),
                     },
                     formula: Formula::BinaryFormula {
                         connective: BinaryConnective::Equivalence,

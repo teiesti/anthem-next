@@ -9,7 +9,10 @@ use {
         },
         syntax_tree::{impl_node, Node},
     },
-    std::{collections::HashSet, hash::Hash},
+    std::{
+        collections::{BTreeSet, HashSet},
+        hash::Hash,
+    },
 };
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
@@ -194,7 +197,7 @@ impl_node!(Quantifier, Format, QuantifierParser);
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Quantification {
     pub quantifier: Quantifier,
-    pub variables: Vec<Variable>,
+    pub variables: BTreeSet<Variable>,
 }
 
 impl_node!(Quantification, Format, QuantificationParser);

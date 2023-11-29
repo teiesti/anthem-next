@@ -264,13 +264,16 @@ impl Display for Format<'_, Formula> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        formatting::fol::tptp::Format,
-        syntax_tree::fol::{
-            Atom, AtomicFormula, BasicIntegerTerm, BinaryConnective, BinaryOperator, Comparison,
-            Formula, GeneralTerm, Guard, IntegerTerm, Quantification, Quantifier, Relation, Sort,
-            UnaryOperator, Variable,
+    use {
+        crate::{
+            formatting::fol::tptp::Format,
+            syntax_tree::fol::{
+                Atom, AtomicFormula, BasicIntegerTerm, BinaryConnective, BinaryOperator,
+                Comparison, Formula, GeneralTerm, Guard, IntegerTerm, Quantification, Quantifier,
+                Relation, Sort, UnaryOperator, Variable,
+            },
         },
+        std::collections::BTreeSet,
     };
 
     #[test]
@@ -499,7 +502,7 @@ mod tests {
         assert_eq!(
             Format(&Quantification {
                 quantifier: Quantifier::Forall,
-                variables: vec![
+                variables: BTreeSet::from([
                     Variable {
                         name: "X1".into(),
                         sort: Sort::Integer,
@@ -508,18 +511,18 @@ mod tests {
                         name: "N2".into(),
                         sort: Sort::General,
                     },
-                ]
+                ])
             })
             .to_string(),
-            "![X1: $int, N2: object]"
+            "![N2: object, X1: $int]"
         );
         assert_eq!(
             Format(&Quantification {
                 quantifier: Quantifier::Exists,
-                variables: vec![Variable {
+                variables: BTreeSet::from([Variable {
                     name: "X1".into(),
                     sort: Sort::Integer,
-                },]
+                },])
             })
             .to_string(),
             "?[X1: $int]"
@@ -566,7 +569,7 @@ mod tests {
             Format(&Formula::QuantifiedFormula {
                 quantification: Quantification {
                     quantifier: Quantifier::Forall,
-                    variables: vec![
+                    variables: BTreeSet::from([
                         Variable {
                             name: "X".into(),
                             sort: Sort::Integer,
@@ -575,7 +578,7 @@ mod tests {
                             name: "Y1".into(),
                             sort: Sort::General,
                         },
-                    ]
+                    ])
                 },
                 formula: Formula::BinaryFormula {
                     connective: BinaryConnective::Conjunction,
