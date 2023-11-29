@@ -68,7 +68,7 @@ relation = { greater_equal | less_equal | greater | less | not_equal | equal }
 
 guard = { relation ~ general_term }
 
-atomic_formula = { truth | falsity | atom | comparison }
+atomic_formula = { truth | falsity | comparison | atom }
     truth      = { "#true" }
     falsity    = { "#false" }
     comparison = { general_term ~ guard+ }
