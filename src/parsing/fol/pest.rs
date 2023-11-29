@@ -886,6 +886,18 @@ mod tests {
                     }),
                 ),
                 (
+                    "n > 1",
+                    AtomicFormula::Comparison(Comparison {
+                        term: GeneralTerm::Symbol("n".to_string()),
+                        guards: vec![Guard {
+                            relation: Relation::Greater,
+                            term: GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(
+                                BasicIntegerTerm::Numeral(1),
+                            )),
+                        }],
+                    }),
+                ),
+                (
                     "1 <= N$g > 3 < X$i",
                     AtomicFormula::Comparison(Comparison {
                         term: GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(
