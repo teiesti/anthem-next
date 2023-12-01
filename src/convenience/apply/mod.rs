@@ -1,16 +1,14 @@
 use crate::syntax_tree::fol::Formula;
 
 pub trait Apply {
-    fn apply<F>(self, f: &mut F) -> Self
+    fn apply(self, f: &mut impl FnMut(Self) -> Self) -> Self
     where
-        F: FnMut(Self) -> Self,
         Self: Sized;
 }
 
 impl Apply for Formula {
-    fn apply<F>(self, f: &mut F) -> Self
+    fn apply(self, f: &mut impl FnMut(Self) -> Self) -> Self
     where
-        F: FnMut(Self) -> Self,
         Self: Sized,
     {
         let inner = match self {
