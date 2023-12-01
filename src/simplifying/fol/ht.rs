@@ -1,38 +1,13 @@
 use crate::{
-    convenience::unbox::{fol::UnboxedFormula, Unbox as _},
+    convenience::{
+        apply::Apply as _,
+        unbox::{fol::UnboxedFormula, Unbox as _},
+    },
     syntax_tree::fol::{AtomicFormula, BinaryConnective, Formula},
 };
 
 pub fn simplify(formula: Formula) -> Formula {
-    simplify_outer(match formula {
-        x @ Formula::AtomicFormula(_) => x,
-
-        Formula::UnaryFormula {
-            connective,
-            formula,
-        } => Formula::UnaryFormula {
-            connective,
-            formula: Box::new(simplify(*formula)),
-        },
-
-        Formula::BinaryFormula {
-            connective,
-            lhs,
-            rhs,
-        } => Formula::BinaryFormula {
-            connective,
-            lhs: Box::new(simplify(*lhs)),
-            rhs: Box::new(simplify(*rhs)),
-        },
-
-        Formula::QuantifiedFormula {
-            quantification,
-            formula,
-        } => Formula::QuantifiedFormula {
-            quantification,
-            formula: Box::new(simplify(*formula)),
-        },
-    })
+    formula.apply(&mut simplify_outer)
 }
 
 pub fn simplify_outer(formula: Formula) -> Formula {
