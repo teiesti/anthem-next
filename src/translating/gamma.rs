@@ -27,19 +27,22 @@ pub fn gamma(formula: Formula) -> Formula {
         },
 
         Formula::BinaryFormula {
-            connective: BinaryConnective::Implication,
+            connective:
+                connective @ BinaryConnective::Implication
+                | connective @ BinaryConnective::ReverseImplication
+                | connective @ BinaryConnective::Equivalence,
             lhs,
             rhs,
         } => Formula::BinaryFormula {
             connective: BinaryConnective::Conjunction,
             lhs: Formula::BinaryFormula {
-                connective: BinaryConnective::Implication,
+                connective: connective.clone(),
                 lhs: gamma(*lhs.clone()).into(),
                 rhs: gamma(*rhs.clone()).into(),
             }
             .into(),
             rhs: Formula::BinaryFormula {
-                connective: BinaryConnective::Implication,
+                connective,
                 lhs: there(*lhs).into(),
                 rhs: there(*rhs).into(),
             }
@@ -53,9 +56,6 @@ pub fn gamma(formula: Formula) -> Formula {
             quantification,
             formula: gamma(*formula).into(),
         },
-
-        // TODO: Support reverse implication and equivalence
-        _ => todo!(),
     }
 }
 
@@ -86,11 +86,14 @@ mod tests {
         for (src, target) in [
             ("#true", "#true"),
             ("a", "ha"),
-            ("X > 1", "X > 1"), // TODO: Is this correct?
+            ("X > 1", "X > 1"),
             ("not a", "not ta"),
+            ("not X > 1", "not X > 1"),
             ("a and not b", "ha and not tb"),
             ("a or not b", "ha or not tb"),
             ("a -> b", "(ha -> hb) and (ta -> tb)"),
+            ("a <- b", "(ha <- hb) and (ta <- tb)"),
+            ("a <-> b", "(ha <-> hb) and (ta <-> tb)"),
             ("forall X p(X)", "forall X hp(X)"),
             ("exists X p(X)", "exists X hp(X)"),
         ] {
