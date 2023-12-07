@@ -54,6 +54,7 @@ pub fn gamma(formula: Formula) -> Formula {
             formula: gamma(*formula).into(),
         },
 
+        // TODO: Support reverse implication and equivalence
         _ => todo!(),
     }
 }
@@ -74,4 +75,26 @@ fn prepend_predicate(formula: Formula, prefix: &'static str) -> Formula {
         }
         x => x,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::gamma;
+
+    #[test]
+    fn test_simplify() {
+        for (src, target) in [
+            ("#true", "#true"),
+            ("a", "ha"),
+            ("X > 1", "X > 1"), // TODO: Is this correct?
+            ("not a", "not ta"),
+            ("a and not b", "ha and not tb"),
+            ("a or not b", "ha or not tb"),
+            ("a -> b", "(ha -> hb) and (ta -> tb)"),
+            ("forall X p(X)", "forall X hp(X)"),
+            ("exists X p(X)", "exists X hp(X)"),
+        ] {
+            assert_eq!(gamma(src.parse().unwrap()), target.parse().unwrap())
+        }
+    }
 }
