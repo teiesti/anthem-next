@@ -70,7 +70,7 @@ fn there(formula: Formula) -> Formula {
 fn prepend_predicate(formula: Formula, prefix: &'static str) -> Formula {
     formula.apply(&mut |formula| match formula {
         Formula::AtomicFormula(AtomicFormula::Atom(mut a)) => {
-            a.predicate.insert_str(0, prefix);
+            a.predicate_symbol.insert_str(0, prefix);
             Formula::AtomicFormula(AtomicFormula::Atom(a))
         }
         x => x,
