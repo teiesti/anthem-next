@@ -88,13 +88,20 @@ impl_node!(Predicate, Format, PredicateParser);
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Atom {
-    pub predicate: String,
+    pub predicate_symbol: String,
     pub terms: Vec<Term>,
 }
 
 impl_node!(Atom, Format, AtomParser);
 
 impl Atom {
+    pub fn predicate(&self) -> Predicate {
+        Predicate {
+            symbol: self.predicate_symbol.clone(),
+            arity: self.terms.len(),
+        }
+    }
+
     pub fn variables(&self) -> HashSet<Variable> {
         let mut vars = HashSet::new();
         for term in self.terms.iter() {
@@ -185,8 +192,8 @@ impl_node!(Head, Format, HeadParser);
 impl Head {
     pub fn predicate(&self) -> Option<&str> {
         match self {
-            Head::Basic(a) => Some(&a.predicate),
-            Head::Choice(a) => Some(&a.predicate),
+            Head::Basic(a) => Some(&a.predicate_symbol),
+            Head::Choice(a) => Some(&a.predicate_symbol),
             Head::Falsity => None,
         }
     }
