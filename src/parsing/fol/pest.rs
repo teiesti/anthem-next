@@ -2,8 +2,8 @@ use crate::{
     parsing::PestParser,
     syntax_tree::fol::{
         Atom, AtomicFormula, BasicIntegerTerm, BinaryConnective, BinaryOperator, Comparison,
-        Formula, GeneralTerm, Guard, IntegerTerm, Quantification, Quantifier, Relation, Sort,
-        Theory, UnaryConnective, UnaryOperator, Variable,
+        Formula, GeneralTerm, Guard, IntegerTerm, Predicate, Quantification, Quantifier, Relation,
+        Sort, Theory, UnaryConnective, UnaryOperator, Variable,
     },
 };
 
@@ -157,6 +157,36 @@ impl PestParser for GeneralTermParser {
             },
             _ => Self::report_unexpected_pair(pair),
         }
+    }
+}
+
+pub struct PredicateParser;
+
+impl PestParser for PredicateParser {
+    type Node = Predicate;
+
+    type InternalParser = internal::Parser;
+    type Rule = internal::Rule;
+    const RULE: Self::Rule = internal::Rule::predicate;
+
+    fn translate_pair(pair: pest::iterators::Pair<'_, Self::Rule>) -> Self::Node {
+        if pair.as_rule() != internal::Rule::predicate {
+            Self::report_unexpected_pair(pair)
+        }
+
+        let mut pairs = pair.into_inner();
+        let symbol = pairs
+            .next()
+            .unwrap_or_else(|| Self::report_missing_pair())
+            .as_str()
+            .into();
+        let arity_string: &str = pairs
+            .next()
+            .unwrap_or_else(|| Self::report_missing_pair())
+            .as_str();
+        let arity: usize = arity_string.parse().unwrap();
+
+        Predicate { symbol, arity }
     }
 }
 

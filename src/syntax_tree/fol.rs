@@ -4,8 +4,9 @@ use {
         parsing::fol::pest::{
             AtomParser, AtomicFormulaParser, BasicIntegerTermParser, BinaryConnectiveParser,
             BinaryOperatorParser, ComparisonParser, FormulaParser, GeneralTermParser, GuardParser,
-            IntegerTermParser, QuantificationParser, QuantifierParser, RelationParser,
-            TheoryParser, UnaryConnectiveParser, UnaryOperatorParser, VariableParser,
+            IntegerTermParser, PredicateParser, QuantificationParser, QuantifierParser,
+            RelationParser, TheoryParser, UnaryConnectiveParser, UnaryOperatorParser,
+            VariableParser,
         },
         syntax_tree::{impl_node, Node},
     },
@@ -101,6 +102,14 @@ impl GeneralTerm {
         }
     }
 }
+
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+pub struct Predicate {
+    pub symbol: String,
+    pub arity: usize,
+}
+
+impl_node!(Predicate, Format, PredicateParser);
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Atom {
