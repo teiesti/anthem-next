@@ -510,15 +510,16 @@ mod tests {
         super::{
             AtomParser, AtomicFormulaParser, BasicIntegerTermParser, BinaryConnectiveParser,
             BinaryOperatorParser, ComparisonParser, FormulaParser, GeneralTermParser, GuardParser,
-            IntegerTermParser, QuantificationParser, QuantifierParser, RelationParser,
-            TheoryParser, UnaryConnectiveParser, UnaryOperatorParser, VariableParser,
+            IntegerTermParser, PredicateParser, QuantificationParser, QuantifierParser,
+            RelationParser, TheoryParser, UnaryConnectiveParser, UnaryOperatorParser,
+            VariableParser,
         },
         crate::{
             parsing::TestedParser,
             syntax_tree::fol::{
                 Atom, AtomicFormula, BasicIntegerTerm, BinaryConnective, BinaryOperator,
-                Comparison, Formula, GeneralTerm, Guard, IntegerTerm, Quantification, Quantifier,
-                Relation, Sort, Theory, UnaryConnective, UnaryOperator, Variable,
+                Comparison, Formula, GeneralTerm, Guard, IntegerTerm, Predicate, Quantification,
+                Quantifier, Relation, Sort, Theory, UnaryConnective, UnaryOperator, Variable,
             },
         },
     };
@@ -774,6 +775,28 @@ mod tests {
                 "1 + a)",
                 "(1 (+ a +) 1)",
             ]);
+    }
+
+    #[test]
+    fn parse_predicate() {
+        PredicateParser
+            .should_parse_into([
+                (
+                    "p/1",
+                    Predicate {
+                        symbol: "p".into(),
+                        arity: 1,
+                    },
+                ),
+                (
+                    "_p/1",
+                    Predicate {
+                        symbol: "_p".into(),
+                        arity: 1,
+                    },
+                ),
+            ])
+            .should_reject(["p", "1/1", "p/00", "p/01", "_/1", "p/p"]);
     }
 
     #[test]
