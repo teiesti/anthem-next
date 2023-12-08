@@ -1018,6 +1018,22 @@ mod tests {
                     },
                 ),
                 (
+                    "p :- a != b.",
+                    Rule {
+                        head: Head::Basic(Atom {
+                            predicate: "p".into(),
+                            terms: vec![],
+                        }),
+                        body: Body {
+                            formulas: vec![AtomicFormula::Comparison(Comparison {
+                                lhs: Term::PrecomputedTerm(PrecomputedTerm::Symbol("a".into())),
+                                rhs: Term::PrecomputedTerm(PrecomputedTerm::Symbol("b".into())),
+                                relation: Relation::NotEqual,
+                            })],
+                        },
+                    },
+                ),
+                (
                     "a :-.",
                     Rule {
                         head: Head::Basic(Atom {
