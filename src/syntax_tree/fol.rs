@@ -192,6 +192,15 @@ impl AtomicFormula {
             }
         }
     }
+
+    pub fn predicates(&self) -> HashSet<Predicate> {
+        match &self {
+            AtomicFormula::Falsity | AtomicFormula::Truth | AtomicFormula::Comparison(_) => {
+                HashSet::new()
+            }
+            AtomicFormula::Atom(a) => HashSet::from([a.predicate()]),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
@@ -275,6 +284,19 @@ impl Formula {
                 vars
             }
             Formula::QuantifiedFormula { formula, .. } => formula.variables(),
+        }
+    }
+
+    pub fn predicates(&self) -> HashSet<Predicate> {
+        match &self {
+            Formula::AtomicFormula(f) => f.predicates(),
+            Formula::UnaryFormula { formula, .. } => formula.predicates(),
+            Formula::BinaryFormula { lhs, rhs, .. } => {
+                let mut vars = lhs.predicates();
+                vars.extend(rhs.predicates());
+                vars
+            }
+            Formula::QuantifiedFormula { formula, .. } => formula.predicates(),
         }
     }
 }
