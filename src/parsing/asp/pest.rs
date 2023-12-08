@@ -2,7 +2,7 @@ use crate::{
     parsing::PestParser,
     syntax_tree::asp::{
         Atom, AtomicFormula, BinaryOperator, Body, Comparison, Head, Literal, PrecomputedTerm,
-        Program, Relation, Rule, Sign, Term, UnaryOperator, Variable,
+        Predicate, Program, Relation, Rule, Sign, Term, UnaryOperator, Variable,
     },
 };
 
@@ -134,6 +134,36 @@ impl PestParser for TermParser {
                 rhs: Box::new(rhs),
             })
             .parse(pair.into_inner())
+    }
+}
+
+pub struct PredicateParser;
+
+impl PestParser for PredicateParser {
+    type Node = Predicate;
+
+    type InternalParser = internal::Parser;
+    type Rule = internal::Rule;
+    const RULE: Self::Rule = internal::Rule::predicate;
+
+    fn translate_pair(pair: pest::iterators::Pair<'_, Self::Rule>) -> Self::Node {
+        if pair.as_rule() != internal::Rule::predicate {
+            Self::report_unexpected_pair(pair)
+        }
+
+        let mut pairs = pair.into_inner();
+        let symbol = pairs
+            .next()
+            .unwrap_or_else(|| Self::report_missing_pair())
+            .as_str()
+            .into();
+        let arity_string: &str = pairs
+            .next()
+            .unwrap_or_else(|| Self::report_missing_pair())
+            .as_str();
+        let arity: usize = arity_string.parse().unwrap();
+
+        Predicate { symbol, arity }
     }
 }
 

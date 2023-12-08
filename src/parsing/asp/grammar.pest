@@ -22,6 +22,9 @@ binary_operator = _{ add | subtract | multiply | divide | modulo | interval }
 term = { unary_operator* ~ primary_term ~ (binary_operator ~ unary_operator* ~ primary_term)* }
     primary_term = _{ precomputed_term | variable | "(" ~ term ~ ")"}
 
+predicate = { symbol ~ "/" ~ arity }
+    arity =  @{ ("0") | (ASCII_NONZERO_DIGIT ~ ASCII_DIGIT*) }
+
 atom = { symbol ~ term_tuple? }
     term_tuple = _{ "(" ~ (term ~ ("," ~ term)*)? ~ ")" }
 
