@@ -113,8 +113,17 @@ impl_node!(Predicate, Format, PredicateParser);
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Atom {
-    pub predicate: String,
+    pub predicate_symbol: String,
     pub terms: Vec<GeneralTerm>,
+}
+
+impl Atom {
+    pub fn predicate(&self) -> Predicate {
+        Predicate {
+            symbol: self.predicate_symbol.clone(),
+            arity: self.terms.len(),
+        }
+    }
 }
 
 impl_node!(Atom, Format, AtomParser);

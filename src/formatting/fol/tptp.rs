@@ -84,7 +84,7 @@ impl Display for Format<'_, GeneralTerm> {
 
 impl Display for Format<'_, Atom> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let predicate = &self.0.predicate;
+        let predicate = &self.0.predicate_symbol;
         let terms = &self.0.terms;
 
         write!(f, "{predicate}")?;
@@ -373,7 +373,7 @@ mod tests {
     fn format_atom() {
         assert_eq!(
             Format(&Atom {
-                predicate: "prime".into(),
+                predicate_symbol: "prime".into(),
                 terms: vec![
                     GeneralTerm::IntegerTerm(IntegerTerm::BinaryOperation {
                         op: BinaryOperator::Add,
@@ -530,7 +530,7 @@ mod tests {
     fn format_formula() {
         assert_eq!(
             Format(&Formula::AtomicFormula(AtomicFormula::Atom(Atom {
-                predicate: "p".into(),
+                predicate_symbol: "p".into(),
                 terms: vec![]
             })))
             .to_string(),
@@ -542,19 +542,19 @@ mod tests {
                 lhs: Formula::BinaryFormula {
                     connective: BinaryConnective::Implication,
                     lhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
-                        predicate: "p".into(),
+                        predicate_symbol: "p".into(),
                         terms: vec![]
                     }))
                     .into(),
                     rhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
-                        predicate: "q".into(),
+                        predicate_symbol: "q".into(),
                         terms: vec![]
                     }))
                     .into()
                 }
                 .into(),
                 rhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
-                    predicate: "r".into(),
+                    predicate_symbol: "r".into(),
                     terms: vec![]
                 }))
                 .into(),
@@ -580,12 +580,12 @@ mod tests {
                 formula: Formula::BinaryFormula {
                     connective: BinaryConnective::Conjunction,
                     lhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
-                        predicate: "p".into(),
+                        predicate_symbol: "p".into(),
                         terms: vec![],
                     }))
                     .into(),
                     rhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
-                        predicate: "q".into(),
+                        predicate_symbol: "q".into(),
                         terms: vec![],
                     }))
                     .into(),

@@ -206,14 +206,17 @@ impl PestParser for AtomParser {
 
         let mut pairs = pair.into_inner();
 
-        let predicate = pairs
+        let predicate_symbol = pairs
             .next()
             .unwrap_or_else(|| Self::report_missing_pair())
             .as_str()
             .into();
         let terms: Vec<_> = pairs.map(GeneralTermParser::translate_pair).collect();
 
-        Atom { predicate, terms }
+        Atom {
+            predicate_symbol,
+            terms,
+        }
     }
 }
 
@@ -806,7 +809,7 @@ mod tests {
                 (
                     "p",
                     Atom {
-                        predicate: "p".into(),
+                        predicate_symbol: "p".into(),
                         terms: vec![],
                     },
                 ),
@@ -814,21 +817,21 @@ mod tests {
                     // Parsing "g" caused issues ealier because "g" is also a sort declaration.
                     "g",
                     Atom {
-                        predicate: "g".into(),
+                        predicate_symbol: "g".into(),
                         terms: vec![],
                     },
                 ),
                 (
                     "p()",
                     Atom {
-                        predicate: "p".into(),
+                        predicate_symbol: "p".into(),
                         terms: vec![],
                     },
                 ),
                 (
                     "p(1)",
                     Atom {
-                        predicate: "p".into(),
+                        predicate_symbol: "p".into(),
                         terms: vec![GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(
                             BasicIntegerTerm::Numeral(1),
                         ))],
@@ -837,7 +840,7 @@ mod tests {
                 (
                     "p(1, 2)",
                     Atom {
-                        predicate: "p".into(),
+                        predicate_symbol: "p".into(),
                         terms: vec![
                             GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(
                                 BasicIntegerTerm::Numeral(1),
@@ -851,7 +854,7 @@ mod tests {
                 (
                     "p(X, a)",
                     Atom {
-                        predicate: "p".into(),
+                        predicate_symbol: "p".into(),
                         terms: vec![
                             GeneralTerm::GeneralVariable("X".into()),
                             GeneralTerm::Symbol("a".into()),
@@ -979,7 +982,7 @@ mod tests {
                 (
                     "p(N$i, 3*2)",
                     AtomicFormula::Atom(Atom {
-                        predicate: "p".into(),
+                        predicate_symbol: "p".into(),
                         terms: vec![
                             GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(
                                 BasicIntegerTerm::IntegerVariable("N".into()),
@@ -1119,7 +1122,7 @@ mod tests {
                 Formula::UnaryFormula {
                     connective: UnaryConnective::Negation,
                     formula: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
-                        predicate: "p".into(),
+                        predicate_symbol: "p".into(),
                         terms: vec![],
                     }))
                     .into(),
@@ -1138,14 +1141,14 @@ mod tests {
                             }],
                         },
                         formula: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
-                            predicate: "p".into(),
+                            predicate_symbol: "p".into(),
                             terms: vec![GeneralTerm::GeneralVariable("A".into())],
                         }))
                         .into(),
                     }
                     .into(),
                     rhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
-                        predicate: "q".into(),
+                        predicate_symbol: "q".into(),
                         terms: vec![],
                     }))
                     .into(),
@@ -1164,7 +1167,7 @@ mod tests {
                             }],
                         },
                         formula: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
-                            predicate: "p".into(),
+                            predicate_symbol: "p".into(),
                             terms: vec![GeneralTerm::GeneralVariable("A".into())],
                         }))
                         .into(),
@@ -1186,7 +1189,7 @@ mod tests {
                             }],
                         },
                         formula: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
-                            predicate: "p".into(),
+                            predicate_symbol: "p".into(),
                             terms: vec![GeneralTerm::GeneralVariable("A".into())],
                         }))
                         .into(),
@@ -1226,7 +1229,7 @@ mod tests {
                             formula: Formula::UnaryFormula {
                                 connective: UnaryConnective::Negation,
                                 formula: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
-                                    predicate: "ra".to_string(),
+                                    predicate_symbol: "ra".to_string(),
                                     terms: vec![
                                         GeneralTerm::GeneralVariable("V1".into()),
                                         GeneralTerm::GeneralVariable("V2".into()),
@@ -1238,7 +1241,7 @@ mod tests {
                         }
                         .into(),
                         rhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
-                            predicate: "ra".to_string(),
+                            predicate_symbol: "ra".to_string(),
                             terms: vec![
                                 GeneralTerm::GeneralVariable("V1".into()),
                                 GeneralTerm::GeneralVariable("V2".into()),
@@ -1268,7 +1271,7 @@ mod tests {
                     formula: Formula::BinaryFormula {
                         connective: BinaryConnective::Equivalence,
                         lhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
-                            predicate: "p".into(),
+                            predicate_symbol: "p".into(),
                             terms: vec![
                                 GeneralTerm::GeneralVariable("G".into()),
                                 GeneralTerm::IntegerTerm(IntegerTerm::BinaryOperation {
@@ -1288,19 +1291,19 @@ mod tests {
                         rhs: Formula::BinaryFormula {
                             connective: BinaryConnective::Disjunction,
                             lhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
-                                predicate: "q".into(),
+                                predicate_symbol: "q".into(),
                                 terms: vec![],
                             }))
                             .into(),
                             rhs: Formula::BinaryFormula {
                                 connective: BinaryConnective::Conjunction,
                                 lhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
-                                    predicate: "r".into(),
+                                    predicate_symbol: "r".into(),
                                     terms: vec![],
                                 }))
                                 .into(),
                                 rhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
-                                    predicate: "t".into(),
+                                    predicate_symbol: "t".into(),
                                     terms: vec![],
                                 }))
                                 .into(),
@@ -1323,7 +1326,7 @@ mod tests {
                 "a.\n",
                 Theory {
                     formulas: vec![Formula::AtomicFormula(AtomicFormula::Atom(Atom {
-                        predicate: "a".into(),
+                        predicate_symbol: "a".into(),
                         terms: vec![],
                     }))],
                 },
