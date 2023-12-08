@@ -444,14 +444,16 @@ mod tests {
     use {
         super::{
             AtomParser, AtomicFormulaParser, BinaryOperatorParser, BodyParser, ComparisonParser,
-            HeadParser, LiteralParser, PrecomputedTermParser, ProgramParser, RelationParser,
-            RuleParser, SignParser, TermParser, UnaryOperatorParser, VariableParser,
+            HeadParser, LiteralParser, PrecomputedTermParser, PredicateParser, ProgramParser,
+            RelationParser, RuleParser, SignParser, TermParser, UnaryOperatorParser,
+            VariableParser,
         },
         crate::{
             parsing::TestedParser,
             syntax_tree::asp::{
                 Atom, AtomicFormula, BinaryOperator, Body, Comparison, Head, Literal,
-                PrecomputedTerm, Program, Relation, Rule, Sign, Term, UnaryOperator, Variable,
+                PrecomputedTerm, Predicate, Program, Relation, Rule, Sign, Term, UnaryOperator,
+                Variable,
             },
         },
     };
@@ -763,6 +765,19 @@ mod tests {
                 "1 + a)",
                 "(1 (+ a +) 1)",
             ]);
+    }
+
+    #[test]
+    fn parse_predicate() {
+        PredicateParser
+            .should_parse_into([(
+                "p/1",
+                Predicate {
+                    symbol: "p".into(),
+                    arity: 1,
+                },
+            )])
+            .should_reject(["p", "1/1", "p/00", "p/01", "_/1", "p/p", "_p/1"]);
     }
 
     #[test]
