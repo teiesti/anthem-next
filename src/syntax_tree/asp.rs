@@ -3,8 +3,9 @@ use {
         formatting::asp::default::Format,
         parsing::asp::pest::{
             AtomParser, AtomicFormulaParser, BinaryOperatorParser, BodyParser, ComparisonParser,
-            HeadParser, LiteralParser, PrecomputedTermParser, ProgramParser, RelationParser,
-            RuleParser, SignParser, TermParser, UnaryOperatorParser, VariableParser,
+            HeadParser, LiteralParser, PrecomputedTermParser, PredicateParser, ProgramParser,
+            RelationParser, RuleParser, SignParser, TermParser, UnaryOperatorParser,
+            VariableParser,
         },
         syntax_tree::{impl_node, Node},
     },
@@ -76,6 +77,14 @@ impl Term {
         }
     }
 }
+
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+pub struct Predicate {
+    pub symbol: String,
+    pub arity: usize,
+}
+
+impl_node!(Predicate, Format, PredicateParser);
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Atom {

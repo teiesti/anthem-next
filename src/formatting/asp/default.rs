@@ -4,7 +4,8 @@ use {
         syntax_tree::{
             asp::{
                 Atom, AtomicFormula, BinaryOperator, Body, Comparison, Head, Literal,
-                PrecomputedTerm, Program, Relation, Rule, Sign, Term, UnaryOperator, Variable,
+                PrecomputedTerm, Predicate, Program, Relation, Rule, Sign, Term, UnaryOperator,
+                Variable,
             },
             Node,
         },
@@ -103,6 +104,14 @@ impl Display for Format<'_, Term> {
                 self.fmt_binary(Format(lhs.as_ref()), Format(rhs.as_ref()), f)
             }
         }
+    }
+}
+
+impl Display for Format<'_, Predicate> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let symbol = &self.0.symbol;
+        let arity = &self.0.arity;
+        write!(f, "{symbol}/{arity}")
     }
 }
 
