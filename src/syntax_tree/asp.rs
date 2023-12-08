@@ -129,6 +129,10 @@ pub struct Literal {
 impl_node!(Literal, Format, LiteralParser);
 
 impl Literal {
+    pub fn predicate(&self) -> Predicate {
+        self.atom.predicate()
+    }
+
     pub fn variables(&self) -> HashSet<Variable> {
         self.atom.variables()
     }
@@ -178,6 +182,13 @@ impl AtomicFormula {
             AtomicFormula::Comparison(c) => c.variables(),
         }
     }
+
+    pub fn predicates(&self) -> HashSet<Predicate> {
+        match &self {
+            AtomicFormula::Literal(l) => HashSet::from([l.predicate()]),
+            AtomicFormula::Comparison(_) => HashSet::new(),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
@@ -190,6 +201,8 @@ pub enum Head {
 impl_node!(Head, Format, HeadParser);
 
 impl Head {
+    // TODO: Revisit these helper function; make sure they are symmetric with all the others.
+
     pub fn predicate(&self) -> Option<&str> {
         match self {
             Head::Basic(a) => Some(&a.predicate_symbol),
