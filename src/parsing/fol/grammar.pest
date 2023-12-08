@@ -54,8 +54,11 @@ general_term = { integer_term | symbolic_constant | general_variable }
 
 variable = { integer_variable | general_variable }
 
-atom = { predicate_symbol ~ term_tuple? }
+predicate = { predicate_symbol ~ "/" ~ arity }
     predicate_symbol  = _{ symbolic_constant }
+    arity =  @{ ("0") | (ASCII_NONZERO_DIGIT ~ ASCII_DIGIT*) }
+
+atom = { predicate_symbol ~ term_tuple? }
     term_tuple = _{ "(" ~ (general_term ~ ("," ~ general_term)*)? ~ ")" }
 
 relation = { greater_equal | less_equal | greater | less | not_equal | equal }

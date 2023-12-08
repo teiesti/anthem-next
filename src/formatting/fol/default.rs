@@ -4,8 +4,8 @@ use {
         syntax_tree::{
             fol::{
                 Atom, AtomicFormula, BasicIntegerTerm, BinaryConnective, BinaryOperator,
-                Comparison, Formula, GeneralTerm, Guard, IntegerTerm, Quantification, Quantifier,
-                Relation, Sort, Theory, UnaryConnective, UnaryOperator, Variable,
+                Comparison, Formula, GeneralTerm, Guard, IntegerTerm, Predicate, Quantification,
+                Quantifier, Relation, Sort, Theory, UnaryConnective, UnaryOperator, Variable,
             },
             Node,
         },
@@ -98,6 +98,14 @@ impl Display for Format<'_, GeneralTerm> {
             GeneralTerm::GeneralVariable(v) => write!(f, "{v}"),
             GeneralTerm::IntegerTerm(t) => Format(t).fmt(f),
         }
+    }
+}
+
+impl Display for Format<'_, Predicate> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let symbol = &self.0.symbol;
+        let arity = &self.0.arity;
+        write!(f, "{symbol}/{arity}")
     }
 }
 
