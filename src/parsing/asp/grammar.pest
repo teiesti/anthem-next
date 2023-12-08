@@ -43,7 +43,7 @@ relation = _{ equal | not_equal | less_equal | less | greater_equal | greater }
 
 comparison = { term ~ relation ~ term }
 
-atomic_formula = { literal | comparison }
+atomic_formula = { comparison | literal }
 
 head = { basic_head | choice_head | falsity }
     basic_head = { atom }
