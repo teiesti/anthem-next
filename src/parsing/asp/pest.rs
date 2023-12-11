@@ -1021,7 +1021,7 @@ mod tests {
                     "p :- a != b.",
                     Rule {
                         head: Head::Basic(Atom {
-                            predicate: "p".into(),
+                            predicate_symbol: "p".into(),
                             terms: vec![],
                         }),
                         body: Body {
