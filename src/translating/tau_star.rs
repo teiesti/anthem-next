@@ -2,7 +2,12 @@ use {
     crate::syntax_tree::{asp, fol},
     regex::Regex,
     std::collections::HashSet,
+    lazy_static::lazy_static,
 };
+
+lazy_static! {
+    static ref RE: Regex = Regex::new(r"^V(?<number>[0-9]*)$").unwrap();
+}
 
 /// Choose fresh variants of `Vn` by incrementing `n`
 pub fn choose_fresh_global_variables(program: &asp::Program) -> Vec<String> {
@@ -16,9 +21,8 @@ pub fn choose_fresh_global_variables(program: &asp::Program) -> Vec<String> {
     }
     let mut max_taken_var = 0;
     let taken_vars = program.variables();
-    let re = Regex::new(r"^V(?<number>[0-9]*)$").unwrap();
     for var in taken_vars {
-        match re.captures(&var.0) {
+        match RE.captures(&var.0) {
             Some(caps) => {
                 let taken: usize = (&caps["number"]).parse().unwrap_or_else(|_| 0);
                 if taken > max_taken_var {
