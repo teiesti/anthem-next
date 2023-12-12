@@ -433,7 +433,7 @@ fn construct_interval_formula(
     fol::Formula::QuantifiedFormula {
         quantification: fol::Quantification {
             quantifier: fol::Quantifier::Exists,
-            variables: vec![i_var.clone(), j_var.clone(), k_var.clone()],
+            variables: vec![i_var, j_var, k_var],
         },
         formula: fol::Formula::BinaryFormula {
             connective: fol::BinaryConnective::Conjunction,
@@ -484,8 +484,8 @@ fn val(t: asp::Term, z: fol::Variable) -> fol::Formula {
                         valti,
                         valtj,
                         asp::BinaryOperator::Subtract,
-                        var1.clone(),
-                        var2.clone(),
+                        var1,
+                        var2,
                         z,
                     )
                 }
@@ -499,50 +499,45 @@ fn val(t: asp::Term, z: fol::Variable) -> fol::Formula {
                     valti,
                     valtj,
                     asp::BinaryOperator::Add,
-                    var1.clone(),
-                    var2.clone(),
+                    var1,
+                    var2,
                     z,
                 ),
                 asp::BinaryOperator::Subtract => construct_total_function_formula(
                     valti,
                     valtj,
                     asp::BinaryOperator::Subtract,
-                    var1.clone(),
-                    var2.clone(),
+                    var1,
+                    var2,
                     z,
                 ),
                 asp::BinaryOperator::Multiply => construct_total_function_formula(
                     valti,
                     valtj,
                     asp::BinaryOperator::Multiply,
-                    var1.clone(),
-                    var2.clone(),
+                    var1,
+                    var2,
                     z,
                 ),
                 asp::BinaryOperator::Divide => construct_partial_function_formula(
                     valti,
                     valtj,
                     asp::BinaryOperator::Divide,
-                    var1.clone(),
-                    var2.clone(),
+                    var1,
+                    var2,
                     z,
                 ),
                 asp::BinaryOperator::Modulo => construct_partial_function_formula(
                     valti,
                     valtj,
                     asp::BinaryOperator::Modulo,
-                    var1.clone(),
-                    var2.clone(),
+                    var1,
+                    var2,
                     z,
                 ),
-                asp::BinaryOperator::Interval => construct_interval_formula(
-                    valti,
-                    valtj,
-                    var1.clone(),
-                    var2.clone(),
-                    var3.clone(),
-                    z,
-                ),
+                asp::BinaryOperator::Interval => {
+                    construct_interval_formula(valti, valtj, var1, var2, var3, z)
+                }
             }
         }
     }
