@@ -1,8 +1,8 @@
 use {
     crate::syntax_tree::{asp, fol},
+    lazy_static::lazy_static,
     regex::Regex,
     std::collections::HashSet,
-    lazy_static::lazy_static,
 };
 
 lazy_static! {
@@ -22,14 +22,11 @@ fn choose_fresh_global_variables(program: &asp::Program) -> Vec<String> {
     let mut max_taken_var = 0;
     let taken_vars = program.variables();
     for var in taken_vars {
-        match RE.captures(&var.0) {
-            Some(caps) => {
-                let taken: usize = (&caps["number"]).parse().unwrap_or_else(|_| 0);
-                if taken > max_taken_var {
-                    max_taken_var = taken;
-                }
+        if let Some(caps) = RE.captures(&var.0) {
+            let taken: usize = (caps["number"]).parse().unwrap_or(0);
+            if taken > max_taken_var {
+                max_taken_var = taken;
             }
-            None => {}
         }
     }
     let mut globals = Vec::<String>::new();
@@ -124,9 +121,9 @@ fn construct_total_function_formula(
     let i = i_var.name;
     let j = j_var.name;
     let z_var_term = match z.sort {
-        fol::Sort::General => fol::GeneralTerm::GeneralVariable(z.name.into()),
+        fol::Sort::General => fol::GeneralTerm::GeneralVariable(z.name),
         fol::Sort::Integer => fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::BasicIntegerTerm(
-            fol::BasicIntegerTerm::IntegerVariable(z.name.into()),
+            fol::BasicIntegerTerm::IntegerVariable(z.name),
         )),
     };
     let zequals = fol::Formula::AtomicFormula(fol::AtomicFormula::Comparison(fol::Comparison {
@@ -157,11 +154,11 @@ fn construct_total_function_formula(
             quantifier: fol::Quantifier::Exists,
             variables: vec![
                 fol::Variable {
-                    name: i.into(),
+                    name: i,
                     sort: fol::Sort::Integer,
                 },
                 fol::Variable {
-                    name: j.into(),
+                    name: j,
                     sort: fol::Sort::Integer,
                 },
             ],
@@ -209,9 +206,9 @@ fn construct_partial_function_formula(
     }
 
     let z_var_term = match z.sort {
-        fol::Sort::General => fol::GeneralTerm::GeneralVariable(z.name.into()),
+        fol::Sort::General => fol::GeneralTerm::GeneralVariable(z.name),
         fol::Sort::Integer => fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::BasicIntegerTerm(
-            fol::BasicIntegerTerm::IntegerVariable(z.name.into()),
+            fol::BasicIntegerTerm::IntegerVariable(z.name),
         )),
     };
 
@@ -237,13 +234,13 @@ fn construct_partial_function_formula(
                     )
                     .into(),
                     rhs: fol::IntegerTerm::BasicIntegerTerm(
-                        fol::BasicIntegerTerm::IntegerVariable(qvar.clone().into()),
+                        fol::BasicIntegerTerm::IntegerVariable(qvar.clone()),
                     )
                     .into(),
                 }
                 .into(),
                 rhs: fol::IntegerTerm::BasicIntegerTerm(fol::BasicIntegerTerm::IntegerVariable(
-                    rvar.clone().into(),
+                    rvar.clone(),
                 ))
                 .into(),
             }),
@@ -269,7 +266,7 @@ fn construct_partial_function_formula(
             .into(),
             rhs: fol::Formula::AtomicFormula(fol::AtomicFormula::Comparison(fol::Comparison {
                 term: fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::BasicIntegerTerm(
-                    fol::BasicIntegerTerm::IntegerVariable(rvar.clone().into()),
+                    fol::BasicIntegerTerm::IntegerVariable(rvar.clone()),
                 )),
                 guards: vec![fol::Guard {
                     relation: fol::Relation::GreaterEqual,
@@ -283,12 +280,12 @@ fn construct_partial_function_formula(
         .into(),
         rhs: fol::Formula::AtomicFormula(fol::AtomicFormula::Comparison(fol::Comparison {
             term: fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::BasicIntegerTerm(
-                fol::BasicIntegerTerm::IntegerVariable(rvar.clone().into()),
+                fol::BasicIntegerTerm::IntegerVariable(rvar.clone()),
             )),
             guards: vec![fol::Guard {
                 relation: fol::Relation::Less,
                 term: fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::BasicIntegerTerm(
-                    fol::BasicIntegerTerm::IntegerVariable(qvar.clone().into()),
+                    fol::BasicIntegerTerm::IntegerVariable(qvar.clone()),
                 )),
             }],
         }))
@@ -324,7 +321,7 @@ fn construct_partial_function_formula(
                 guards: vec![fol::Guard {
                     relation: fol::Relation::Equal,
                     term: fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::BasicIntegerTerm(
-                        fol::BasicIntegerTerm::IntegerVariable(qvar.clone().into()),
+                        fol::BasicIntegerTerm::IntegerVariable(qvar.clone()),
                     )),
                 }],
             }))
@@ -335,7 +332,7 @@ fn construct_partial_function_formula(
                 guards: vec![fol::Guard {
                     relation: fol::Relation::Equal,
                     term: fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::BasicIntegerTerm(
-                        fol::BasicIntegerTerm::IntegerVariable(rvar.clone().into()),
+                        fol::BasicIntegerTerm::IntegerVariable(rvar.clone()),
                     )),
                 }],
             }))
@@ -348,19 +345,19 @@ fn construct_partial_function_formula(
             quantifier: fol::Quantifier::Exists,
             variables: vec![
                 fol::Variable {
-                    name: i.into(),
+                    name: i,
                     sort: fol::Sort::Integer,
                 },
                 fol::Variable {
-                    name: j.into(),
+                    name: j,
                     sort: fol::Sort::Integer,
                 },
                 fol::Variable {
-                    name: qvar.into(),
+                    name: qvar,
                     sort: fol::Sort::Integer,
                 },
                 fol::Variable {
-                    name: rvar.into(),
+                    name: rvar,
                     sort: fol::Sort::Integer,
                 },
             ],
@@ -385,28 +382,28 @@ fn construct_interval_formula(
     z: fol::Variable,
 ) -> fol::Formula {
     let z_var_term = match z.sort {
-        fol::Sort::General => fol::GeneralTerm::GeneralVariable(z.name.into()),
+        fol::Sort::General => fol::GeneralTerm::GeneralVariable(z.name),
         fol::Sort::Integer => fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::BasicIntegerTerm(
-            fol::BasicIntegerTerm::IntegerVariable(z.name.into()),
+            fol::BasicIntegerTerm::IntegerVariable(z.name),
         )),
     };
 
     // I <= K <= J
     let range = fol::Formula::AtomicFormula(fol::AtomicFormula::Comparison(fol::Comparison {
         term: fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::BasicIntegerTerm(
-            fol::BasicIntegerTerm::IntegerVariable(i_var.name.clone().into()),
+            fol::BasicIntegerTerm::IntegerVariable(i_var.name.clone()),
         )),
         guards: vec![
             fol::Guard {
                 relation: fol::Relation::LessEqual,
                 term: fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::BasicIntegerTerm(
-                    fol::BasicIntegerTerm::IntegerVariable(k_var.name.clone().into()),
+                    fol::BasicIntegerTerm::IntegerVariable(k_var.name.clone()),
                 )),
             },
             fol::Guard {
                 relation: fol::Relation::LessEqual,
                 term: fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::BasicIntegerTerm(
-                    fol::BasicIntegerTerm::IntegerVariable(j_var.name.clone().into()),
+                    fol::BasicIntegerTerm::IntegerVariable(j_var.name.clone()),
                 )),
             },
         ],
@@ -426,7 +423,7 @@ fn construct_interval_formula(
             guards: vec![fol::Guard {
                 relation: fol::Relation::Equal,
                 term: fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::BasicIntegerTerm(
-                    fol::BasicIntegerTerm::IntegerVariable(k_var.name.clone().into()),
+                    fol::BasicIntegerTerm::IntegerVariable(k_var.name.clone()),
                 )),
             }],
         }))
@@ -464,15 +461,15 @@ fn val(t: asp::Term, z: fol::Variable) -> fol::Formula {
 
     // Fresh integer variables
     let var1 = fol::Variable {
-        name: fresh_ivar.pop().unwrap().into(),
+        name: fresh_ivar.pop().unwrap(),
         sort: fol::Sort::Integer,
     };
     let var2 = fol::Variable {
-        name: fresh_jvar.pop().unwrap().into(),
+        name: fresh_jvar.pop().unwrap(),
         sort: fol::Sort::Integer,
     };
     let var3 = fol::Variable {
-        name: fresh_kvar.pop().unwrap().into(),
+        name: fresh_kvar.pop().unwrap(),
         sort: fol::Sort::Integer,
     };
     match t {
@@ -562,19 +559,16 @@ fn valtz(mut terms: Vec<asp::Term>, mut variables: Vec<fol::Variable>) -> fol::F
 }
 
 // Translate a first-order body literal
-fn tau_b_first_order_literal(
-    l: asp::Literal,
-    taken_vars: HashSet<fol::Variable>,
-) -> fol::Formula {
+fn tau_b_first_order_literal(l: asp::Literal, taken_vars: HashSet<fol::Variable>) -> fol::Formula {
     let atom = l.atom;
     let terms = atom.terms;
     let arity = terms.len();
     let varnames = choose_fresh_variable_names(&taken_vars, "Z", arity);
 
     // Compute val_t1(Z1) & val_t2(Z2) & ... & val_tk(Zk)
-    let mut var_terms: Vec<fol::GeneralTerm> = Vec::with_capacity(arity as usize);
-    let mut var_vars: Vec<fol::Variable> = Vec::with_capacity(arity as usize);
-    let mut valtz_vec: Vec<fol::Formula> = Vec::with_capacity(arity as usize);
+    let mut var_terms: Vec<fol::GeneralTerm> = Vec::with_capacity(arity);
+    let mut var_vars: Vec<fol::Variable> = Vec::with_capacity(arity);
+    let mut valtz_vec: Vec<fol::Formula> = Vec::with_capacity(arity);
     for (i, t) in terms.iter().enumerate() {
         let var = fol::Variable {
             sort: fol::Sort::General,
@@ -756,7 +750,7 @@ fn tau_body(b: asp::Body) -> fol::Formula {
 }
 
 // Handles the case when we have a rule with a first-order atom or choice atom in the head
-fn tau_star_fo_head_rule(r: &asp::Rule, globals: &Vec<String>) -> fol::Formula {
+fn tau_star_fo_head_rule(r: &asp::Rule, globals: &[String]) -> fol::Formula {
     let head_symbol = r.head.predicate().unwrap();
     let fol_head_predicate = fol::Predicate {
         symbol: head_symbol.symbol,
@@ -886,7 +880,7 @@ fn tau_star_prop_head_rule(r: &asp::Rule) -> fol::Formula {
         rhs: new_head.into(),
     };
     gvars.sort(); // TODO
-    if gvars.len() > 0 {
+    if !gvars.is_empty() {
         // forall G ( tau^B(Body) -> p ) OR forall G ( tau^B(Body) & ~~p -> p )
         fol::Formula::QuantifiedFormula {
             quantification: fol::Quantification {
@@ -915,7 +909,7 @@ fn tau_star_constraint_rule(r: &asp::Rule) -> fol::Formula {
         rhs: fol::Formula::AtomicFormula(fol::AtomicFormula::Falsity).into(),
     }; // tau^B(Body) -> \bot
     gvars.sort(); // TODO
-    if gvars.len() > 0 {
+    if !gvars.is_empty() {
         fol::Formula::QuantifiedFormula {
             quantification: fol::Quantification {
                 quantifier: fol::Quantifier::Forall,
@@ -929,7 +923,7 @@ fn tau_star_constraint_rule(r: &asp::Rule) -> fol::Formula {
 }
 
 // Translate a rule using a pre-defined list of global variables
-fn tau_star_rule(r: &asp::Rule, globals: &Vec<String>) -> fol::Formula {
+fn tau_star_rule(r: &asp::Rule, globals: &[String]) -> fol::Formula {
     match r.head.predicate() {
         Some(_) => {
             if r.head.arity() > 0 {
@@ -953,7 +947,7 @@ pub fn tau_star(p: asp::Program) -> fol::Theory {
     for r in p.rules.iter() {
         formulas.push(tau_star_rule(r, &globals));
     }
-    fol::Theory { formulas: formulas }
+    fol::Theory { formulas }
 }
 
 #[cfg(test)]
