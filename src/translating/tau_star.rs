@@ -10,7 +10,7 @@ lazy_static! {
 }
 
 /// Choose fresh variants of `Vn` by incrementing `n`
-pub fn choose_fresh_global_variables(program: &asp::Program) -> Vec<String> {
+fn choose_fresh_global_variables(program: &asp::Program) -> Vec<String> {
     let mut max_arity = 0;
     let mut head_arity;
     for rule in program.rules.iter() {
@@ -43,7 +43,7 @@ pub fn choose_fresh_global_variables(program: &asp::Program) -> Vec<String> {
 }
 
 /// Choose `arity` variable names by incrementing `variant`, disjoint from `variables`
-pub fn choose_fresh_variable_names_v(
+fn choose_fresh_variable_names_v(
     variables: &HashSet<fol::Variable>,
     variant: &str,
     arity: usize,
@@ -448,7 +448,7 @@ fn construct_interval_formula(
 }
 
 // val_t(Z)
-pub fn val(t: asp::Term, z: fol::Variable) -> fol::Formula {
+fn val(t: asp::Term, z: fol::Variable) -> fol::Formula {
     let mut taken_vars = HashSet::<fol::Variable>::new();
     for var in t.variables().iter() {
         taken_vars.insert(fol::Variable {
@@ -552,7 +552,7 @@ pub fn val(t: asp::Term, z: fol::Variable) -> fol::Formula {
 }
 
 // val_t1(Z1) & val_t2(Z2) & ... & val_tn(Zn)
-pub fn valtz(mut terms: Vec<asp::Term>, mut variables: Vec<fol::Variable>) -> fol::Formula {
+fn valtz(mut terms: Vec<asp::Term>, mut variables: Vec<fol::Variable>) -> fol::Formula {
     fol::Formula::conjoin(
         terms
             .drain(..)
@@ -562,7 +562,7 @@ pub fn valtz(mut terms: Vec<asp::Term>, mut variables: Vec<fol::Variable>) -> fo
 }
 
 // Translate a first-order body literal
-pub fn tau_b_first_order_literal(
+fn tau_b_first_order_literal(
     l: asp::Literal,
     taken_vars: HashSet<fol::Variable>,
 ) -> fol::Formula {
@@ -646,7 +646,7 @@ pub fn tau_b_first_order_literal(
 }
 
 // Translate a propositional body literal
-pub fn tau_b_propositional_literal(l: asp::Literal) -> fol::Formula {
+fn tau_b_propositional_literal(l: asp::Literal) -> fol::Formula {
     let atom = l.atom;
     match l.sign {
         asp::Sign::NoSign => fol::Formula::AtomicFormula(fol::AtomicFormula::Atom(fol::Atom {
@@ -678,7 +678,7 @@ pub fn tau_b_propositional_literal(l: asp::Literal) -> fol::Formula {
 }
 
 // Translate a body comparison
-pub fn tau_b_comparison(c: asp::Comparison, taken_vars: HashSet<fol::Variable>) -> fol::Formula {
+fn tau_b_comparison(c: asp::Comparison, taken_vars: HashSet<fol::Variable>) -> fol::Formula {
     let varnames = choose_fresh_variable_names_v(&taken_vars, "Z", 2);
 
     // Compute val_t1(Z1) & val_t2(Z2)
@@ -725,7 +725,7 @@ pub fn tau_b_comparison(c: asp::Comparison, taken_vars: HashSet<fol::Variable>) 
 }
 
 // Translate a body literal or comparison
-pub fn tau_b(f: asp::AtomicFormula) -> fol::Formula {
+fn tau_b(f: asp::AtomicFormula) -> fol::Formula {
     let mut taken_vars = HashSet::<fol::Variable>::new();
     for var in f.variables().iter() {
         taken_vars.insert(fol::Variable {
@@ -747,7 +747,7 @@ pub fn tau_b(f: asp::AtomicFormula) -> fol::Formula {
 }
 
 // Translate a rule body
-pub fn tau_body(b: asp::Body) -> fol::Formula {
+fn tau_body(b: asp::Body) -> fol::Formula {
     let mut formulas = Vec::<fol::Formula>::new();
     for f in b.formulas.iter() {
         formulas.push(tau_b(f.clone()));
@@ -756,7 +756,7 @@ pub fn tau_body(b: asp::Body) -> fol::Formula {
 }
 
 // Handles the case when we have a rule with a first-order atom or choice atom in the head
-pub fn tau_star_fo_head_rule(r: &asp::Rule, globals: &Vec<String>) -> fol::Formula {
+fn tau_star_fo_head_rule(r: &asp::Rule, globals: &Vec<String>) -> fol::Formula {
     let head_symbol = r.head.predicate().unwrap();
     let fol_head_predicate = fol::Predicate {
         symbol: head_symbol.symbol,
@@ -835,7 +835,7 @@ pub fn tau_star_fo_head_rule(r: &asp::Rule, globals: &Vec<String>) -> fol::Formu
 }
 
 // Handles the case when we have a rule with a propositional atom or choice atom in the head
-pub fn tau_star_prop_head_rule(r: &asp::Rule) -> fol::Formula {
+fn tau_star_prop_head_rule(r: &asp::Rule) -> fol::Formula {
     let head_symbol = r.head.predicate().unwrap();
     let fol_head_predicate = fol::Predicate {
         symbol: head_symbol.symbol,
@@ -901,7 +901,7 @@ pub fn tau_star_prop_head_rule(r: &asp::Rule) -> fol::Formula {
 }
 
 // Handles the case when we have a rule with an empty head
-pub fn tau_star_constraint_rule(r: &asp::Rule) -> fol::Formula {
+fn tau_star_constraint_rule(r: &asp::Rule) -> fol::Formula {
     let mut gvars = Vec::<fol::Variable>::new();
     for var in r.variables().iter() {
         gvars.push(fol::Variable {
@@ -929,7 +929,7 @@ pub fn tau_star_constraint_rule(r: &asp::Rule) -> fol::Formula {
 }
 
 // Translate a rule using a pre-defined list of global variables
-pub fn tau_star_rule(r: &asp::Rule, globals: &Vec<String>) -> fol::Formula {
+fn tau_star_rule(r: &asp::Rule, globals: &Vec<String>) -> fol::Formula {
     match r.head.predicate() {
         Some(_) => {
             if r.head.arity() > 0 {
@@ -947,7 +947,7 @@ pub fn tau_star_rule(r: &asp::Rule, globals: &Vec<String>) -> fol::Formula {
 // For each rule, produce a formula: forall G V ( val_t(V) & tau_body(Body) -> p(V) )
 // Where G is all variables from the original rule
 // and V is the set of fresh variables replacing t within p
-pub fn tau_star_program(p: asp::Program) -> fol::Theory {
+pub fn tau_star(p: asp::Program) -> fol::Theory {
     let globals = choose_fresh_global_variables(&p);
     let mut formulas: Vec<fol::Formula> = vec![]; // { forall G V ( val_t(V) & tau^B(Body) -> p(V) ), ... }
     for r in p.rules.iter() {
@@ -958,7 +958,7 @@ pub fn tau_star_program(p: asp::Program) -> fol::Theory {
 
 #[cfg(test)]
 mod tests {
-    use super::{tau_b, tau_star_program, val};
+    use super::{tau_b, tau_star, val};
 
     #[test]
     fn test_val() {
@@ -1015,7 +1015,7 @@ mod tests {
             ("p. q.", "#true -> p. #true -> q."),
             ("{ra(X,a)} :- ta(X). ra(5,a).", "forall V1 V2 X (V1 = X and V2 = a and exists Z (Z = X and ta(Z)) and not not ra(V1, V2) -> ra(V1, V2)). forall V1 V2 (V1 = 5 and V2 = a and #true -> ra(V1, V2)).")
         ] {
-            let src = tau_star_program(src.parse().unwrap());
+            let src = tau_star(src.parse().unwrap());
             let target = target.parse().unwrap();
             assert_eq!(
                 src,
