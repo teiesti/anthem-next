@@ -201,15 +201,15 @@ pub enum Head {
 impl_node!(Head, Format, HeadParser);
 
 impl Head {
-    // TODO: Revisit these helper function; make sure they are symmetric with all the others.
-
-    pub fn predicate(&self) -> Option<&str> {
+    pub fn predicate(&self) -> Option<Predicate> {
         match self {
-            Head::Basic(a) => Some(&a.predicate_symbol),
-            Head::Choice(a) => Some(&a.predicate_symbol),
+            Head::Basic(a) => Some(a.predicate()),
+            Head::Choice(a) => Some(a.predicate()),
             Head::Falsity => None,
         }
     }
+
+    // TODO: Revisit these helper function; make sure they are symmetric with all the others.
 
     pub fn terms(&self) -> Option<&[Term]> {
         match self {
