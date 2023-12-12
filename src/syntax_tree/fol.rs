@@ -274,6 +274,56 @@ pub enum Formula {
 impl_node!(Formula, Format, FormulaParser);
 
 impl Formula {
+    /// Recursively turn a list of formulas into a conjunction tree
+    pub fn conjoin(formulas: impl IntoIterator<Item = Formula>) -> Formula {
+        /*
+         * One could also implement this recursively:
+         *
+         * Case 1: List of formulas is empty
+         * -> Return #true
+         *
+         * Case 2: List of formulas contains a single formula
+         * -> Return that formula
+         *
+         * Case 3: List of formulas contains more than a single formula
+         * -> Return conjoin(formula[0..n-2]) and formula[n-1]
+         */
+
+        formulas
+            .into_iter()
+            .reduce(|acc, e| Formula::BinaryFormula {
+                connective: BinaryConnective::Conjunction,
+                lhs: acc.into(),
+                rhs: e.into(),
+            })
+            .unwrap_or_else(|| Formula::AtomicFormula(AtomicFormula::Truth))
+    }
+
+    /// Recursively turn a list of formulas into a tree of disjunctions
+    pub fn disjoin(formulas: impl IntoIterator<Item = Formula>) -> Formula {
+        /*
+         * One could also implement this recursively:
+         *
+         * Case 1: List of formulas is empty
+         * -> Return #false
+         *
+         * Case 2: List of formulas contains a single formula
+         * -> Return that formula
+         *
+         * Case 3: List of formulas contains more than a single formula
+         * -> Return conjoin(formula[0..n-2]) or formula[n-1]
+         */
+
+        formulas
+            .into_iter()
+            .reduce(|acc, e| Formula::BinaryFormula {
+                connective: BinaryConnective::Disjunction,
+                lhs: acc.into(),
+                rhs: e.into(),
+            })
+            .unwrap_or_else(|| Formula::AtomicFormula(AtomicFormula::Falsity))
+    }
+
     pub fn variables(&self) -> HashSet<Variable> {
         match &self {
             Formula::AtomicFormula(f) => f.variables(),
@@ -307,3 +357,36 @@ pub struct Theory {
 }
 
 impl_node!(Theory, Format, TheoryParser);
+
+#[cfg(test)]
+mod tests {
+    use super::Formula;
+
+    #[test]
+    fn test_formula_conjoin() {
+        for (src, target) in [
+            (vec![], "#true"),
+            (vec!["X = Y"], "X = Y"),
+            (vec!["X = Y", "p(a)", "q(X)"], "(X = Y and p(a)) and q(X)"),
+        ] {
+            assert_eq!(
+                Formula::conjoin(src.iter().map(|x| x.parse().unwrap())),
+                target.parse().unwrap(),
+            )
+        }
+    }
+
+    #[test]
+    fn test_formula_disjoin() {
+        for (src, target) in [
+            (vec![], "#false"),
+            (vec!["X = Y"], "X = Y"),
+            (vec!["X = Y", "p(a)", "q(X)"], "(X = Y or p(a)) or q(X)"),
+        ] {
+            assert_eq!(
+                Formula::disjoin(src.iter().map(|x| x.parse().unwrap())),
+                target.parse().unwrap(),
+            )
+        }
+    }
+}
