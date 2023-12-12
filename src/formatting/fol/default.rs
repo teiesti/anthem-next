@@ -320,7 +320,7 @@ impl Display for Format<'_, Theory> {
         let formulas = &self.0.formulas;
         let iter = formulas.iter().map(Format);
         for form in iter {
-            writeln!(f, "{form}")?;
+            writeln!(f, "{form}.")?;
         }
         Ok(())
     }
