@@ -43,7 +43,7 @@ fn choose_fresh_global_variables(program: &asp::Program) -> Vec<String> {
 }
 
 /// Choose `arity` variable names by incrementing `variant`, disjoint from `variables`
-fn choose_fresh_variable_names_v(
+fn choose_fresh_variable_names(
     variables: &HashSet<fol::Variable>,
     variant: &str,
     arity: usize,
@@ -216,10 +216,10 @@ fn construct_partial_function_formula(
     };
 
     // I = J * Q + R
-    let qvar = choose_fresh_variable_names_v(&taken_vars, "Q", 1)
+    let qvar = choose_fresh_variable_names(&taken_vars, "Q", 1)
         .pop()
         .unwrap();
-    let rvar = choose_fresh_variable_names_v(&taken_vars, "R", 1)
+    let rvar = choose_fresh_variable_names(&taken_vars, "R", 1)
         .pop()
         .unwrap();
     let iequals = fol::Formula::AtomicFormula(fol::AtomicFormula::Comparison(fol::Comparison {
@@ -458,9 +458,9 @@ fn val(t: asp::Term, z: fol::Variable) -> fol::Formula {
     }
     taken_vars.insert(z.clone());
 
-    let mut fresh_ivar = choose_fresh_variable_names_v(&taken_vars, "I", 1);
-    let mut fresh_jvar = choose_fresh_variable_names_v(&taken_vars, "J", 1);
-    let mut fresh_kvar = choose_fresh_variable_names_v(&taken_vars, "K", 1);
+    let mut fresh_ivar = choose_fresh_variable_names(&taken_vars, "I", 1);
+    let mut fresh_jvar = choose_fresh_variable_names(&taken_vars, "J", 1);
+    let mut fresh_kvar = choose_fresh_variable_names(&taken_vars, "K", 1);
 
     // Fresh integer variables
     let var1 = fol::Variable {
@@ -569,7 +569,7 @@ fn tau_b_first_order_literal(
     let atom = l.atom;
     let terms = atom.terms;
     let arity = terms.len();
-    let varnames = choose_fresh_variable_names_v(&taken_vars, "Z", arity);
+    let varnames = choose_fresh_variable_names(&taken_vars, "Z", arity);
 
     // Compute val_t1(Z1) & val_t2(Z2) & ... & val_tk(Zk)
     let mut var_terms: Vec<fol::GeneralTerm> = Vec::with_capacity(arity as usize);
@@ -679,7 +679,7 @@ fn tau_b_propositional_literal(l: asp::Literal) -> fol::Formula {
 
 // Translate a body comparison
 fn tau_b_comparison(c: asp::Comparison, taken_vars: HashSet<fol::Variable>) -> fol::Formula {
-    let varnames = choose_fresh_variable_names_v(&taken_vars, "Z", 2);
+    let varnames = choose_fresh_variable_names(&taken_vars, "Z", 2);
 
     // Compute val_t1(Z1) & val_t2(Z2)
     let term_z1 = fol::GeneralTerm::GeneralVariable(varnames[0].clone());
