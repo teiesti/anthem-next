@@ -72,36 +72,6 @@ pub fn choose_fresh_variable_names_v(
     fresh_vars
 }
 
-// Recursively turn a list of formulas into a conjunction tree
-pub fn conjoin(mut formulas: Vec<fol::Formula>) -> fol::Formula {
-    if formulas.len() == 0 {
-        fol::Formula::AtomicFormula(fol::AtomicFormula::Truth)
-    } else if formulas.len() == 1 {
-        formulas.pop().unwrap()
-    } else {
-        fol::Formula::BinaryFormula {
-            connective: fol::BinaryConnective::Conjunction,
-            rhs: formulas.pop().unwrap().into(),
-            lhs: conjoin(formulas).into(),
-        }
-    }
-}
-
-// Recursively turn a list of formulas into a tree of disjunctions
-pub fn disjoin(mut formulas: Vec<fol::Formula>) -> fol::Formula {
-    if formulas.len() == 0 {
-        fol::Formula::AtomicFormula(fol::AtomicFormula::Falsity)
-    } else if formulas.len() == 1 {
-        formulas.pop().unwrap()
-    } else {
-        fol::Formula::BinaryFormula {
-            connective: fol::BinaryConnective::Disjunction,
-            rhs: formulas.pop().unwrap().into(),
-            lhs: disjoin(formulas).into(),
-        }
-    }
-}
-
 // Z = t
 fn construct_equality_formula(term: asp::Term, z: fol::Variable) -> fol::Formula {
     let z_var_term = match z.sort {
@@ -578,13 +548,13 @@ pub fn val(t: asp::Term, z: fol::Variable) -> fol::Formula {
 }
 
 // val_t1(Z1) & val_t2(Z2) & ... & val_tn(Zn)
-pub fn valtz(terms: Vec<asp::Term>, variables: Vec<fol::Variable>) -> fol::Formula {
-    let mut formulas: Vec<fol::Formula> = Vec::with_capacity(terms.len() as usize);
-    for (i, t) in terms.iter().enumerate() {
-        let val_ti_zi = val(t.clone(), variables[i].clone());
-        formulas.push(val_ti_zi);
-    }
-    conjoin(formulas)
+pub fn valtz(mut terms: Vec<asp::Term>, mut variables: Vec<fol::Variable>) -> fol::Formula {
+    fol::Formula::conjoin(
+        terms
+            .drain(..)
+            .zip(variables.drain(..))
+            .map(|(t, v)| val(t, v)),
+    )
 }
 
 // Translate a first-order body literal
@@ -610,7 +580,7 @@ pub fn tau_b_first_order_literal(
         var_terms.push(fol::GeneralTerm::GeneralVariable(varnames[i].clone()));
         var_vars.push(var);
     }
-    let valtz = conjoin(valtz_vec);
+    let valtz = fol::Formula::conjoin(valtz_vec);
 
     // Compute p(Z1, Z2, ..., Zk)
     let p_zk = fol::Formula::AtomicFormula(fol::AtomicFormula::Atom(fol::Atom {
@@ -718,7 +688,7 @@ pub fn tau_b_comparison(c: asp::Comparison, taken_vars: HashSet<fol::Variable>) 
         sort: fol::Sort::General,
         name: varnames[1].clone(),
     };
-    let valtz = conjoin(vec![val(c.lhs, var_z1.clone()), val(c.rhs, var_z2.clone())]);
+    let valtz = fol::Formula::conjoin(vec![val(c.lhs, var_z1.clone()), val(c.rhs, var_z2.clone())]);
 
     // Compute Z1 rel Z2
     let z1_rel_z2 = fol::Formula::AtomicFormula(fol::AtomicFormula::Comparison(fol::Comparison {
@@ -778,7 +748,7 @@ pub fn tau_body(b: asp::Body) -> fol::Formula {
     for f in b.formulas.iter() {
         formulas.push(tau_b(f.clone()));
     }
-    conjoin(formulas)
+    fol::Formula::conjoin(formulas)
 }
 
 // Handles the case when we have a rule with a first-order atom or choice atom in the head
@@ -984,35 +954,7 @@ pub fn tau_star_program(p: asp::Program) -> fol::Theory {
 
 #[cfg(test)]
 mod tests {
-    use super::{conjoin, disjoin, tau_b, tau_star_program, val};
-
-    #[test]
-    fn test_conjoin() {
-        for (src, target) in [
-            (vec![], "#true"),
-            (vec!["X = Y"], "X = Y"),
-            (vec!["X = Y", "p(a)", "q(X)"], "X = Y and p(a) and q(X)"),
-        ] {
-            assert_eq!(
-                conjoin(src.iter().map(|x| x.parse().unwrap()).collect()),
-                target.parse().unwrap(),
-            )
-        }
-    }
-
-    #[test]
-    fn test_disjoin() {
-        for (src, target) in [
-            (vec![], "#false"),
-            (vec!["X = Y"], "X = Y"),
-            (vec!["X = Y", "p(a)", "q(X)"], "X = Y or p(a) or q(X)"),
-        ] {
-            assert_eq!(
-                disjoin(src.iter().map(|x| x.parse().unwrap()).collect()),
-                target.parse().unwrap(),
-            )
-        }
-    }
+    use super::{tau_b, tau_star_program, val};
 
     #[test]
     fn test_val() {
