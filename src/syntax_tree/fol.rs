@@ -337,6 +337,22 @@ impl Formula {
         }
     }
 
+    pub fn free_variables(&self) -> HashSet<Variable> {
+        match &self {
+            Formula::QuantifiedFormula {
+                quantification,
+                formula,
+            } => {
+                let mut vars = formula.variables();
+                for var in &quantification.variables {
+                    vars.remove(var);
+                }
+                vars
+            }
+            x => x.variables(),
+        }
+    }
+
     pub fn predicates(&self) -> HashSet<Predicate> {
         match &self {
             Formula::AtomicFormula(f) => f.predicates(),
@@ -360,7 +376,10 @@ impl_node!(Theory, Format, TheoryParser);
 
 #[cfg(test)]
 mod tests {
-    use super::Formula;
+    use {
+        super::{Formula, Sort, Variable},
+        std::collections::HashSet,
+    };
 
     #[test]
     fn test_formula_conjoin() {
@@ -388,5 +407,19 @@ mod tests {
                 target.parse().unwrap(),
             )
         }
+    }
+
+    #[test]
+    fn test_formula_free_variables() {
+        assert_eq!(
+            "forall X (X = Y)"
+                .parse::<Formula>()
+                .unwrap()
+                .free_variables(),
+            HashSet::from([Variable {
+                name: "Y".into(),
+                sort: Sort::General
+            }])
+        )
     }
 }
