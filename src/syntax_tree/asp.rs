@@ -374,7 +374,7 @@ mod tests {
     };
 
     #[test]
-    fn program_function_constants() {
+    fn test_program_function_constants() {
         // p :- b != a.
         let program = Program {
             rules: vec![Rule {
