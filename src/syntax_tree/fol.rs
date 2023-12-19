@@ -343,7 +343,7 @@ impl Formula {
                 quantification,
                 formula,
             } => {
-                let mut vars = formula.variables();
+                let mut vars = formula.free_variables();
                 for var in &quantification.variables {
                     vars.remove(var);
                 }
