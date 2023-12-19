@@ -339,6 +339,13 @@ impl Formula {
 
     pub fn free_variables(&self) -> HashSet<Variable> {
         match &self {
+            Formula::AtomicFormula(f) => f.variables(),
+            Formula::UnaryFormula { formula, .. } => formula.free_variables(),
+            Formula::BinaryFormula { lhs, rhs, .. } => {
+                let mut vars = lhs.free_variables();
+                vars.extend(rhs.free_variables());
+                vars
+            }
             Formula::QuantifiedFormula {
                 quantification,
                 formula,
@@ -349,7 +356,6 @@ impl Formula {
                 }
                 vars
             }
-            x => x.variables(),
         }
     }
 
@@ -376,10 +382,7 @@ impl_node!(Theory, Format, TheoryParser);
 
 #[cfg(test)]
 mod tests {
-    use {
-        super::{Formula, Sort, Variable},
-        std::collections::HashSet,
-    };
+    use super::Formula;
 
     #[test]
     fn test_formula_conjoin() {
@@ -411,15 +414,15 @@ mod tests {
 
     #[test]
     fn test_formula_free_variables() {
-        assert_eq!(
-            "forall X (X = Y)"
-                .parse::<Formula>()
-                .unwrap()
-                .free_variables(),
-            HashSet::from([Variable {
-                name: "Y".into(),
-                sort: Sort::General
-            }])
-        )
+        for (src, target) in [
+            ("forall X (X = Y)", vec!["Y"]),
+            ("forall X (X = Y) and Y = Z", vec!["Y", "Z"]),
+            ("forall X exists Y (X = Y)", vec![]),
+        ] {
+            assert_eq!(
+                src.parse::<Formula>().unwrap().free_variables(),
+                target.iter().map(|x| x.parse().unwrap()).collect(),
+            )
+        }
     }
 }
