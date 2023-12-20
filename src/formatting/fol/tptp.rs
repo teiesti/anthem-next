@@ -30,7 +30,7 @@ impl Display for Format<'_, BasicIntegerTerm> {
 
                 Ok(())
             }
-            BasicIntegerTerm::IntegerVariable(v) => write!(f, "{v}"),
+            BasicIntegerTerm::IntegerVariable(v) => write!(f, "{v}i"),
         }
     }
 }
@@ -76,7 +76,7 @@ impl Display for Format<'_, GeneralTerm> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self.0 {
             GeneralTerm::Symbol(s) => write!(f, "{s}"),
-            GeneralTerm::GeneralVariable(v) => write!(f, "{v}"),
+            GeneralTerm::GeneralVariable(v) => write!(f, "{v}g"),
             GeneralTerm::IntegerTerm(t) => Format(t).fmt(f),
         }
     }
@@ -169,7 +169,14 @@ impl Display for Format<'_, Quantifier> {
 
 impl Display for Format<'_, Variable> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", &self.0.name)
+        match &self.0.sort {
+            Sort::Integer => {
+                write!(f, "{}i", &self.0.name)
+            },
+            Sort::General => {
+                write!(f, "{}g", &self.0.name)
+            },
+        }
     }
 }
 
@@ -184,8 +191,8 @@ impl Display for Format<'_, Quantification> {
                 write!(f, ", ")?;
             }
             match var.sort {
-                Sort::Integer => write!(f, "{}: $int", var.name),
-                Sort::General => write!(f, "{}: object", var.name),
+                Sort::Integer => write!(f, "{}: $int", Format(var)),
+                Sort::General => write!(f, "{}: object", Format(var)),
             }?;
         }
 
@@ -287,7 +294,7 @@ mod tests {
         assert_eq!(Format(&BasicIntegerTerm::Numeral(42)).to_string(), "42");
         assert_eq!(
             Format(&BasicIntegerTerm::IntegerVariable("A".into())).to_string(),
-            "A"
+            "Ai"
         );
         assert_eq!(
             Format(&BasicIntegerTerm::Supremum).to_string(),
@@ -333,7 +340,7 @@ mod tests {
                     .into(),
             })
             .to_string(),
-            "$sum(10, N)"
+            "$sum(10, Ni)"
         );
         assert_eq!(
             Format(&IntegerTerm::BinaryOperation {
@@ -349,7 +356,7 @@ mod tests {
                 .into(),
             })
             .to_string(),
-            "$difference($uminus(195), $uminus(N))"
+            "$difference($uminus(195), $uminus(Ni))"
         );
     }
 
@@ -365,7 +372,7 @@ mod tests {
         assert_eq!(Format(&GeneralTerm::Symbol("p".into())).to_string(), "p");
         assert_eq!(
             Format(&GeneralTerm::GeneralVariable("N1".into())).to_string(),
-            "N1"
+            "N1g"
         );
     }
 
@@ -389,7 +396,7 @@ mod tests {
                 ]
             })
             .to_string(),
-            "prime($sum(N1, 3), 5)"
+            "prime($sum(N1i, 3), 5)"
         )
     }
 
@@ -511,7 +518,7 @@ mod tests {
                 ]
             })
             .to_string(),
-            "![X1: $int, N2: object]"
+            "![X1i: $int, N2g: object]"
         );
         assert_eq!(
             Format(&Quantification {
@@ -522,7 +529,7 @@ mod tests {
                 },]
             })
             .to_string(),
-            "?[X1: $int]"
+            "?[X1i: $int]"
         );
     }
 
@@ -593,7 +600,7 @@ mod tests {
                 .into()
             })
             .to_string(),
-            "![X: $int, Y1: object]: (p & q)"
+            "![Xi: $int, Y1g: object]: (p & q)"
         );
     }
 }
