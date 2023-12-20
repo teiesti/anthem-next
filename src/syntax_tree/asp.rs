@@ -20,6 +20,17 @@ pub enum PrecomputedTerm {
     Supremum,
 }
 
+impl PrecomputedTerm {
+    pub fn function_constants(&self) -> HashSet<String> {
+        match &self {
+            PrecomputedTerm::Infimum => HashSet::new(),
+            PrecomputedTerm::Numeral(_) => HashSet::new(),
+            PrecomputedTerm::Symbol(s) => HashSet::from([s.clone()]),
+            PrecomputedTerm::Supremum => HashSet::new(),
+        }
+    }
+}
+
 impl_node!(PrecomputedTerm, Format, PrecomputedTermParser);
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
@@ -76,6 +87,19 @@ impl Term {
             }
         }
     }
+
+    pub fn function_constants(&self) -> HashSet<String> {
+        match &self {
+            Term::PrecomputedTerm(t) => t.function_constants(),
+            Term::Variable(_) => HashSet::new(),
+            Term::UnaryOperation { arg, .. } => arg.function_constants(),
+            Term::BinaryOperation { lhs, rhs, .. } => {
+                let mut functions = lhs.function_constants();
+                functions.extend(rhs.function_constants());
+                functions
+            }
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
@@ -109,6 +133,14 @@ impl Atom {
         }
         vars
     }
+
+    pub fn function_constants(&self) -> HashSet<String> {
+        let mut functions = HashSet::new();
+        for term in self.terms.iter() {
+            functions.extend(term.function_constants())
+        }
+        functions
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
@@ -135,6 +167,10 @@ impl Literal {
 
     pub fn variables(&self) -> HashSet<Variable> {
         self.atom.variables()
+    }
+
+    pub fn function_constants(&self) -> HashSet<String> {
+        self.atom.function_constants()
     }
 }
 
@@ -165,6 +201,12 @@ impl Comparison {
         vars.extend(self.rhs.variables());
         vars
     }
+
+    pub fn function_constants(&self) -> HashSet<String> {
+        let mut functions = self.lhs.function_constants();
+        functions.extend(self.rhs.function_constants());
+        functions
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
@@ -187,6 +229,13 @@ impl AtomicFormula {
         match &self {
             AtomicFormula::Literal(l) => HashSet::from([l.predicate()]),
             AtomicFormula::Comparison(_) => HashSet::new(),
+        }
+    }
+
+    pub fn function_constants(&self) -> HashSet<String> {
+        match &self {
+            AtomicFormula::Literal(l) => l.function_constants(),
+            AtomicFormula::Comparison(c) => c.function_constants(),
         }
     }
 }
@@ -233,6 +282,13 @@ impl Head {
             Head::Falsity => HashSet::new(),
         }
     }
+
+    pub fn function_constants(&self) -> HashSet<String> {
+        match &self {
+            Head::Basic(a) | Head::Choice(a) => a.function_constants(),
+            Head::Falsity => HashSet::new(),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
@@ -250,6 +306,14 @@ impl Body {
         }
         vars
     }
+
+    pub fn function_constants(&self) -> HashSet<String> {
+        let mut functions = HashSet::new();
+        for formula in self.formulas.iter() {
+            functions.extend(formula.function_constants())
+        }
+        functions
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
@@ -265,6 +329,12 @@ impl Rule {
         let mut vars = self.head.variables();
         vars.extend(self.body.variables());
         vars
+    }
+
+    pub fn function_constants(&self) -> HashSet<String> {
+        let mut functions = self.head.function_constants();
+        functions.extend(self.body.function_constants());
+        functions
     }
 }
 
@@ -282,5 +352,48 @@ impl Program {
             vars.extend(rule.variables())
         }
         vars
+    }
+
+    pub fn function_constants(&self) -> HashSet<String> {
+        let mut functions = HashSet::new();
+        for rule in self.rules.iter() {
+            functions.extend(rule.function_constants());
+        }
+        functions
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use {
+        super::{
+            Atom, AtomicFormula, Body, Comparison, Head, PrecomputedTerm, Program, Relation, Rule,
+            Term,
+        },
+        std::collections::HashSet,
+    };
+
+    #[test]
+    fn test_program_function_constants() {
+        // p :- b != a.
+        let program = Program {
+            rules: vec![Rule {
+                head: Head::Basic(Atom {
+                    predicate_symbol: "p".into(),
+                    terms: vec![],
+                }),
+                body: Body {
+                    formulas: vec![AtomicFormula::Comparison(Comparison {
+                        lhs: Term::PrecomputedTerm(PrecomputedTerm::Symbol("a".into())),
+                        rhs: Term::PrecomputedTerm(PrecomputedTerm::Symbol("b".into())),
+                        relation: Relation::NotEqual,
+                    })],
+                },
+            }],
+        };
+        assert_eq!(
+            program.function_constants(),
+            HashSet::from(["a".into(), "b".into()])
+        )
     }
 }
