@@ -97,7 +97,7 @@ impl IntegerTerm {
             IntegerTerm::BinaryOperation { op, lhs, rhs } => IntegerTerm::BinaryOperation {
                 op,
                 lhs: lhs.substitute(var.clone(), term.clone()).into(),
-                rhs: rhs.substitute(var.clone(), term.clone()).into(),
+                rhs: rhs.substitute(var, term).into(),
             },
         }
     }
