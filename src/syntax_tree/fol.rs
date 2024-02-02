@@ -539,10 +539,17 @@ mod tests {
     #[test]
     fn test_substitute_formula() {
         for (src, target) in [
-            ("exists X (X = Y)", "exists X (X = 3)"),
+            (vec!["p(X)", "X", "s"], "p(s)"),
+            (vec!["p(X)", "X", "5"], "p(5)"),
+            (vec!["prime(-X$i + 13)", "X$i", "3*Y$i"], "prime(-(3*Y$i) + 13)"),
+            (vec!["exists X (X = Y)", "Y", "3"], "exists X (X = 3)"),
+            (vec!["exists X (X = Y)", "Y", "X$i + 3"], "exists X (X = (X$i + 3))"),
+            (vec!["forall X (q(Y) or exists Y (p(1,Y) and X > Y))", "Y", "a"], "forall X (q(a) or exists Y (p(1,Y) and X > Y))"),
+            (vec!["forall X (q(Y$i) or exists Z (p(1,Z) and X > Y$i > Z))", "Y$i", "4"], "forall X (q(4) or exists Z (p(1,Z) and X > 4 > Z))"),
         ] {
             assert_eq!(
-                
+                src[0].parse::<Formula>().unwrap().substitute(src[1].parse().unwrap(), src[2].parse().unwrap()), 
+                target.parse().unwrap()
             )
         }
     }
