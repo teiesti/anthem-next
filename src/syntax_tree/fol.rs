@@ -79,6 +79,10 @@ impl IntegerTerm {
             }
         }
     }
+
+    pub fn substitute(self, var: Variable, term: IntegerTerm) -> Self {
+        todo!()
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
@@ -99,6 +103,19 @@ impl GeneralTerm {
                 sort: Sort::General,
             }]),
             GeneralTerm::IntegerTerm(t) => t.variables(),
+        }
+    }
+
+    pub fn substitute(self, var: Variable, term: GeneralTerm) -> Self {
+        match self {
+            GeneralTerm::GeneralVariable(s) if var.name == s && var.sort == Sort::General => term,
+            GeneralTerm::IntegerTerm(t) => match term {
+                GeneralTerm::IntegerTerm(term) => GeneralTerm::IntegerTerm(t.substitute(var, term)),
+                _ => panic!(
+                    "cannot substitute general term `{term}` for the integer variable `{var}`"
+                ),
+            },
+            t => t,
         }
     }
 }
@@ -127,6 +144,22 @@ impl Atom {
 }
 
 impl_node!(Atom, Format, AtomParser);
+
+impl Atom {
+    pub fn substitute(self, var: Variable, term: GeneralTerm) -> Self {
+        let predicate_symbol = self.predicate_symbol;
+
+        let mut terms = Vec::new();
+        for t in self.terms {
+            terms.push(t.substitute(var.clone(), term.clone()))
+        }
+
+        Atom {
+            predicate_symbol,
+            terms,
+        }
+    }
+}
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub enum Relation {
@@ -161,6 +194,12 @@ pub struct Comparison {
 }
 
 impl_node!(Comparison, Format, ComparisonParser);
+
+impl Comparison {
+    pub fn substitute(self, var: Variable, term: GeneralTerm) -> Self {
+        todo!()
+    }
+}
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub enum AtomicFormula {
@@ -199,6 +238,14 @@ impl AtomicFormula {
                 HashSet::new()
             }
             AtomicFormula::Atom(a) => HashSet::from([a.predicate()]),
+        }
+    }
+
+    pub fn substitute(self, var: Variable, term: GeneralTerm) -> Self {
+        match self {
+            AtomicFormula::Atom(a) => AtomicFormula::Atom(a.substitute(var, term)),
+            AtomicFormula::Comparison(c) => AtomicFormula::Comparison(c.substitute(var, term)),
+            f => f,
         }
     }
 }
@@ -369,6 +416,39 @@ impl Formula {
                 vars
             }
             Formula::QuantifiedFormula { formula, .. } => formula.predicates(),
+        }
+    }
+
+    pub fn substitute(self, var: Variable, term: GeneralTerm) -> Self {
+        match self {
+            Formula::AtomicFormula(f) => Formula::AtomicFormula(f.substitute(var, term)),
+            Formula::UnaryFormula {
+                connective,
+                formula,
+            } => Formula::UnaryFormula {
+                connective,
+                formula: formula.substitute(var, term).into(),
+            },
+            Formula::BinaryFormula {
+                connective,
+                lhs,
+                rhs,
+            } => Formula::BinaryFormula {
+                connective,
+                lhs: lhs.substitute(var.clone(), term.clone()).into(),
+                rhs: rhs.substitute(var, term).into(),
+            },
+            Formula::QuantifiedFormula {
+                quantification,
+                formula,
+            } if !quantification.variables.contains(&var) => Formula::QuantifiedFormula {
+                quantification,
+                formula: formula.substitute(var, term).into(),
+            },
+            f @ Formula::QuantifiedFormula {
+                quantification: _,
+                formula: _,
+            } => f,
         }
     }
 }
