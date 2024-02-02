@@ -81,7 +81,25 @@ impl IntegerTerm {
     }
 
     pub fn substitute(self, var: Variable, term: IntegerTerm) -> Self {
-        todo!()
+        match self {
+            IntegerTerm::BasicIntegerTerm(t) => match t {
+                BasicIntegerTerm::IntegerVariable(s)
+                    if var.name == s && var.sort == Sort::Integer =>
+                {
+                    term
+                }
+                _ => IntegerTerm::BasicIntegerTerm(t),
+            },
+            IntegerTerm::UnaryOperation { op, arg } => IntegerTerm::UnaryOperation {
+                op,
+                arg: arg.substitute(var, term).into(),
+            },
+            IntegerTerm::BinaryOperation { op, lhs, rhs } => IntegerTerm::BinaryOperation {
+                op,
+                lhs: lhs.substitute(var.clone(), term.clone()).into(),
+                rhs: rhs.substitute(var.clone(), term.clone()).into(),
+            },
+        }
     }
 }
 
@@ -197,7 +215,18 @@ impl_node!(Comparison, Format, ComparisonParser);
 
 impl Comparison {
     pub fn substitute(self, var: Variable, term: GeneralTerm) -> Self {
-        todo!()
+        let lhs = self.term.substitute(var.clone(), term.clone());
+
+        let mut guards = Vec::new();
+        for old_guard in self.guards {
+            let new_guard = Guard {
+                relation: old_guard.relation,
+                term: old_guard.term.substitute(var.clone(), term.clone()),
+            };
+            guards.push(new_guard);
+        }
+
+        Comparison { term: lhs, guards }
     }
 }
 
@@ -419,6 +448,7 @@ impl Formula {
         }
     }
 
+    // Replace all free occurences of var with term within the formula
     pub fn substitute(self, var: Variable, term: GeneralTerm) -> Self {
         match self {
             Formula::AtomicFormula(f) => Formula::AtomicFormula(f.substitute(var, term)),
@@ -502,6 +532,17 @@ mod tests {
             assert_eq!(
                 src.parse::<Formula>().unwrap().free_variables(),
                 target.iter().map(|x| x.parse().unwrap()).collect(),
+            )
+        }
+    }
+
+    #[test]
+    fn test_substitute_formula() {
+        for (src, target) in [
+            ("exists X (X = Y)", "exists X (X = 3)"),
+        ] {
+            assert_eq!(
+                
             )
         }
     }
