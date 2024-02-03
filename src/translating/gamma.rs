@@ -86,6 +86,7 @@ mod tests {
         for (src, target) in [
             ("#true", "#true"),
             ("a", "ha"),
+            ("a(a)", "ha(a)"),
             ("X > 1", "X > 1"),
             ("not a", "not ta"),
             ("not X > 1", "not X > 1"),
