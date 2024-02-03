@@ -1,9 +1,18 @@
 use crate::{
     convenience::apply::Apply as _,
-    syntax_tree::fol::{AtomicFormula, BinaryConnective, Formula, UnaryConnective},
+    syntax_tree::fol::{AtomicFormula, BinaryConnective, Formula, Theory, UnaryConnective},
 };
 
-pub fn gamma(formula: Formula) -> Formula {
+pub fn gamma(theory: Theory) -> Theory {
+    let mut formulas = Vec::new();
+    for formula in theory.formulas {
+        formulas.push(gamma_formula(formula));
+    }
+
+    Theory { formulas }
+}
+
+pub fn gamma_formula(formula: Formula) -> Formula {
     match formula {
         x @ Formula::AtomicFormula(_) => here(x),
 
@@ -22,8 +31,8 @@ pub fn gamma(formula: Formula) -> Formula {
             rhs,
         } => Formula::BinaryFormula {
             connective,
-            lhs: gamma(*lhs).into(),
-            rhs: gamma(*rhs).into(),
+            lhs: gamma_formula(*lhs).into(),
+            rhs: gamma_formula(*rhs).into(),
         },
 
         Formula::BinaryFormula {
@@ -37,8 +46,8 @@ pub fn gamma(formula: Formula) -> Formula {
             connective: BinaryConnective::Conjunction,
             lhs: Formula::BinaryFormula {
                 connective: connective.clone(),
-                lhs: gamma(*lhs.clone()).into(),
-                rhs: gamma(*rhs.clone()).into(),
+                lhs: gamma_formula(*lhs.clone()).into(),
+                rhs: gamma_formula(*rhs.clone()).into(),
             }
             .into(),
             rhs: Formula::BinaryFormula {
@@ -54,7 +63,7 @@ pub fn gamma(formula: Formula) -> Formula {
             formula,
         } => Formula::QuantifiedFormula {
             quantification,
-            formula: gamma(*formula).into(),
+            formula: gamma_formula(*formula).into(),
         },
     }
 }
@@ -79,7 +88,7 @@ fn prepend_predicate(formula: Formula, prefix: &'static str) -> Formula {
 
 #[cfg(test)]
 mod tests {
-    use super::gamma;
+    use super::gamma_formula;
 
     #[test]
     fn test_simplify() {
@@ -98,7 +107,7 @@ mod tests {
             ("forall X p(X)", "forall X hp(X)"),
             ("exists X p(X)", "exists X hp(X)"),
         ] {
-            assert_eq!(gamma(src.parse().unwrap()), target.parse().unwrap())
+            assert_eq!(gamma_formula(src.parse().unwrap()), target.parse().unwrap())
         }
     }
 }
