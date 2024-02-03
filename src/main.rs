@@ -9,12 +9,13 @@ pub mod translating;
 use {
     crate::{
         command_line::{Arguments, Command, Translation},
-        syntax_tree::asp,
+        syntax_tree::{asp, fol},
         translating::tau_star::tau_star,
     },
     anyhow::{Context, Result},
     clap::Parser as _,
     std::fs::read_to_string,
+    translating::gamma::gamma,
 };
 
 fn main() -> Result<()> {
@@ -24,6 +25,16 @@ fn main() -> Result<()> {
                 .with_context(|| format!("could not read file `{}`", input.display()))?;
 
             match with {
+                Translation::Gamma => {
+                    let theory: fol::Theory = content
+                        .parse()
+                        .with_context(|| format!("could not parse file `{}`", input.display()))?;
+
+                    let theory = gamma(theory);
+
+                    println!("{theory}")
+                }
+
                 Translation::TauStar => {
                     let program: asp::Program = content
                         .parse()
