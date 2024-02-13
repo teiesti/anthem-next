@@ -1,5 +1,8 @@
 use {
-    crate::syntax_tree::{asp, fol},
+    crate::syntax_tree::{
+        asp::{self, ConditionalHead},
+        fol,
+    },
     lazy_static::lazy_static,
     regex::Regex,
     std::collections::HashSet,
@@ -739,7 +742,18 @@ fn tau_b(f: asp::AtomicFormula) -> fol::Formula {
 fn tau_body(b: asp::Body) -> fol::Formula {
     let mut formulas = Vec::<fol::Formula>::new();
     for f in b.formulas.iter() {
-        formulas.push(tau_b(f.clone()));
+        if f.conditions.formulas.is_empty() {
+            match &f.head {
+                ConditionalHead::AtomicFormula(a) => {
+                    formulas.push(tau_b(a.clone()));
+                }
+                ConditionalHead::Falsity => {
+                    todo!()
+                }
+            }
+        } else {
+            todo!()
+        }
     }
     fol::Formula::conjoin(formulas)
 }
@@ -990,13 +1004,13 @@ mod tests {
     fn test_tau_star() {
         for (src, target) in [
             ("a:- b. a :- c.", "b -> a. c -> a."),
-            ("p(a). p(b). q(X, Y) :- p(X), p(Y).", "forall V1 (V1 = a and #true -> p(V1)). forall V1 (V1 = b and #true -> p(V1)). forall V1 V2 X Y (V1 = X and V2 = Y and (exists Z (Z = X and p(Z)) and exists Z (Z = Y and p(Z))) -> q(V1,V2))."),
+            ("p(a). p(b). q(X, Y) :- p(X); p(Y).", "forall V1 (V1 = a and #true -> p(V1)). forall V1 (V1 = b and #true -> p(V1)). forall V1 V2 X Y (V1 = X and V2 = Y and (exists Z (Z = X and p(Z)) and exists Z (Z = Y and p(Z))) -> q(V1,V2))."),
             ("p.", "#true -> p."),
             ("q :- not p.", "not p -> q."),
             ("{q(X)} :- p(X).", "forall V1 X (V1 = X and exists Z (Z = X and p(Z)) and not not q(V1) -> q(V1))."),
             ("{q(V)} :- p(V).", "forall V V1 (V1 = V and exists Z (Z = V and p(Z)) and not not q(V1) -> q(V1))."),
             ("{q(V+1)} :- p(V), not q(X).", "forall V V1 X (exists I$i J$i (V1 = I$i + J$i and I$i = V and J$i = 1) and (exists Z (Z = V and p(Z)) and exists Z (Z = X and not q(Z))) and not not q(V1) -> q(V1))."),
-            (":- p(X,3), not q(X,a).", "forall X (exists Z Z1 (Z = X and Z1 = 3 and p(Z,Z1)) and exists Z Z1 (Z = X and Z1 = a and not q(Z,Z1)) -> #false)."),
+            (":- p(X,3); not q(X,a).", "forall X (exists Z Z1 (Z = X and Z1 = 3 and p(Z,Z1)) and exists Z Z1 (Z = X and Z1 = a and not q(Z,Z1)) -> #false)."),
             (":- p.", "p -> #false."),
             ("{p} :- q.", "q and not not p -> p."),
             ("{p}.", "#true and not not p -> p."),

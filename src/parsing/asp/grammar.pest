@@ -32,7 +32,7 @@ atom = { symbol ~ term_tuple? }
 sign = { negation{0, 2} }
     negation = @{ "not" ~ &(WHITESPACE | EOI)}
 
-basic_literal = { sign ~ atom }
+literal = { sign ~ atom }
 
 relation = _{ equal | not_equal | less_equal | less | greater_equal | greater }
     equal = { "=" }
@@ -44,9 +44,14 @@ relation = _{ equal | not_equal | less_equal | less | greater_equal | greater }
 
 comparison = { term ~ relation ~ term }
 
-atomic_formula = { comparison | basic_literal }
+atomic_formula = { comparison | literal }
 
-conditional_literal = { (comparison | basic_literal | falsity) ~ (":" ~ atomic_formula ~ ("," ~ atomic_formula)*)? }
+conditional_head = { atomic_formula | explicit_false }
+    explicit_false = { "#false" }
+
+conditional_body = { atomic_formula ~ ("," ~ atomic_formula)* }
+
+conditional_literal = { conditional_head ~ (":" ~ conditional_body)? }
 
 head = { basic_head | choice_head | falsity }
     basic_head = { atom }
