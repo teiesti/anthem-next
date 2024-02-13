@@ -153,14 +153,14 @@ pub enum Sign {
 impl_node!(Sign, Format, SignParser);
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
-pub struct Literal {
+pub struct BasicLiteral {
     pub sign: Sign,
     pub atom: Atom,
 }
 
-impl_node!(Literal, Format, LiteralParser);
+impl_node!(BasicLiteral, Format, BasicLiteralParser);
 
-impl Literal {
+impl BasicLiteral {
     pub fn predicate(&self) -> Predicate {
         self.atom.predicate()
     }
@@ -238,6 +238,12 @@ impl AtomicFormula {
             AtomicFormula::Comparison(c) => c.function_constants(),
         }
     }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+pub struct ConditionalLiteral {
+    Head,
+    Conditions,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
