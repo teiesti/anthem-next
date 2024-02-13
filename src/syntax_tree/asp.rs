@@ -3,9 +3,9 @@ use {
         formatting::asp::default::Format,
         parsing::asp::pest::{
             AtomParser, AtomicFormulaParser, BinaryOperatorParser, BodyParser, ComparisonParser,
-            HeadParser, LiteralParser, PrecomputedTermParser, PredicateParser, ProgramParser,
-            RelationParser, RuleParser, SignParser, TermParser, UnaryOperatorParser,
-            VariableParser,
+            ConditionalBodyParser, ConditionalHeadParser, ConditionalLiteralParser, HeadParser,
+            LiteralParser, PrecomputedTermParser, PredicateParser, ProgramParser, RelationParser,
+            RuleParser, SignParser, TermParser, UnaryOperatorParser, VariableParser,
         },
         syntax_tree::{impl_node, Node},
     },
@@ -153,14 +153,14 @@ pub enum Sign {
 impl_node!(Sign, Format, SignParser);
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
-pub struct BasicLiteral {
+pub struct Literal {
     pub sign: Sign,
     pub atom: Atom,
 }
 
-impl_node!(BasicLiteral, Format, BasicLiteralParser);
+impl_node!(Literal, Format, LiteralParser);
 
-impl BasicLiteral {
+impl Literal {
     pub fn predicate(&self) -> Predicate {
         self.atom.predicate()
     }
@@ -241,9 +241,36 @@ impl AtomicFormula {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
+pub enum ConditionalHead {
+    AtomicFormula(AtomicFormula),
+    Falsity,
+}
+
+impl_node!(ConditionalHead, Format, ConditionalHeadParser);
+
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+pub struct ConditionalBody {
+    pub formulas: Vec<AtomicFormula>,
+}
+
+impl_node!(ConditionalBody, Format, ConditionalBodyParser);
+
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct ConditionalLiteral {
-    Head,
-    Conditions,
+    pub head: ConditionalHead,
+    pub conditions: ConditionalBody,
+}
+
+impl_node!(ConditionalLiteral, Format, ConditionalLiteralParser);
+
+impl ConditionalLiteral {
+    pub fn variables(&self) -> HashSet<Variable> {
+        todo!()
+    }
+
+    pub fn function_constants(&self) -> HashSet<String> {
+        todo!()
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
@@ -299,7 +326,7 @@ impl Head {
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Body {
-    pub formulas: Vec<AtomicFormula>,
+    pub formulas: Vec<ConditionalLiteral>,
 }
 
 impl_node!(Body, Format, BodyParser);
@@ -373,9 +400,10 @@ impl Program {
 mod tests {
     use {
         super::{
-            Atom, AtomicFormula, Body, Comparison, Head, PrecomputedTerm, Program, Relation, Rule,
-            Term,
+            Atom, AtomicFormula, Body, Comparison, ConditionalHead, ConditionalLiteral, Head,
+            PrecomputedTerm, Program, Relation, Rule, Term,
         },
+        crate::syntax_tree::asp::ConditionalBody,
         std::collections::HashSet,
     };
 
@@ -389,11 +417,16 @@ mod tests {
                     terms: vec![],
                 }),
                 body: Body {
-                    formulas: vec![AtomicFormula::Comparison(Comparison {
-                        lhs: Term::PrecomputedTerm(PrecomputedTerm::Symbol("a".into())),
-                        rhs: Term::PrecomputedTerm(PrecomputedTerm::Symbol("b".into())),
-                        relation: Relation::NotEqual,
-                    })],
+                    formulas: vec![ConditionalLiteral {
+                        head: ConditionalHead::AtomicFormula(AtomicFormula::Comparison(
+                            Comparison {
+                                lhs: Term::PrecomputedTerm(PrecomputedTerm::Symbol("a".into())),
+                                rhs: Term::PrecomputedTerm(PrecomputedTerm::Symbol("b".into())),
+                                relation: Relation::NotEqual,
+                            },
+                        )),
+                        conditions: ConditionalBody { formulas: vec![] },
+                    }],
                 },
             }],
         };
