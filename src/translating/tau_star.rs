@@ -1,12 +1,14 @@
 use {
     crate::syntax_tree::{
         asp::{self, ConditionalHead},
-        fol,
+        fol::{self},
     },
     lazy_static::lazy_static,
     regex::Regex,
     std::collections::HashSet,
 };
+
+use crate::simplifying::fol::ht::simplify;
 
 lazy_static! {
     static ref RE: Regex = Regex::new(r"^V(?<number>[0-9]*)$").unwrap();
@@ -738,28 +740,64 @@ fn tau_b(f: asp::AtomicFormula) -> fol::Formula {
     }
 }
 
+// Translate a conditional literal l with global variables z
+fn tau_b_cl(l: asp::ConditionalLiteral, z: &HashSet<asp::Variable>) -> fol::Formula {
+    let head = l.head;
+    let conditions = l.conditions.formulas;
+
+    let mut local_vars = head.variables();
+    local_vars.retain(|v| !z.contains(v));
+
+    let consequent = match head {
+        ConditionalHead::AtomicFormula(a) => tau_b(a.clone()),
+        ConditionalHead::Falsity => fol::Formula::AtomicFormula(fol::AtomicFormula::Falsity),
+    };
+
+    let mut formulas = vec![];
+    for c in conditions.iter() {
+        formulas.push(tau_b(c.clone()));
+    }
+    let antecedent = fol::Formula::conjoin(formulas);
+
+    let inner_formula = fol::Formula::BinaryFormula {
+        connective: fol::BinaryConnective::Implication,
+        lhs: antecedent.into(),
+        rhs: consequent.into(),
+    };
+
+    if local_vars.is_empty() {
+        return inner_formula;
+    } else {
+        let mut variables = vec![];
+        for v in local_vars.iter() {
+            variables.push(fol::Variable {
+                name: v.0.clone(),
+                sort: fol::Sort::General,
+            });
+        }
+        let formula = fol::Formula::QuantifiedFormula {
+            quantification: fol::Quantification {
+                quantifier: fol::Quantifier::Forall,
+                variables,
+            },
+            formula: inner_formula.into(),
+        };
+        return formula;
+    }
+}
+
 // Translate a rule body
-fn tau_body(b: asp::Body) -> fol::Formula {
+fn tau_body(b: asp::Body, z: HashSet<asp::Variable>) -> fol::Formula {
     let mut formulas = Vec::<fol::Formula>::new();
     for f in b.formulas.iter() {
-        if f.conditions.formulas.is_empty() {
-            match &f.head {
-                ConditionalHead::AtomicFormula(a) => {
-                    formulas.push(tau_b(a.clone()));
-                }
-                ConditionalHead::Falsity => {
-                    todo!()
-                }
-            }
-        } else {
-            todo!()
-        }
+        formulas.push(simplify(tau_b_cl(f.clone(), &z)));
     }
     fol::Formula::conjoin(formulas)
 }
 
 // Handles the case when we have a rule with a first-order atom or choice atom in the head
 fn tau_star_fo_head_rule(r: &asp::Rule, globals: &[String]) -> fol::Formula {
+    let z = r.global_variables();
     let head_symbol = r.head.predicate().unwrap();
     let fol_head_predicate = fol::Predicate {
         symbol: head_symbol.symbol,
@@ -795,7 +833,7 @@ fn tau_star_fo_head_rule(r: &asp::Rule, globals: &[String]) -> fol::Formula {
     let core_lhs = fol::Formula::BinaryFormula {
         connective: fol::BinaryConnective::Conjunction,
         lhs: valtz.into(),
-        rhs: tau_body(r.body.clone()).into(),
+        rhs: tau_body(r.body.clone(), z).into(),
     };
 
     let new_body = match r.head {
@@ -839,6 +877,7 @@ fn tau_star_fo_head_rule(r: &asp::Rule, globals: &[String]) -> fol::Formula {
 
 // Handles the case when we have a rule with a propositional atom or choice atom in the head
 fn tau_star_prop_head_rule(r: &asp::Rule) -> fol::Formula {
+    let z = r.global_variables();
     let head_symbol = r.head.predicate().unwrap();
     let fol_head_predicate = fol::Predicate {
         symbol: head_symbol.symbol,
@@ -855,7 +894,7 @@ fn tau_star_prop_head_rule(r: &asp::Rule) -> fol::Formula {
         predicate_symbol: fol_head_predicate.symbol,
         terms: vec![],
     }));
-    let core_lhs = tau_body(r.body.clone());
+    let core_lhs = tau_body(r.body.clone(), z);
     let new_body = match &r.head {
         asp::Head::Basic(_) => {
             // tau^B(Body)
@@ -905,6 +944,7 @@ fn tau_star_prop_head_rule(r: &asp::Rule) -> fol::Formula {
 
 // Handles the case when we have a rule with an empty head
 fn tau_star_constraint_rule(r: &asp::Rule) -> fol::Formula {
+    let z = r.global_variables();
     let mut gvars = Vec::<fol::Variable>::new();
     for var in r.variables().iter() {
         gvars.push(fol::Variable {
@@ -914,7 +954,7 @@ fn tau_star_constraint_rule(r: &asp::Rule) -> fol::Formula {
     }
     let imp = fol::Formula::BinaryFormula {
         connective: fol::BinaryConnective::Implication,
-        lhs: tau_body(r.body.clone()).into(),
+        lhs: tau_body(r.body.clone(), z).into(),
         rhs: fol::Formula::AtomicFormula(fol::AtomicFormula::Falsity).into(),
     }; // tau^B(Body) -> \bot
     gvars.sort(); // TODO
