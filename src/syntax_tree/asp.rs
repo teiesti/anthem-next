@@ -9,7 +9,7 @@ use {
         },
         syntax_tree::{impl_node, Node},
     },
-    std::collections::HashSet,
+    std::{collections::HashSet, hash::Hash},
 };
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
@@ -248,12 +248,46 @@ pub enum ConditionalHead {
 
 impl_node!(ConditionalHead, Format, ConditionalHeadParser);
 
+impl ConditionalHead {
+    pub fn variables(&self) -> HashSet<Variable> {
+        match &self {
+            ConditionalHead::AtomicFormula(a) => a.variables(),
+            ConditionalHead::Falsity => HashSet::new(),
+        }
+    }
+
+    pub fn function_constants(&self) -> HashSet<String> {
+        match &self {
+            ConditionalHead::AtomicFormula(a) => a.function_constants(),
+            ConditionalHead::Falsity => HashSet::new(),
+        }
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct ConditionalBody {
     pub formulas: Vec<AtomicFormula>,
 }
 
 impl_node!(ConditionalBody, Format, ConditionalBodyParser);
+
+impl ConditionalBody {
+    pub fn variables(&self) -> HashSet<Variable> {
+        let mut vars = HashSet::new();
+        for f in self.formulas.iter() {
+            vars.extend(f.variables());
+        }
+        vars
+    }
+
+    pub fn function_constants(&self) -> HashSet<String> {
+        let mut constants = HashSet::new();
+        for f in self.formulas.iter() {
+            constants.extend(f.function_constants());
+        }
+        constants
+    }
+}
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct ConditionalLiteral {
@@ -265,11 +299,22 @@ impl_node!(ConditionalLiteral, Format, ConditionalLiteralParser);
 
 impl ConditionalLiteral {
     pub fn variables(&self) -> HashSet<Variable> {
-        todo!()
+        let mut vars = self.head.variables();
+        vars.extend(self.conditions.variables());
+        vars
     }
 
     pub fn function_constants(&self) -> HashSet<String> {
-        todo!()
+        let mut constants = self.head.function_constants();
+        constants.extend(self.conditions.function_constants());
+        constants
+    }
+
+    pub fn global_variables(&self) -> HashSet<Variable> {
+        let mut head_vars = self.head.variables();
+        let body_vars = self.conditions.variables();
+        head_vars.retain(|v| !body_vars.contains(v));
+        head_vars
     }
 }
 
@@ -347,6 +392,14 @@ impl Body {
         }
         functions
     }
+
+    pub fn global_variables(&self) -> HashSet<Variable> {
+        let mut vars = HashSet::new();
+        for formula in self.formulas.iter() {
+            vars.extend(formula.global_variables())
+        }
+        vars
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
@@ -368,6 +421,12 @@ impl Rule {
         let mut functions = self.head.function_constants();
         functions.extend(self.body.function_constants());
         functions
+    }
+
+    pub fn global_variables(&self) -> HashSet<Variable> {
+        let mut vars = self.head.variables();
+        vars.extend(self.body.global_variables());
+        vars
     }
 }
 

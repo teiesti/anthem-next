@@ -3,7 +3,7 @@ use crate::{
         apply::Apply as _,
         unbox::{fol::UnboxedFormula, Unbox as _},
     },
-    syntax_tree::fol::{AtomicFormula, BinaryConnective, Formula},
+    syntax_tree::fol::{AtomicFormula, BinaryConnective, Formula, UnaryConnective},
 };
 
 pub fn simplify(formula: Formula) -> Formula {
@@ -86,6 +86,40 @@ pub fn simplify_outer(formula: Formula) -> Formula {
             lhs,
             rhs,
         } if lhs == rhs => lhs,
+
+        // #true -> F => F
+        UnboxedFormula::BinaryFormula {
+            connective: BinaryConnective::Implication,
+            lhs: Formula::AtomicFormula(AtomicFormula::Truth),
+            rhs,
+        } => rhs,
+
+        // F <- #true => F
+        UnboxedFormula::BinaryFormula {
+            connective: BinaryConnective::ReverseImplication,
+            lhs,
+            rhs: Formula::AtomicFormula(AtomicFormula::Truth),
+        } => lhs,
+
+        // F -> #false => not F
+        UnboxedFormula::BinaryFormula {
+            connective: BinaryConnective::Implication,
+            lhs,
+            rhs: Formula::AtomicFormula(AtomicFormula::Falsity),
+        } => Formula::UnaryFormula {
+            connective: UnaryConnective::Negation,
+            formula: lhs.into(),
+        },
+
+        // #false <- F => not F
+        UnboxedFormula::BinaryFormula {
+            connective: BinaryConnective::ReverseImplication,
+            lhs: Formula::AtomicFormula(AtomicFormula::Falsity),
+            rhs,
+        } => Formula::UnaryFormula {
+            connective: UnaryConnective::Negation,
+            formula: rhs.into(),
+        },
 
         x => x.rebox(),
     }
