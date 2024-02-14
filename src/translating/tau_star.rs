@@ -1001,7 +1001,9 @@ pub fn tau_star(p: asp::Program) -> fol::Theory {
 
 #[cfg(test)]
 mod tests {
-    use super::{tau_b, tau_star, val};
+    use crate::syntax_tree::{asp, fol};
+    use std::collections::HashSet;
+    use super::{tau_b, tau_b_cl, tau_star, val, tau_star_rule};
 
     #[test]
     fn test_val() {
@@ -1036,6 +1038,47 @@ mod tests {
             assert_eq!(
                 tau_b(src.parse().unwrap()),
                 target.parse().unwrap(),
+            )
+        }
+    }
+
+    #[test]
+    fn test_tau_b_cl() {
+        for (src, target) in [
+            (("not asg(V,I) : color(I)", HashSet::from_iter(vec![asp::Variable("V".to_string())])), "forall I (exists Z (Z = I and color(Z)) -> exists Z Z1 (Z = V and Z1 = I and not asg(Z, Z1)))"),
+            (("#false : p(X,Y), q(Y)", HashSet::from_iter(vec![asp::Variable("X".to_string()), asp::Variable("Y".to_string()),])), "(exists Z Z1 (Z = X and Z1 = Y and p(Z,Z1)) and exists Z (Z = Y and q(Z))) -> #false"),
+        ] {
+            let src = tau_b_cl(src.0.parse().unwrap(), &src.1);
+            let target = target.parse().unwrap();
+            assert_eq!(
+                src,
+                target,
+                "{src} != {target}"
+            )
+        }
+    }
+
+    #[test]
+    fn test_tau_star_rule() {
+        for (src, target) in [
+            (("p(X) :- q(X,Y) : t(Y).", vec!["V".to_string()]), "forall V X Y (V = X and forall Y (exists Z (Z = Y and t(Z)) -> exists Z Z1 (Z = X and Z1 = Y and q(Z, Z1))) -> p(V))"),
+            (("p(X) :- q(X,Y) : t(Y), 1 < X; t(X).", vec!["V".to_string()]), "forall V X Y (V = X and (forall Y (exists Z (Z = Y and t(Z)) and exists Z Z1 (Z = 1 and Z1 = X and Z < Z1) -> exists Z Z1 (Z = X and Z1 = Y and q(Z, Z1))) and exists Z (Z = X and t(Z))) -> p(V))"),
+            (("p(X) :- q(X,Y) : t(Y), 1 < X, t(X).",vec!["V".to_string()]), "forall V X Y (V = X and (forall Y (exists Z (Z = Y and t(Z)) and exists Z Z1 (Z = 1 and Z1 = X and Z < Z1) and exists Z (Z = X and t(Z)) -> exists Z Z1 (Z = X and Z1 = Y and q(Z, Z1)))) -> p(V))"),
+            (("p(X) :- q(X), t(X).",vec!["V".to_string()]), "forall V X (V = X and (exists Z (Z = X and q(Z)) and exists Z (Z = X and t(Z))) -> p(V))"),
+            (("p(X) :- q(X); t(X).",vec!["V".to_string()]), "forall V X (V = X and (exists Z (Z = X and q(Z)) and exists Z (Z = X and t(Z))) -> p(V))"),      
+            (("p :- q : t; r.", vec![]), "((t -> q) and r) -> p"),  
+            (("p :- q : t, r.", vec![]), "(t and r -> q) -> p"),  
+            (("p :- s, q : t, r.", vec![]), "(s and (t and r -> q)) -> p"),
+            (("p :- s; q : t, r.", vec![]), "(s and (t and r -> q)) -> p"),
+            (("p :- s; not not q : t, not r.", vec![]), "(s and (t and not r -> not not q)) -> p"),
+        ] {
+            let rule: asp::Rule = src.0.parse().unwrap();
+            let src = tau_star_rule(&rule, &src.1);
+            let target: fol::Formula = target.parse().unwrap();
+            assert_eq!(
+                src,
+                target,
+                "{src} != {target}"
             )
         }
     }
