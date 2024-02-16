@@ -127,7 +127,7 @@ impl GeneralTerm {
     pub fn substitute(self, var: Variable, term: GeneralTerm) -> Self {
         match self {
             GeneralTerm::GeneralVariable(s) if var.name == s && var.sort == Sort::General => term,
-            GeneralTerm::IntegerTerm(t) => match term {
+            GeneralTerm::IntegerTerm(t) if var.sort == Sort::Integer => match term {
                 GeneralTerm::IntegerTerm(term) => GeneralTerm::IntegerTerm(t.substitute(var, term)),
                 _ => panic!(
                     "cannot substitute general term `{term}` for the integer variable `{var}`"
@@ -538,38 +538,42 @@ mod tests {
 
     #[test]
     fn test_formula_substitute() {
-        for (src, target) in [
-            (vec!["p(X)", "X", "s"], "p(s)"),
-            (vec!["p(X)", "X", "5"], "p(5)"),
+        for (src, var, term, target) in [
+            ("p(X)", "X", "s", "p(s)"),
+            ("p(X)", "X", "5", "p(5)"),
+            ("prime(-X$i + 13)", "X$i", "3*Y$i", "prime(-(3*Y$i) + 13)"),
+            ("prime(X$i, X)", "X$i", "Y$i", "prime(Y$i, X)"),
+            ("exists X (X = Y)", "Y", "3", "exists X (X = 3)"),
+            ("forall X p(X)", "X", "1", "forall X p(X)"),
             (
-                vec!["prime(-X$i + 13)", "X$i", "3*Y$i"],
-                "prime(-(3*Y$i) + 13)",
-            ),
-            (vec!["prime(X$i, X)", "X$i", "Y$i"], "prime(Y$i, X)"),
-            (vec!["exists X (X = Y)", "Y", "3"], "exists X (X = 3)"),
-            (
-                vec!["exists X (X = Y)", "Y", "X$i + 3"],
+                "exists X (X = Y)",
+                "Y",
+                "X$i + 3",
                 "exists X (X = (X$i + 3))",
             ),
             (
-                vec!["forall X (q(Y) or exists Y (p(1,Y) and X > Y))", "Y", "a"],
+                "forall X (q(Y) or exists Y (p(1,Y) and X > Y))",
+                "Y",
+                "a",
                 "forall X (q(a) or exists Y (p(1,Y) and X > Y))",
             ),
             (
-                vec![
-                    "forall X (q(Y$i) or exists Z (p(1,Z) and X > Y$i > Z))",
-                    "Y$i",
-                    "4",
-                ],
+                "forall X (q(Y$i) or exists Z (p(1,Z) and X > Y$i > Z))",
+                "Y$i",
+                "4",
                 "forall X (q(4) or exists Z (p(1,Z) and X > 4 > Z))",
             ),
-            (vec!["forall X p(X)", "X", "1"], "forall X p(X)"),
+            (
+                "exists J$i (J$i = N$i and Z = Z1)",
+                "Z",
+                "I",
+                "exists J$i (J$i = N$i and I = Z1)",
+            ),
         ] {
             assert_eq!(
-                src[0]
-                    .parse::<Formula>()
+                src.parse::<Formula>()
                     .unwrap()
-                    .substitute(src[1].parse().unwrap(), src[2].parse().unwrap()),
+                    .substitute(var.parse().unwrap(), term.parse().unwrap()),
                 target.parse().unwrap()
             )
         }
