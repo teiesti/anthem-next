@@ -64,7 +64,7 @@ impl<T: PestParser> Parser for T {
     }
 }
 
-trait TestedParser: Parser {
+pub trait TestedParser: Parser {
     fn should_parse_into<'a>(
         &self,
         examples: impl IntoIterator<Item = (&'a str, <Self as Parser>::Node)>,
