@@ -537,7 +537,7 @@ mod tests {
     }
 
     #[test]
-    fn test_substitute_formula() {
+    fn test_formula_substitute() {
         for (src, target) in [
             (vec!["p(X)", "X", "s"], "p(s)"),
             (vec!["p(X)", "X", "5"], "p(5)"),
@@ -563,6 +563,7 @@ mod tests {
                 ],
                 "forall X (q(4) or exists Z (p(1,Z) and X > 4 > Z))",
             ),
+            (vec!["forall X p(X)", "X", "1"], "forall X p(X)"),
         ] {
             assert_eq!(
                 src[0]
