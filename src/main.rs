@@ -14,11 +14,13 @@ use {
     },
     anyhow::{Context, Result},
     clap::Parser as _,
-    std::fs::read_to_string,
+    std::{fs::read_to_string, time::Instant},
     translating::gamma::gamma,
 };
 
 fn main() -> Result<()> {
+    let now = Instant::now();
+
     match Arguments::parse().command {
         Command::Translate { with, input } => {
             let content = read_to_string(&input)
@@ -46,6 +48,10 @@ fn main() -> Result<()> {
                 }
             }
 
+            println!(
+                "System runtime: {} milliseconds",
+                now.elapsed().as_millis()
+            );
             Ok(())
         }
     }
