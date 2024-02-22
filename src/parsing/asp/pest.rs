@@ -1091,7 +1091,7 @@ mod tests {
                 },
             ),
             (
-                "a.\n",
+                "% First comment. \na. %%%% Second comment %%%%\n%Last comment",
                 Program {
                     rules: vec![Rule {
                         head: Head::Basic(Atom {
