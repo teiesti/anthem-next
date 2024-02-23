@@ -32,7 +32,7 @@ fn main() -> Result<()> {
 
                     let theory = gamma(theory);
 
-                    println!("{theory}")
+                    print!("{theory}")
                 }
 
                 Translation::TauStar => {
@@ -42,7 +42,7 @@ fn main() -> Result<()> {
 
                     let theory = tau_star(program);
 
-                    println!("{theory}")
+                    print!("{theory}")
                 }
             }
 
