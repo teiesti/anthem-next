@@ -1091,6 +1091,18 @@ mod tests {
                 },
             ),
             (
+                "a.\n",
+                Program {
+                    rules: vec![Rule {
+                        head: Head::Basic(Atom {
+                            predicate_symbol: "a".into(),
+                            terms: vec![],
+                        }),
+                        body: Body { formulas: vec![] },
+                    }],
+                },
+            ),
+            (
                 "% First comment. \na. %%%% Second comment %%%%\n%Last comment",
                 Program {
                     rules: vec![Rule {
