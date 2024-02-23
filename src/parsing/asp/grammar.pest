@@ -1,5 +1,5 @@
 WHITESPACE = _{ " " | NEWLINE }
-COMMENT = _{ ("%" ~ (!NEWLINE ~ ANY)* ~ NEWLINE) | ("%" ~ (!NEWLINE ~ ANY)* ~ EOI)}
+COMMENT = _{ "%" ~ (!NEWLINE ~ ANY)* ~ (NEWLINE | EOI) }
 
 precomputed_term = { infimum | integer | symbol | supremum }
     infimum = @{ "#infimum" | "#inf" }
