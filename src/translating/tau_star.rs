@@ -1090,6 +1090,8 @@ mod tests {
             ("p(a). p(b). q(X, Y) :- p(X); p(Y).", "forall V1 (V1 = a and #true -> p(V1)). forall V1 (V1 = b and #true -> p(V1)). forall V1 V2 X Y (V1 = X and V2 = Y and (exists Z (Z = X and p(Z)) and exists Z (Z = Y and p(Z))) -> q(V1,V2))."),
             ("p.", "#true -> p."),
             ("q :- not p.", "not p -> q."),
+            ("q :- p : t.", "(t -> p) -> q."),
+            ("q :- p : t, not r; s.", "(t and not r -> p) and s -> q."),
             ("{q(X)} :- p(X).", "forall V1 X (V1 = X and exists Z (Z = X and p(Z)) and not not q(V1) -> q(V1))."),
             ("{q(V)} :- p(V).", "forall V V1 (V1 = V and exists Z (Z = V and p(Z)) and not not q(V1) -> q(V1))."),
             ("{q(V+1)} :- p(V), not q(X).", "forall V V1 X (exists I$i J$i (V1 = I$i + J$i and I$i = V and J$i = 1) and (exists Z (Z = V and p(Z)) and exists Z (Z = X and not q(Z))) and not not q(V1) -> q(V1))."),
