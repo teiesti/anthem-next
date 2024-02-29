@@ -10,7 +10,7 @@ use {
     crate::{
         command_line::{Arguments, Command, Translation},
         syntax_tree::{asp, fol},
-        translating::tau_star::tau_star,
+        translating::{completion::completion, tau_star::tau_star},
     },
     anyhow::{Context, Result},
     clap::Parser as _,
@@ -43,6 +43,19 @@ fn main() -> Result<()> {
                     let theory = tau_star(program);
 
                     print!("{theory}")
+                }
+
+                Translation::Completion => {
+                    let program: asp::Program = content
+                        .parse()
+                        .with_context(|| format!("could not parse file `{}`", input.display()))?;
+
+                    let theory = tau_star(program);
+
+                    match completion(&theory) {
+                        Some(completion) => println!("{completion}"),
+                        None => println!("Not a completable theory."),
+                    }
                 }
             }
 

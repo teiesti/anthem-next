@@ -7,73 +7,82 @@ use {
     indexmap::{map::Entry, IndexMap},
 };
 
-// A sentence is completable if it has the form "forall (F -> G)",
-// where G contains no intensional symbols OR has the form "p(V)"".
-// If a sentence is completable, this function returns "G"
-pub fn completable_beheader(sentence: fol::Formula) -> Option<fol::AtomicFormula> {
-    match sentence {
-        fol::Formula::QuantifiedFormula {
-            quantification: q,
-            formula: f,
-        } => match q.quantifier {
-            fol::Quantifier::Forall => match *f {
+/// A sentence is completable if it has the form "forall (F -> G)",
+/// where G contains no intensional symbols OR has the form "p(V)"".
+/// If a sentence is completable, this function returns "G"
+fn completable_beheader(sentence: fol::Formula) -> Option<fol::AtomicFormula> {
+    match sentence.clone().unbox() {
+        UnboxedFormula::QuantifiedFormula {
+            quantification:
+                fol::Quantification {
+                    quantifier: fol::Quantifier::Forall,
+                    ..
+                },
+            formula:
                 fol::Formula::BinaryFormula {
-                    connective: c,
-                    lhs: f1,
-                    rhs: f2,
-                } => match c {
-                    fol::BinaryConnective::Implication => match *f2 {
-                        fol::Formula::AtomicFormula(a) => match a {
-                            fol::AtomicFormula::Truth | fol::AtomicFormula::Falsity => Some(a),
-                            fol::AtomicFormula::Atom(_) => Some(a),
-                            fol::AtomicFormula::Comparison(_) => None,
-                        },
-                        _ => None,
-                    },
-                    fol::BinaryConnective::ReverseImplication => match *f1 {
-                        fol::Formula::AtomicFormula(a) => match a {
-                            fol::AtomicFormula::Truth | fol::AtomicFormula::Falsity => Some(a),
-                            fol::AtomicFormula::Atom(_) => Some(a),
-                            fol::AtomicFormula::Comparison(_) => None,
-                        },
-                        _ => None,
-                    },
-                    _ => None,
+                    connective: fol::BinaryConnective::Implication,
+                    rhs,
+                    ..
                 },
-                _ => None,
+        } => match rhs.unbox() {
+            UnboxedFormula::AtomicFormula(a) => match a {
+                fol::AtomicFormula::Truth | fol::AtomicFormula::Falsity => Some(a),
+                fol::AtomicFormula::Atom(_) => Some(a),
+                fol::AtomicFormula::Comparison(_) => None,
             },
+
             _ => None,
         },
-        fol::Formula::BinaryFormula {
-            connective: c,
-            lhs: f1,
-            rhs: f2,
-        } => match c {
-            fol::BinaryConnective::Implication => match *f2 {
-                fol::Formula::AtomicFormula(a) => match a {
-                    fol::AtomicFormula::Truth | fol::AtomicFormula::Falsity => Some(a),
-                    fol::AtomicFormula::Atom(_) => Some(a),
-                    fol::AtomicFormula::Comparison(_) => None,
+
+        UnboxedFormula::QuantifiedFormula {
+            quantification:
+                fol::Quantification {
+                    quantifier: fol::Quantifier::Forall,
+                    ..
                 },
-                _ => None,
-            },
-            fol::BinaryConnective::ReverseImplication => match *f1 {
-                fol::Formula::AtomicFormula(a) => match a {
-                    fol::AtomicFormula::Truth | fol::AtomicFormula::Falsity => Some(a),
-                    fol::AtomicFormula::Atom(_) => Some(a),
-                    fol::AtomicFormula::Comparison(_) => None,
+            formula:
+                fol::Formula::BinaryFormula {
+                    connective: fol::BinaryConnective::ReverseImplication,
+                    lhs,
+                    ..
                 },
-                _ => None,
+        } => match lhs.unbox() {
+            UnboxedFormula::AtomicFormula(a) => match a {
+                fol::AtomicFormula::Truth | fol::AtomicFormula::Falsity => Some(a),
+                fol::AtomicFormula::Atom(_) => Some(a),
+                fol::AtomicFormula::Comparison(_) => None,
             },
+
             _ => None,
         },
+
+        UnboxedFormula::BinaryFormula {
+            connective: fol::BinaryConnective::Implication,
+            rhs: fol::Formula::AtomicFormula(a),
+            ..
+        } => match a {
+            fol::AtomicFormula::Truth | fol::AtomicFormula::Falsity => Some(a),
+            fol::AtomicFormula::Atom(_) => Some(a),
+            fol::AtomicFormula::Comparison(_) => None,
+        },
+
+        UnboxedFormula::BinaryFormula {
+            connective: fol::BinaryConnective::ReverseImplication,
+            lhs: fol::Formula::AtomicFormula(a),
+            ..
+        } => match a {
+            fol::AtomicFormula::Truth | fol::AtomicFormula::Falsity => Some(a),
+            fol::AtomicFormula::Atom(_) => Some(a),
+            fol::AtomicFormula::Comparison(_) => None,
+        },
+
         _ => None,
     }
 }
 
-// Returns true if s1 and s2 have the same predicate symbol p/n in the head
-// but head(s1) != head(s2)
-pub fn head_mismatch(s1: &fol::AtomicFormula, s2: &fol::AtomicFormula) -> bool {
+/// Returns true if s1 and s2 have the same predicate symbol p/n in the head
+/// but head(s1) != head(s2)
+fn head_mismatch(s1: &fol::AtomicFormula, s2: &fol::AtomicFormula) -> bool {
     match s1 {
         fol::AtomicFormula::Atom(a1) => {
             let p1 = &a1.predicate();
@@ -95,11 +104,9 @@ pub fn head_mismatch(s1: &fol::AtomicFormula, s2: &fol::AtomicFormula) -> bool {
     }
 }
 
-// Returns a mapping from <theory> formulas to their heads if <theory> is completable
-// Otherwise returns None
-pub fn completable_theory(
-    theory: &fol::Theory,
-) -> Option<IndexMap<fol::Formula, fol::AtomicFormula>> {
+/// Returns a mapping from <theory> formulas to their heads if <theory> is completable
+/// Otherwise returns None
+fn completable_theory(theory: &fol::Theory) -> Option<IndexMap<fol::Formula, fol::AtomicFormula>> {
     if !theory.formulas.is_empty() {
         let mut formulas = Vec::<fol::Formula>::new();
         let mut rule_heads = Vec::<fol::AtomicFormula>::new();
@@ -132,42 +139,36 @@ pub fn completable_theory(
     }
 }
 
-// Create a map from each unique head to a vector of F_i formula bodies (definitions)
-pub fn definitions(theory: &fol::Theory) -> IndexMap<fol::AtomicFormula, Vec<fol::Formula>> {
+/// Create a map from each unique head to a vector of F_i formula bodies (definitions)
+fn definitions(theory: &fol::Theory) -> IndexMap<fol::AtomicFormula, Vec<fol::Formula>> {
     let mut definitions = IndexMap::<fol::AtomicFormula, Vec<fol::Formula>>::new();
     for sentence in theory.formulas.iter() {
         match sentence.clone().unbox() {
-            UnboxedFormula::QuantifiedFormula { formula, .. } => match formula {
-                fol::Formula::BinaryFormula {
+            UnboxedFormula::QuantifiedFormula { formula, .. } => match formula.clone().unbox() {
+                UnboxedFormula::BinaryFormula {
                     connective: fol::BinaryConnective::Implication,
                     lhs,
-                    rhs,
-                } => match *rhs {
-                    fol::Formula::AtomicFormula(head) => match definitions.entry(head) {
-                        Entry::Occupied(mut entry) => {
-                            entry.get_mut().push(*lhs);
-                        }
-                        Entry::Vacant(entry) => {
-                            entry.insert(vec![*lhs]);
-                        }
-                    },
-                    _ => {}
+                    rhs: fol::Formula::AtomicFormula(head),
+                } => match definitions.entry(head) {
+                    Entry::Occupied(mut entry) => {
+                        entry.get_mut().push(lhs);
+                    }
+                    Entry::Vacant(entry) => {
+                        entry.insert(vec![lhs]);
+                    }
                 },
 
-                fol::Formula::BinaryFormula {
+                UnboxedFormula::BinaryFormula {
                     connective: fol::BinaryConnective::ReverseImplication,
-                    lhs,
+                    lhs: fol::Formula::AtomicFormula(head),
                     rhs,
-                } => match *lhs {
-                    fol::Formula::AtomicFormula(head) => match definitions.entry(head) {
-                        Entry::Occupied(mut entry) => {
-                            entry.get_mut().push(*rhs);
-                        }
-                        Entry::Vacant(entry) => {
-                            entry.insert(vec![*rhs]);
-                        }
-                    },
-                    _ => {}
+                } => match definitions.entry(head) {
+                    Entry::Occupied(mut entry) => {
+                        entry.get_mut().push(rhs);
+                    }
+                    Entry::Vacant(entry) => {
+                        entry.insert(vec![rhs]);
+                    }
                 },
 
                 _ => {}
@@ -176,33 +177,27 @@ pub fn definitions(theory: &fol::Theory) -> IndexMap<fol::AtomicFormula, Vec<fol
             UnboxedFormula::BinaryFormula {
                 connective: fol::BinaryConnective::Implication,
                 lhs,
-                rhs,
-            } => match rhs {
-                fol::Formula::AtomicFormula(head) => match definitions.entry(head) {
-                    Entry::Occupied(mut entry) => {
-                        entry.get_mut().push(lhs);
-                    }
-                    Entry::Vacant(entry) => {
-                        entry.insert(vec![lhs]);
-                    }
-                },
-                _ => {}
+                rhs: fol::Formula::AtomicFormula(head),
+            } => match definitions.entry(head) {
+                Entry::Occupied(mut entry) => {
+                    entry.get_mut().push(lhs);
+                }
+                Entry::Vacant(entry) => {
+                    entry.insert(vec![lhs]);
+                }
             },
 
             UnboxedFormula::BinaryFormula {
                 connective: fol::BinaryConnective::ReverseImplication,
-                lhs,
+                lhs: fol::Formula::AtomicFormula(head),
                 rhs,
-            } => match lhs {
-                fol::Formula::AtomicFormula(head) => match definitions.entry(head) {
-                    Entry::Occupied(mut entry) => {
-                        entry.get_mut().push(rhs);
-                    }
-                    Entry::Vacant(entry) => {
-                        entry.insert(vec![rhs]);
-                    }
-                },
-                _ => {}
+            } => match definitions.entry(head) {
+                Entry::Occupied(mut entry) => {
+                    entry.get_mut().push(rhs);
+                }
+                Entry::Vacant(entry) => {
+                    entry.insert(vec![rhs]);
+                }
             },
 
             _ => {}
@@ -211,8 +206,8 @@ pub fn definitions(theory: &fol::Theory) -> IndexMap<fol::AtomicFormula, Vec<fol
     definitions
 }
 
-// <theory> must be a completable theory, so we know it has the form forall V (body -> head) OR body -> head
-// <formula_heads[formula] = head(formula)>
+/// <theory> must be a completable theory, so we know it has the form forall V (body -> head) OR body -> head
+/// <formula_heads[formula] = head(formula)>
 pub fn completion(theory: &fol::Theory) -> Option<fol::Theory> {
     match completable_theory(theory) {
         Some(formula_heads) => {
@@ -254,7 +249,6 @@ pub fn completion(theory: &fol::Theory) -> Option<fol::Theory> {
                                 bodies.push(body.clone());
                             }
                         }
-                        //let f1 = bodies.pop().unwrap();
                         let full_body = ht::basic_simplify(fol::Formula::disjoin(bodies));
                         let comp = match head_vars.len() {
                             0 => fol::Formula::BinaryFormula {
@@ -306,6 +300,8 @@ mod tests {
             ("{p(X+1)} :- q(X).", "forall V1 (p(V1) <-> exists X (exists I$i J$i (V1 = I$i + J$i and I$i = X and J$i = 1) and exists Z (Z = X and q(Z)) and not not p(V1)))."),
             ("r(X) :- q(X). r(G,Y) :- G < Y. r(a).", "forall V1 (r(V1) <-> exists X (V1 = X and exists Z (Z = X and q(Z))) or V1 = a). forall V1 V2 (r(V1,V2) <-> exists G Y (V1 = G and V2 = Y and exists Z Z1 (Z = G and Z1 = Y and Z < Z1) ) )."),  
             ("composite(I*J) :- I>1, J>1. prime(I) :- I = 2..n, not composite(I).", "forall V1 (composite(V1) <-> exists I J (exists I1$i J1$i (V1 = I1$i * J1$i and I1$i = I and J1$i = J) and (exists Z Z1 (Z = I and Z1 = 1 and Z > Z1) and exists Z Z1 (Z = J and Z1 = 1 and Z > Z1)))). forall V1 (prime(V1) <-> exists I (V1 = I and (exists Z Z1 (Z = I and exists I$i J$i K$i (I$i = 2 and J$i = n and Z1 = K$i and I$i <= K$i <= J$i) and Z = Z1) and exists Z (Z = I and not composite(Z)))))."),  
+            ("p :- q, not t. p :- r. r :- t.", "p <-> (q and not t) or (r). r <-> t."), 
+            ("p. p(a). :- q.", "q -> #false. p <-> #true. forall V1 (p(V1) <-> V1 = a)."),   
         ] {
             let result = completion(&tau_star(src.parse().unwrap())).unwrap();
             assert_eq!(result, target.parse().unwrap(), "\n\n{result}!=\n {target}")
