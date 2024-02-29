@@ -111,7 +111,10 @@ mod tests {
             ("#true and #true and a", "a"),
             ("#true and (#true and a)", "a"),
         ] {
-            assert_eq!(basic_simplify(src.parse().unwrap()), target.parse().unwrap())
+            assert_eq!(
+                basic_simplify(src.parse().unwrap()),
+                target.parse().unwrap()
+            )
         }
     }
 
