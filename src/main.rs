@@ -46,16 +46,14 @@ fn main() -> Result<()> {
                 }
 
                 Translation::Completion => {
-                    let program: asp::Program = content
+                    let theory: fol::Theory = content
                         .parse()
                         .with_context(|| format!("could not parse file `{}`", input.display()))?;
 
-                    let theory = tau_star(program);
+                    let theory = completion(&theory)
+                        .with_context(|| format!("not a completable theory"))?;
 
-                    match completion(&theory) {
-                        Some(completion) => println!("{completion}"),
-                        None => println!("Not a completable theory."),
-                    }
+                    print!("{theory}")
                 }
             }
 
