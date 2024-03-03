@@ -4,9 +4,9 @@ use {
         syntax_tree::{
             fol::{
                 Atom, AtomicFormula, BasicIntegerTerm, BinaryConnective, BinaryOperator,
-                Comparison, Direction, Formula, GeneralTerm, Guard, IntegerTerm, Lemma,
-                Placeholder, Predicate, Quantification, Quantifier, Relation, Sort, Spec,
-                Specification, Theory, UnaryConnective, UnaryOperator, Variable, FunctionSymbol, Function,
+                Comparison, Formula, Function, FunctionSymbol, GeneralTerm, Guard, IntegerTerm,
+                Predicate, Quantification, Quantifier, Relation, Sort, Theory, UnaryConnective,
+                UnaryOperator, Variable,
             },
             Node,
         },
@@ -85,7 +85,7 @@ impl Precedence for Format<'_, IntegerTerm> {
             IntegerTerm::UnaryOperation { op, .. } => write!(f, "{}", Format(op)),
             IntegerTerm::BinaryOperation { op, .. } => write!(f, " {} ", Format(op)),
             IntegerTerm::BasicIntegerTerm(_) => unreachable!(),
-            _ => todo!()
+            _ => todo!(),
         }
     }
 }
@@ -98,7 +98,7 @@ impl Display for Format<'_, IntegerTerm> {
             IntegerTerm::BinaryOperation { lhs, rhs, .. } => {
                 self.fmt_binary(Format(lhs.as_ref()), Format(rhs.as_ref()), f)
             }
-            _ => todo!()
+            _ => todo!(),
         }
     }
 }

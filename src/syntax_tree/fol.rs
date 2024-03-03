@@ -3,11 +3,10 @@ use {
         formatting::fol::default::Format,
         parsing::fol::pest::{
             AtomParser, AtomicFormulaParser, BasicIntegerTermParser, BinaryConnectiveParser,
-            BinaryOperatorParser, ComparisonParser, FormulaParser, GeneralTermParser, GuardParser,
-            IntegerTermParser, LemmaParser, PlaceholderParser, PredicateParser,
-            QuantificationParser, QuantifierParser, RelationParser, SpecParser,
-            SpecificationParser, TheoryParser, UnaryConnectiveParser, UnaryOperatorParser,
-            VariableParser, FunctionSymbolParser, FunctionParser,
+            BinaryOperatorParser, ComparisonParser, FormulaParser, FunctionParser,
+            FunctionSymbolParser, GeneralTermParser, GuardParser, IntegerTermParser,
+            PredicateParser, QuantificationParser, QuantifierParser, RelationParser, TheoryParser,
+            UnaryConnectiveParser, UnaryOperatorParser, VariableParser,
         },
         syntax_tree::{impl_node, Node},
     },
@@ -45,7 +44,7 @@ impl_node!(UnaryOperator, Format, UnaryOperatorParser);
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub enum FunctionSymbol {
-    AbsoluteValue
+    AbsoluteValue,
 }
 
 impl_node!(FunctionSymbol, Format, FunctionSymbolParser);
@@ -80,6 +79,7 @@ impl IntegerTerm {
     pub fn variables(&self) -> HashSet<Variable> {
         match &self {
             IntegerTerm::BasicIntegerTerm(t) => t.variables(),
+            IntegerTerm::Function(f) => f.variables(),
             IntegerTerm::UnaryOperation { arg: t, .. } => t.variables(),
             IntegerTerm::BinaryOperation { lhs, rhs, .. } => {
                 let mut vars = lhs.variables();
@@ -99,6 +99,9 @@ impl IntegerTerm {
                 }
                 _ => IntegerTerm::BasicIntegerTerm(t),
             },
+            IntegerTerm::Function(f) => {
+                todo!()
+            }
             IntegerTerm::UnaryOperation { op, arg } => IntegerTerm::UnaryOperation {
                 op,
                 arg: arg.substitute(var, term).into(),
@@ -154,6 +157,12 @@ pub struct Function {
 }
 
 impl_node!(Function, Format, FunctionParser);
+
+impl Function {
+    pub fn variables(&self) -> HashSet<Variable> {
+        todo!()
+    }
+}
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Predicate {
