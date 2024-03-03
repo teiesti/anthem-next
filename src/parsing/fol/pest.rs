@@ -699,7 +699,7 @@ mod tests {
                     IntegerTerm::Function(Function {
                         symbol: FunctionSymbol::AbsoluteValue,
                         terms: vec![IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(5))],
-                    })
+                    }),
                 ),
                 (
                     "-abs(-X$i)",

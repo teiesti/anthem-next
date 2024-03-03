@@ -99,8 +99,15 @@ impl IntegerTerm {
                 }
                 _ => IntegerTerm::BasicIntegerTerm(t),
             },
-            IntegerTerm::Function(f) => {
-                todo!()
+            IntegerTerm::Function(Function { symbol, terms }) => {
+                let mut subbed = vec![];
+                for t in terms.iter() {
+                    subbed.push(t.clone().substitute(var.clone(), term.clone()));
+                }
+                IntegerTerm::Function(Function {
+                    symbol,
+                    terms: subbed,
+                })
             }
             IntegerTerm::UnaryOperation { op, arg } => IntegerTerm::UnaryOperation {
                 op,

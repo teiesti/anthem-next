@@ -94,11 +94,9 @@ impl Display for Format<'_, IntegerTerm> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self.0 {
             IntegerTerm::BasicIntegerTerm(t) => Format(t).fmt(f),
-            IntegerTerm::Function(fun) => {
-                match fun.symbol {
-                    FunctionSymbol::AbsoluteValue => self.fmt_unary(Format(&fun.terms[0]), f)
-                }
-            }
+            IntegerTerm::Function(fun) => match fun.symbol {
+                FunctionSymbol::AbsoluteValue => self.fmt_unary(Format(&fun.terms[0]), f),
+            },
             IntegerTerm::UnaryOperation { arg, .. } => self.fmt_unary(Format(arg.as_ref()), f),
             IntegerTerm::BinaryOperation { lhs, rhs, .. } => {
                 self.fmt_binary(Format(lhs.as_ref()), Format(rhs.as_ref()), f)
@@ -369,8 +367,8 @@ mod tests {
         formatting::fol::default::Format,
         syntax_tree::fol::{
             Atom, AtomicFormula, BasicIntegerTerm, BinaryConnective, BinaryOperator, Comparison,
-            Formula, GeneralTerm, Guard, IntegerTerm, Quantification, Quantifier, Relation, Sort,
-            UnaryConnective, Variable, Function, FunctionSymbol,
+            Formula, Function, FunctionSymbol, GeneralTerm, Guard, IntegerTerm, Quantification,
+            Quantifier, Relation, Sort, UnaryConnective, Variable,
         },
     };
 
@@ -397,16 +395,15 @@ mod tests {
             "N$i"
         );
         assert_eq!(
-            Format(&GeneralTerm::IntegerTerm(
-                IntegerTerm::BinaryOperation {
-                    op: BinaryOperator::Subtract,
-                    lhs: IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(3)).into(),
-                    rhs: IntegerTerm::Function(Function {
-                        symbol: FunctionSymbol::AbsoluteValue,
-                        terms: vec![IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(-1))],
-                    }).into()
-                }
-            ))
+            Format(&GeneralTerm::IntegerTerm(IntegerTerm::BinaryOperation {
+                op: BinaryOperator::Subtract,
+                lhs: IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(3)).into(),
+                rhs: IntegerTerm::Function(Function {
+                    symbol: FunctionSymbol::AbsoluteValue,
+                    terms: vec![IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(-1))],
+                })
+                .into()
+            }))
             .to_string(),
             "3 - abs(-1)"
         );

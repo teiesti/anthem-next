@@ -181,17 +181,20 @@ fn construct_total_function_formula(
 // K * |J| <= |I| < (K+1) * |J|
 // e.g. I is evenly divisible by J: K times
 fn evenly_divisible(i: &fol::Variable, j: &fol::Variable, k: &fol::Variable) -> fol::Formula {
-    let i_term = fol::IntegerTerm::BasicIntegerTerm(fol::BasicIntegerTerm::IntegerVariable(i.name.clone()));
-    let j_term = fol::IntegerTerm::BasicIntegerTerm(fol::BasicIntegerTerm::IntegerVariable(j.name.clone()));
-    let k_term = fol::IntegerTerm::BasicIntegerTerm(fol::BasicIntegerTerm::IntegerVariable(k.name.clone()));
+    let i_term =
+        fol::IntegerTerm::BasicIntegerTerm(fol::BasicIntegerTerm::IntegerVariable(i.name.clone()));
+    let j_term =
+        fol::IntegerTerm::BasicIntegerTerm(fol::BasicIntegerTerm::IntegerVariable(j.name.clone()));
+    let k_term =
+        fol::IntegerTerm::BasicIntegerTerm(fol::BasicIntegerTerm::IntegerVariable(k.name.clone()));
 
-    let absi = fol::IntegerTerm::Function(fol::Function { 
+    let absi = fol::IntegerTerm::Function(fol::Function {
         symbol: fol::FunctionSymbol::AbsoluteValue,
-        terms: vec![i_term]
+        terms: vec![i_term],
     });
-    let absj = fol::IntegerTerm::Function(fol::Function { 
+    let absj = fol::IntegerTerm::Function(fol::Function {
         symbol: fol::FunctionSymbol::AbsoluteValue,
-        terms: vec![j_term]
+        terms: vec![j_term],
     });
 
     let t1 = fol::IntegerTerm::BinaryOperation {
@@ -205,7 +208,8 @@ fn evenly_divisible(i: &fol::Variable, j: &fol::Variable, k: &fol::Variable) -> 
             op: fol::BinaryOperator::Add,
             lhs: k_term.into(),
             rhs: fol::IntegerTerm::BasicIntegerTerm(fol::BasicIntegerTerm::Numeral(1)).into(),
-        }.into(),
+        }
+        .into(),
         rhs: absj.clone().into(),
     };
 
@@ -220,14 +224,20 @@ fn evenly_divisible(i: &fol::Variable, j: &fol::Variable, k: &fol::Variable) -> 
                 relation: fol::Relation::Less,
                 term: fol::GeneralTerm::IntegerTerm(t2),
             },
-        ]
+        ],
     }))
 }
 
 // Assumes I, J, K are integer variables
 // (I * J >= 0 & Z = K) | (I * J < 0 & Z = -K)
-fn rounded_quotient(i: &fol::Variable, j: &fol::Variable, k: &fol::Variable, z: &fol::Variable) -> fol::Formula {
-    let k_term = fol::IntegerTerm::BasicIntegerTerm(fol::BasicIntegerTerm::IntegerVariable(k.name.clone()));
+fn rounded_quotient(
+    i: &fol::Variable,
+    j: &fol::Variable,
+    k: &fol::Variable,
+    z: &fol::Variable,
+) -> fol::Formula {
+    let k_term =
+        fol::IntegerTerm::BasicIntegerTerm(fol::BasicIntegerTerm::IntegerVariable(k.name.clone()));
     let z_term = match z.sort {
         fol::Sort::General => fol::GeneralTerm::GeneralVariable(z.name.clone()),
         fol::Sort::Integer => fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::BasicIntegerTerm(
@@ -238,74 +248,185 @@ fn rounded_quotient(i: &fol::Variable, j: &fol::Variable, k: &fol::Variable, z: 
     // I * J
     let t1 = fol::IntegerTerm::BinaryOperation {
         op: fol::BinaryOperator::Multiply,
-        lhs: fol::IntegerTerm::BasicIntegerTerm(fol::BasicIntegerTerm::IntegerVariable(i.name.clone())).into(),
-        rhs: fol::IntegerTerm::BasicIntegerTerm(fol::BasicIntegerTerm::IntegerVariable(j.name.clone())).into(),
+        lhs: fol::IntegerTerm::BasicIntegerTerm(fol::BasicIntegerTerm::IntegerVariable(
+            i.name.clone(),
+        ))
+        .into(),
+        rhs: fol::IntegerTerm::BasicIntegerTerm(fol::BasicIntegerTerm::IntegerVariable(
+            j.name.clone(),
+        ))
+        .into(),
     };
 
     // I * J >= 0
     let comp1 = fol::Formula::AtomicFormula(fol::AtomicFormula::Comparison(fol::Comparison {
         term: fol::GeneralTerm::IntegerTerm(t1.clone()),
-        guards: vec![
-            fol::Guard {
-                relation: fol::Relation::GreaterEqual,
-                term: fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::BasicIntegerTerm(fol::BasicIntegerTerm::Numeral(0))).into(),
-            }
-        ]
+        guards: vec![fol::Guard {
+            relation: fol::Relation::GreaterEqual,
+            term: fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::BasicIntegerTerm(
+                fol::BasicIntegerTerm::Numeral(0),
+            )),
+        }],
     }));
 
     // Z = K
     let comp2 = fol::Formula::AtomicFormula(fol::AtomicFormula::Comparison(fol::Comparison {
         term: z_term.clone(),
-        guards: vec![
-            fol::Guard {
-                relation: fol::Relation::Equal,
-                term: fol::GeneralTerm::IntegerTerm(k_term.clone()).into(),
-            }
-        ]
-    })); 
+        guards: vec![fol::Guard {
+            relation: fol::Relation::Equal,
+            term: fol::GeneralTerm::IntegerTerm(k_term.clone()),
+        }],
+    }));
 
     // I * J < 0
     let comp3 = fol::Formula::AtomicFormula(fol::AtomicFormula::Comparison(fol::Comparison {
         term: fol::GeneralTerm::IntegerTerm(t1),
-        guards: vec![
-            fol::Guard {
-                relation: fol::Relation::Less,
-                term: fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::BasicIntegerTerm(fol::BasicIntegerTerm::Numeral(0))).into(),
-            }
-        ]
+        guards: vec![fol::Guard {
+            relation: fol::Relation::Less,
+            term: fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::BasicIntegerTerm(
+                fol::BasicIntegerTerm::Numeral(0),
+            )),
+        }],
     }));
 
     // Z = -K
     let comp4 = fol::Formula::AtomicFormula(fol::AtomicFormula::Comparison(fol::Comparison {
         term: z_term,
-        guards: vec![
-            fol::Guard {
-                relation: fol::Relation::Equal,
-                term: fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::UnaryOperation {
-                    op: fol::UnaryOperator::Negative,
-                    arg: k_term.into(),
-                }).into(),
-            }
-        ]
-    })); 
-    
+        guards: vec![fol::Guard {
+            relation: fol::Relation::Equal,
+            term: fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::UnaryOperation {
+                op: fol::UnaryOperator::Negative,
+                arg: k_term.into(),
+            }),
+        }],
+    }));
+
     fol::Formula::BinaryFormula {
         connective: fol::BinaryConnective::Disjunction,
         lhs: fol::Formula::BinaryFormula {
             connective: fol::BinaryConnective::Conjunction,
             lhs: comp1.into(),
             rhs: comp2.into(),
-        }.into(),
+        }
+        .into(),
         rhs: fol::Formula::BinaryFormula {
             connective: fol::BinaryConnective::Conjunction,
             lhs: comp3.into(),
             rhs: comp4.into(),
-        }.into(),
+        }
+        .into(),
     }
 }
 
-fn rounded_remainder(i: &fol::Variable, j: &fol::Variable, k: &fol::Variable, z: &fol::Variable) -> fol::Formula {
-    todo!()
+// (I * J >= 0 & Z = I - K * J) | (I * J < 0 & Z = I + K * J)
+fn rounded_remainder(
+    i: &fol::Variable,
+    j: &fol::Variable,
+    k: &fol::Variable,
+    z: &fol::Variable,
+) -> fol::Formula {
+    let z_term = match z.sort {
+        fol::Sort::General => fol::GeneralTerm::GeneralVariable(z.name.clone()),
+        fol::Sort::Integer => fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::BasicIntegerTerm(
+            fol::BasicIntegerTerm::IntegerVariable(z.name.clone()),
+        )),
+    };
+
+    // I * J
+    let t1 = fol::IntegerTerm::BinaryOperation {
+        op: fol::BinaryOperator::Multiply,
+        lhs: fol::IntegerTerm::BasicIntegerTerm(fol::BasicIntegerTerm::IntegerVariable(
+            i.name.clone(),
+        ))
+        .into(),
+        rhs: fol::IntegerTerm::BasicIntegerTerm(fol::BasicIntegerTerm::IntegerVariable(
+            j.name.clone(),
+        ))
+        .into(),
+    };
+
+    // K * J
+    let t2 = fol::IntegerTerm::BinaryOperation {
+        op: fol::BinaryOperator::Multiply,
+        lhs: fol::IntegerTerm::BasicIntegerTerm(fol::BasicIntegerTerm::IntegerVariable(
+            k.name.clone(),
+        ))
+        .into(),
+        rhs: fol::IntegerTerm::BasicIntegerTerm(fol::BasicIntegerTerm::IntegerVariable(
+            j.name.clone(),
+        ))
+        .into(),
+    };
+
+    // I * J >= 0
+    let comp1 = fol::Formula::AtomicFormula(fol::AtomicFormula::Comparison(fol::Comparison {
+        term: fol::GeneralTerm::IntegerTerm(t1.clone()),
+        guards: vec![fol::Guard {
+            relation: fol::Relation::GreaterEqual,
+            term: fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::BasicIntegerTerm(
+                fol::BasicIntegerTerm::Numeral(0),
+            )),
+        }],
+    }));
+
+    // Z = I - K * J
+    let comp2 = fol::Formula::AtomicFormula(fol::AtomicFormula::Comparison(fol::Comparison {
+        term: z_term.clone(),
+        guards: vec![fol::Guard {
+            relation: fol::Relation::Equal,
+            term: fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::BinaryOperation {
+                op: fol::BinaryOperator::Subtract,
+                lhs: fol::IntegerTerm::BasicIntegerTerm(fol::BasicIntegerTerm::IntegerVariable(
+                    i.name.clone(),
+                ))
+                .into(),
+                rhs: t2.clone().into(),
+            }),
+        }],
+    }));
+
+    // I * J < 0
+    let comp3 = fol::Formula::AtomicFormula(fol::AtomicFormula::Comparison(fol::Comparison {
+        term: fol::GeneralTerm::IntegerTerm(t1),
+        guards: vec![fol::Guard {
+            relation: fol::Relation::Less,
+            term: fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::BasicIntegerTerm(
+                fol::BasicIntegerTerm::Numeral(0),
+            )),
+        }],
+    }));
+
+    // Z = I + K * J
+    let comp4 = fol::Formula::AtomicFormula(fol::AtomicFormula::Comparison(fol::Comparison {
+        term: z_term.clone(),
+        guards: vec![fol::Guard {
+            relation: fol::Relation::Equal,
+            term: fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::BinaryOperation {
+                op: fol::BinaryOperator::Add,
+                lhs: fol::IntegerTerm::BasicIntegerTerm(fol::BasicIntegerTerm::IntegerVariable(
+                    i.name.clone(),
+                ))
+                .into(),
+                rhs: t2.into(),
+            }),
+        }],
+    }));
+
+    fol::Formula::BinaryFormula {
+        connective: fol::BinaryConnective::Disjunction,
+        lhs: fol::Formula::BinaryFormula {
+            connective: fol::BinaryConnective::Conjunction,
+            lhs: comp1.into(),
+            rhs: comp2.into(),
+        }
+        .into(),
+        rhs: fol::Formula::BinaryFormula {
+            connective: fol::BinaryConnective::Conjunction,
+            lhs: comp3.into(),
+            rhs: comp4.into(),
+        }
+        .into(),
+    }
 }
 
 // Division: exists I J K (val_t1(I) & val_t2(J) & evenly_divisible(I,J,K) & rounded_quotient(I,J,K,Z))
@@ -342,7 +463,6 @@ fn construct_partial_function_formula(
         },
         _ => panic!(),
     };
-    
 
     fol::Formula::QuantifiedFormula {
         quantification: fol::Quantification {
@@ -936,35 +1056,24 @@ pub fn tau_star(p: asp::Program) -> fol::Theory {
 
 #[cfg(test)]
 mod tests {
-    use crate::fol;
-    use super::{evenly_divisible, tau_b, tau_star, val};
-
-    #[test]
-    fn test_evenly_divisible() {
-        for (v1, v2, v3, target) in [
-            ("I$", "J$", "K$", "K$ * abs(J$) <= abs(I$) < (K$+1) * abs(J$)"),
-        ] {
-            let i: fol::Variable = v1.parse().unwrap();
-            let j: fol::Variable = v2.parse().unwrap();
-            let k: fol::Variable = v3.parse().unwrap();
-            assert_eq!(
-                evenly_divisible(&i, &j, &k),
-                target.parse().unwrap()
-            )
-        }
-    }
+    use super::{tau_b, val};
 
     #[test]
     fn test_val() {
         for (term, var, target) in [
             ("X + 1", "Z1", "exists I$i J$i (Z1$g = I$i + J$i and I$i = X and J$i = 1)"),
             ("3 - 5", "Z1", "exists I$i J$i (Z1$g = I$i - J$i and I$i = 3 and J$i = 5)"),
+            ("3/15", "Z1", "exists I$ J$ K$ (I$ = 3 and J$ = 15 and (( K$ * abs(J$) <= abs(I$) < (K$ +1) * abs(J$) ) and ((I$ * J$ >= 0 and Z1 = K$) or (I$ * J$ < 0 and Z1 = -K$))))"),
+            ("3\\15", "Z1", "exists I$ J$ K$ (I$ = 3 and J$ = 15 and (( K$ * abs(J$) <= abs(I$) < (K$ +1) * abs(J$) ) and ((I$ * J$ >= 0 and Z1 = I$ - K$ * J$) or (I$ * J$ < 0 and Z1 = I$ + K$ * J$))))"),
             ("X..Y", "Z", "exists I$i J$i K$i (I$i = X and J$i = Y and Z$g = K$i and I$i <= K$i <= J$i)"),
             ("X+1..Y", "Z1", "exists I$i J$i K$i ((exists I1$i J$i (I$i = I1$i + J$i and I1$i = X and J$i = 1)) and J$i = Y and Z1 = K$i and I$i <= K$i <= J$i)"),
         ] {
+            let left = val(term.parse().unwrap(), var.parse().unwrap());
+            let right = target.parse().unwrap();
             assert_eq!(
-                val(term.parse().unwrap(), var.parse().unwrap()),
-                target.parse().unwrap()
+                left,
+                right,
+                "{left} \n != \n {right}"
             )
         }
     }
