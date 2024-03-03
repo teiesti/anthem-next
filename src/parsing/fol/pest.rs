@@ -2,8 +2,9 @@ use crate::{
     parsing::PestParser,
     syntax_tree::fol::{
         Atom, AtomicFormula, BasicIntegerTerm, BinaryConnective, BinaryOperator, Comparison,
-        Formula, GeneralTerm, Guard, IntegerTerm, Predicate, Quantification, Quantifier, Relation,
-        Sort, Theory, UnaryConnective, UnaryOperator, Variable,
+        Direction, Formula, GeneralTerm, Guard, IntegerTerm, Lemma, Placeholder, Predicate,
+        Quantification, Quantifier, Relation, Sort, Spec, Specification, Theory, UnaryConnective,
+        UnaryOperator, Variable, FunctionSymbol, Function,
     },
 };
 
@@ -82,6 +83,51 @@ impl PestParser for UnaryOperatorParser {
     }
 }
 
+pub struct FunctionSymbolParser;
+
+impl PestParser for FunctionSymbolParser {
+    type Node = FunctionSymbol;
+
+    type InternalParser = internal::Parser;
+    type Rule = internal::Rule;
+    const RULE: internal::Rule = internal::Rule::function_symbol;
+
+    fn translate_pair(pair: pest::iterators::Pair<'_, Self::Rule>) -> Self::Node {
+        match pair.as_rule() {
+            internal::Rule::negative => FunctionSymbol::AbsoluteValue,
+            _ => Self::report_unexpected_pair(pair),
+        }
+    }
+}
+
+pub struct FunctionParser;
+
+impl PestParser for FunctionParser {
+    type Node = Function;
+
+    type InternalParser = internal::Parser;
+    type Rule = internal::Rule;
+    const RULE: Self::Rule = internal::Rule::function;
+
+    fn translate_pair(pair: pest::iterators::Pair<'_, Self::Rule>) -> Self::Node {
+        if pair.as_rule() != internal::Rule::function {
+            Self::report_unexpected_pair(pair)
+        }
+
+        let mut pairs = pair.into_inner();
+
+        match pairs.next() {
+            Some(pair) if pair.as_rule() == internal::Rule::function_symbol => {
+                let symbol = FunctionSymbolParser::translate_pair(pair);
+                let terms: Vec<_> = pairs.map(IntegerTermParser::translate_pair).collect();
+                Function { symbol, terms }
+            }
+            Some(pair) => Self::report_unexpected_pair(pair),
+            None => Self::report_missing_pair(),
+        }
+    }
+}
+
 pub struct BinaryOperatorParser;
 
 impl PestParser for BinaryOperatorParser {
@@ -114,9 +160,12 @@ impl PestParser for IntegerTermParser {
         internal::TERM_PRATT_PARSER
             .map_primary(|primary| match primary.as_rule() {
                 internal::Rule::integer_term => IntegerTermParser::translate_pair(primary),
+                internal::Rule::function => {
+                    IntegerTerm::Function(FunctionParser::translate_pair(primary))
+                },
                 internal::Rule::basic_integer_term => {
                     IntegerTerm::BasicIntegerTerm(BasicIntegerTermParser::translate_pair(primary))
-                }
+                },
                 _ => Self::report_unexpected_pair(primary),
             })
             .map_prefix(|op, arg| IntegerTerm::UnaryOperation {
@@ -513,16 +562,18 @@ mod tests {
         super::{
             AtomParser, AtomicFormulaParser, BasicIntegerTermParser, BinaryConnectiveParser,
             BinaryOperatorParser, ComparisonParser, FormulaParser, GeneralTermParser, GuardParser,
-            IntegerTermParser, PredicateParser, QuantificationParser, QuantifierParser,
-            RelationParser, TheoryParser, UnaryConnectiveParser, UnaryOperatorParser,
-            VariableParser,
+            IntegerTermParser, LemmaParser, PlaceholderParser, PredicateParser,
+            QuantificationParser, QuantifierParser, RelationParser, SpecParser,
+            SpecificationParser, TheoryParser, UnaryConnectiveParser, UnaryOperatorParser,
+            VariableParser, FunctionParser, 
         },
         crate::{
             parsing::TestedParser,
             syntax_tree::fol::{
                 Atom, AtomicFormula, BasicIntegerTerm, BinaryConnective, BinaryOperator,
-                Comparison, Formula, GeneralTerm, Guard, IntegerTerm, Predicate, Quantification,
-                Quantifier, Relation, Sort, Theory, UnaryConnective, UnaryOperator, Variable,
+                Comparison, Direction, Formula, GeneralTerm, Guard, IntegerTerm, Lemma,
+                Placeholder, Predicate, Quantification, Quantifier, Relation, Sort, Spec,
+                Specification, Theory, UnaryConnective, UnaryOperator, Variable, Function, FunctionSymbol,
             },
         },
     };
@@ -556,6 +607,11 @@ mod tests {
             ("-", BinaryOperator::Subtract),
             ("*", BinaryOperator::Multiply),
         ]);
+    }
+
+    #[test]
+    fn parse_function() {
+        FunctionParser.should_parse_into([("abs(1)", Function { symbol: FunctionSymbol::AbsoluteValue, terms: vec![IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(1))] })]).should_reject(["abs(X)"]);
     }
 
     #[test]
