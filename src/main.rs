@@ -50,8 +50,8 @@ fn main() -> Result<()> {
                         .parse()
                         .with_context(|| format!("could not parse file `{}`", input.display()))?;
 
-                    let theory = completion(&theory)
-                        .with_context(|| format!("not a completable theory"))?;
+                    let theory =
+                        completion(&theory).with_context(|| format!("not a completable theory"))?;
 
                     print!("{theory}")
                 }
