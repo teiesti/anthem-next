@@ -83,9 +83,9 @@ impl IntegerTerm {
 pub enum GeneralTerm {
     Infimum,
     Supremum,
+    Variable(String),
     IntegerTerm(IntegerTerm),
     Symbol(String),
-    GeneralVariable(String),
 }
 
 impl_node!(GeneralTerm, Format, GeneralTermParser);
@@ -94,7 +94,7 @@ impl GeneralTerm {
     pub fn variables(&self) -> HashSet<Variable> {
         match &self {
             GeneralTerm::Infimum | GeneralTerm::Supremum | GeneralTerm::Symbol(_) => HashSet::new(),
-            GeneralTerm::GeneralVariable(v) => HashSet::from([Variable {
+            GeneralTerm::Variable(v) => HashSet::from([Variable {
                 name: v.to_string(),
                 sort: Sort::General,
             }]),
@@ -104,7 +104,7 @@ impl GeneralTerm {
 
     pub fn substitute(self, var: Variable, term: GeneralTerm) -> Self {
         match self {
-            GeneralTerm::GeneralVariable(s) if var.name == s && var.sort == Sort::General => term,
+            GeneralTerm::Variable(s) if var.name == s && var.sort == Sort::General => term,
             GeneralTerm::IntegerTerm(t) if var.sort == Sort::Integer => match term {
                 GeneralTerm::IntegerTerm(term) => GeneralTerm::IntegerTerm(t.substitute(var, term)),
                 _ => panic!(

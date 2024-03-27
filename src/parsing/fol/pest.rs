@@ -130,7 +130,7 @@ impl PestParser for GeneralTermParser {
             }
             internal::Rule::general_variable => match pair.into_inner().next() {
                 Some(pair) if pair.as_rule() == internal::Rule::unsorted_variable => {
-                    GeneralTerm::GeneralVariable(pair.as_str().into())
+                    GeneralTerm::Variable(pair.as_str().into())
                 }
                 Some(pair) => Self::report_unexpected_pair(pair),
                 None => Self::report_missing_pair(),
@@ -592,7 +592,7 @@ mod tests {
                 ("a", GeneralTerm::Symbol("a".into())),
                 ("ca_12", GeneralTerm::Symbol("ca_12".into())),
                 ("_b12A", GeneralTerm::Symbol("_b12A".into())),
-                ("A", GeneralTerm::GeneralVariable("A".into())),
+                ("A", GeneralTerm::Variable("A".into())),
                 (
                     "1 + A$i",
                     GeneralTerm::IntegerTerm(IntegerTerm::BinaryOperation {
@@ -752,7 +752,7 @@ mod tests {
                     Atom {
                         predicate_symbol: "p".into(),
                         terms: vec![
-                            GeneralTerm::GeneralVariable("X".into()),
+                            GeneralTerm::Variable("X".into()),
                             GeneralTerm::Symbol("a".into()),
                         ],
                     },
@@ -782,7 +782,7 @@ mod tests {
                 "< N$g",
                 Guard {
                     relation: Relation::Less,
-                    term: GeneralTerm::GeneralVariable("N".into()),
+                    term: GeneralTerm::Variable("N".into()),
                 },
             )])
             .should_reject(["< 3 =", "="]);
@@ -829,7 +829,7 @@ mod tests {
                         term: GeneralTerm::IntegerTerm(IntegerTerm::Numeral(1)),
                         guards: vec![Guard {
                             relation: Relation::Equal,
-                            term: GeneralTerm::GeneralVariable("N".into()),
+                            term: GeneralTerm::Variable("N".into()),
                         }],
                     }),
                 ),
@@ -860,7 +860,7 @@ mod tests {
                         guards: vec![
                             Guard {
                                 relation: Relation::LessEqual,
-                                term: GeneralTerm::GeneralVariable("N".into()),
+                                term: GeneralTerm::Variable("N".into()),
                             },
                             Guard {
                                 relation: Relation::Greater,
@@ -1039,7 +1039,7 @@ mod tests {
                         },
                         formula: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
                             predicate_symbol: "p".into(),
-                            terms: vec![GeneralTerm::GeneralVariable("A".into())],
+                            terms: vec![GeneralTerm::Variable("A".into())],
                         }))
                         .into(),
                     }
@@ -1065,7 +1065,7 @@ mod tests {
                         },
                         formula: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
                             predicate_symbol: "p".into(),
-                            terms: vec![GeneralTerm::GeneralVariable("A".into())],
+                            terms: vec![GeneralTerm::Variable("A".into())],
                         }))
                         .into(),
                     }
@@ -1087,7 +1087,7 @@ mod tests {
                         },
                         formula: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
                             predicate_symbol: "p".into(),
-                            terms: vec![GeneralTerm::GeneralVariable("A".into())],
+                            terms: vec![GeneralTerm::Variable("A".into())],
                         }))
                         .into(),
                     }
@@ -1128,8 +1128,8 @@ mod tests {
                                 formula: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
                                     predicate_symbol: "ra".to_string(),
                                     terms: vec![
-                                        GeneralTerm::GeneralVariable("V1".into()),
-                                        GeneralTerm::GeneralVariable("V2".into()),
+                                        GeneralTerm::Variable("V1".into()),
+                                        GeneralTerm::Variable("V2".into()),
                                     ],
                                 }))
                                 .into(),
@@ -1140,8 +1140,8 @@ mod tests {
                         rhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
                             predicate_symbol: "ra".to_string(),
                             terms: vec![
-                                GeneralTerm::GeneralVariable("V1".into()),
-                                GeneralTerm::GeneralVariable("V2".into()),
+                                GeneralTerm::Variable("V1".into()),
+                                GeneralTerm::Variable("V2".into()),
                             ],
                         }))
                         .into(),
@@ -1170,7 +1170,7 @@ mod tests {
                         lhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
                             predicate_symbol: "p".into(),
                             terms: vec![
-                                GeneralTerm::GeneralVariable("G".into()),
+                                GeneralTerm::Variable("G".into()),
                                 GeneralTerm::IntegerTerm(IntegerTerm::BinaryOperation {
                                     op: BinaryOperator::Add,
                                     lhs: IntegerTerm::Variable("X".into()).into(),
