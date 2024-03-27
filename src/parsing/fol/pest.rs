@@ -1,9 +1,9 @@
 use crate::{
     parsing::PestParser,
     syntax_tree::fol::{
-        Atom, AtomicFormula, BasicIntegerTerm, BinaryConnective, BinaryOperator, Comparison,
-        Formula, GeneralTerm, Guard, IntegerTerm, Predicate, Quantification, Quantifier, Relation,
-        Sort, Theory, UnaryConnective, UnaryOperator, Variable,
+        Atom, AtomicFormula, BinaryConnective, BinaryOperator, Comparison, Formula, GeneralTerm,
+        Guard, IntegerTerm, Predicate, Quantification, Quantifier, Relation, Sort, Theory,
+        UnaryConnective, UnaryOperator, Variable,
     },
 };
 
@@ -35,31 +35,6 @@ mod internal {
                 .op(Op::infix(conjunction, Left))
                 .op(Op::prefix(negation) | Op::prefix(quantification))
         };
-    }
-}
-
-pub struct BasicIntegerTermParser;
-
-impl PestParser for BasicIntegerTermParser {
-    type Node = BasicIntegerTerm;
-
-    type InternalParser = internal::Parser;
-    type Rule = internal::Rule;
-    const RULE: internal::Rule = internal::Rule::basic_integer_term;
-
-    fn translate_pair(pair: pest::iterators::Pair<'_, Self::Rule>) -> Self::Node {
-        match pair.as_rule() {
-            internal::Rule::basic_integer_term => Self::translate_pairs(pair.into_inner()),
-            internal::Rule::numeral => BasicIntegerTerm::Numeral(pair.as_str().parse().unwrap()),
-            internal::Rule::integer_variable => match pair.into_inner().next() {
-                Some(pair) if pair.as_rule() == internal::Rule::unsorted_variable => {
-                    BasicIntegerTerm::IntegerVariable(pair.as_str().into())
-                }
-                Some(pair) => Self::report_unexpected_pair(pair),
-                None => Self::report_missing_pair(),
-            },
-            _ => Self::report_unexpected_pair(pair),
-        }
     }
 }
 
@@ -112,9 +87,14 @@ impl PestParser for IntegerTermParser {
         internal::TERM_PRATT_PARSER
             .map_primary(|primary| match primary.as_rule() {
                 internal::Rule::integer_term => IntegerTermParser::translate_pair(primary),
-                internal::Rule::basic_integer_term => {
-                    IntegerTerm::BasicIntegerTerm(BasicIntegerTermParser::translate_pair(primary))
-                }
+                internal::Rule::numeral => IntegerTerm::Numeral(primary.as_str().parse().unwrap()),
+                internal::Rule::integer_variable => match primary.into_inner().next() {
+                    Some(pair) if pair.as_rule() == internal::Rule::unsorted_variable => {
+                        IntegerTerm::Variable(pair.as_str().into())
+                    }
+                    Some(pair) => Self::report_unexpected_pair(pair),
+                    None => Self::report_missing_pair(),
+                },
                 _ => Self::report_unexpected_pair(primary),
             })
             .map_prefix(|op, arg| IntegerTerm::UnaryOperation {
@@ -507,42 +487,23 @@ impl PestParser for TheoryParser {
 
 #[cfg(test)]
 mod tests {
-    use std::vec;
-
     use {
         super::{
-            AtomParser, AtomicFormulaParser, BasicIntegerTermParser, BinaryConnectiveParser,
-            BinaryOperatorParser, ComparisonParser, FormulaParser, GeneralTermParser, GuardParser,
-            IntegerTermParser, PredicateParser, QuantificationParser, QuantifierParser,
-            RelationParser, TheoryParser, UnaryConnectiveParser, UnaryOperatorParser,
-            VariableParser,
+            AtomParser, AtomicFormulaParser, BinaryConnectiveParser, BinaryOperatorParser,
+            ComparisonParser, FormulaParser, GeneralTermParser, GuardParser, IntegerTermParser,
+            PredicateParser, QuantificationParser, QuantifierParser, RelationParser, TheoryParser,
+            UnaryConnectiveParser, UnaryOperatorParser, VariableParser,
         },
         crate::{
             parsing::TestedParser,
             syntax_tree::fol::{
-                Atom, AtomicFormula, BasicIntegerTerm, BinaryConnective, BinaryOperator,
-                Comparison, Formula, GeneralTerm, Guard, IntegerTerm, Predicate, Quantification,
-                Quantifier, Relation, Sort, Theory, UnaryConnective, UnaryOperator, Variable,
+                Atom, AtomicFormula, BinaryConnective, BinaryOperator, Comparison, Formula,
+                GeneralTerm, Guard, IntegerTerm, Predicate, Quantification, Quantifier, Relation,
+                Sort, Theory, UnaryConnective, UnaryOperator, Variable,
             },
         },
+        std::vec,
     };
-
-    #[test]
-    fn parse_basic_integer_term() {
-        BasicIntegerTermParser
-            .should_parse_into([
-                ("0", BasicIntegerTerm::Numeral(0)),
-                ("1", BasicIntegerTerm::Numeral(1)),
-                ("-1", BasicIntegerTerm::Numeral(-1)),
-                ("-48", BasicIntegerTerm::Numeral(-48)),
-                ("301", BasicIntegerTerm::Numeral(301)),
-                ("A$i", BasicIntegerTerm::IntegerVariable("A".into())),
-                ("Avar$", BasicIntegerTerm::IntegerVariable("Avar".into())),
-            ])
-            .should_reject([
-                "00", "-0", "#", "#inf", "#infi", "#sup", "#supa", "_", "1_", "A",
-            ]);
-    }
 
     #[test]
     fn parse_unary_operator() {
@@ -562,47 +523,33 @@ mod tests {
     fn parse_integer_term() {
         IntegerTermParser
             .should_parse_into([
-                (
-                    "0",
-                    IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(0)),
-                ),
-                (
-                    "1",
-                    IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(1)),
-                ),
-                (
-                    "-1",
-                    IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(-1)),
-                ),
-                (
-                    "(-48)",
-                    IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(-48)),
-                ),
+                ("0", IntegerTerm::Numeral(0)),
+                ("1", IntegerTerm::Numeral(1)),
+                ("-1", IntegerTerm::Numeral(-1)),
+                ("-48", IntegerTerm::Numeral(-48)),
+                ("(-48)", IntegerTerm::Numeral(-48)),
+                ("X$i", IntegerTerm::Variable("X".into())),
+                ("Xvar$", IntegerTerm::Variable("Xvar".into())),
                 (
                     "-X$i",
                     IntegerTerm::UnaryOperation {
                         op: UnaryOperator::Negative,
-                        arg: IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::IntegerVariable(
-                            "X".into(),
-                        ))
-                        .into(),
+                        arg: IntegerTerm::Variable("X".into()).into(),
                     },
                 ),
-                (
-                    "(301)",
-                    IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(301)),
-                ),
+                ("301", IntegerTerm::Numeral(301)),
+                ("(301)", IntegerTerm::Numeral(301)),
                 (
                     "1 + 3 + 2",
                     IntegerTerm::BinaryOperation {
                         op: BinaryOperator::Add,
                         lhs: IntegerTerm::BinaryOperation {
                             op: BinaryOperator::Add,
-                            lhs: IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(1)).into(),
-                            rhs: IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(3)).into(),
+                            lhs: IntegerTerm::Numeral(1).into(),
+                            rhs: IntegerTerm::Numeral(3).into(),
                         }
                         .into(),
-                        rhs: IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(2)).into(),
+                        rhs: IntegerTerm::Numeral(2).into(),
                     },
                 ),
             ])
@@ -617,44 +564,29 @@ mod tests {
             .should_parse_into([
                 ("#inf", GeneralTerm::Infimum),
                 ("#sup", GeneralTerm::Supremum),
-                (
-                    "1",
-                    GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(
-                        BasicIntegerTerm::Numeral(1),
-                    )),
-                ),
-                (
-                    "(1)",
-                    GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(
-                        BasicIntegerTerm::Numeral(1),
-                    )),
-                ),
-                (
-                    "-1",
-                    GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(
-                        BasicIntegerTerm::Numeral(-1),
-                    )),
-                ),
+                ("1", GeneralTerm::IntegerTerm(IntegerTerm::Numeral(1))),
+                ("(1)", GeneralTerm::IntegerTerm(IntegerTerm::Numeral(1))),
+                ("-1", GeneralTerm::IntegerTerm(IntegerTerm::Numeral(-1))),
                 (
                     "-(1)",
                     GeneralTerm::IntegerTerm(IntegerTerm::UnaryOperation {
                         op: UnaryOperator::Negative,
-                        arg: IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(1)).into(),
+                        arg: IntegerTerm::Numeral(1).into(),
                     }),
                 ),
                 (
                     "--1",
                     GeneralTerm::IntegerTerm(IntegerTerm::UnaryOperation {
                         op: UnaryOperator::Negative,
-                        arg: IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(-1)).into(),
+                        arg: IntegerTerm::Numeral(-1).into(),
                     }),
                 ),
                 (
                     "1 + 2",
                     GeneralTerm::IntegerTerm(IntegerTerm::BinaryOperation {
                         op: BinaryOperator::Add,
-                        lhs: IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(1)).into(),
-                        rhs: IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(2)).into(),
+                        lhs: IntegerTerm::Numeral(1).into(),
+                        rhs: IntegerTerm::Numeral(2).into(),
                     }),
                 ),
                 ("a", GeneralTerm::Symbol("a".into())),
@@ -665,11 +597,8 @@ mod tests {
                     "1 + A$i",
                     GeneralTerm::IntegerTerm(IntegerTerm::BinaryOperation {
                         op: BinaryOperator::Add,
-                        lhs: IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(1)).into(),
-                        rhs: IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::IntegerVariable(
-                            "A".into(),
-                        ))
-                        .into(),
+                        lhs: IntegerTerm::Numeral(1).into(),
+                        rhs: IntegerTerm::Variable("A".into()).into(),
                     }),
                 ),
                 (
@@ -678,23 +607,14 @@ mod tests {
                         op: BinaryOperator::Multiply,
                         lhs: IntegerTerm::BinaryOperation {
                             op: BinaryOperator::Add,
-                            lhs: IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(1)).into(),
-                            rhs: IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::IntegerVariable(
-                                "Nx".into(),
-                            ))
-                            .into(),
+                            lhs: IntegerTerm::Numeral(1).into(),
+                            rhs: IntegerTerm::Variable("Nx".into()).into(),
                         }
                         .into(),
                         rhs: IntegerTerm::BinaryOperation {
                             op: BinaryOperator::Subtract,
-                            lhs: IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::IntegerVariable(
-                                "Y".into(),
-                            ))
-                            .into(),
-                            rhs: IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::IntegerVariable(
-                                "B1".into(),
-                            ))
-                            .into(),
+                            lhs: IntegerTerm::Variable("Y".into()).into(),
+                            rhs: IntegerTerm::Variable("B1".into()).into(),
                         }
                         .into(),
                     }),
@@ -707,28 +627,25 @@ mod tests {
                             op: BinaryOperator::Subtract,
                             lhs: IntegerTerm::BinaryOperation {
                                 op: BinaryOperator::Add,
-                                lhs: IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(1))
-                                    .into(),
-                                rhs: IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(2))
-                                    .into(),
+                                lhs: IntegerTerm::Numeral(1).into(),
+                                rhs: IntegerTerm::Numeral(2).into(),
                             }
                             .into(),
-                            rhs: IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(-3))
-                                .into(),
+                            rhs: IntegerTerm::Numeral(-3).into(),
                         }
                         .into(),
-                        rhs: IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(4)).into(),
+                        rhs: IntegerTerm::Numeral(4).into(),
                     }),
                 ),
                 (
                     "1 + 2 * 3",
                     GeneralTerm::IntegerTerm(IntegerTerm::BinaryOperation {
                         op: BinaryOperator::Add,
-                        lhs: IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(1)).into(),
+                        lhs: IntegerTerm::Numeral(1).into(),
                         rhs: IntegerTerm::BinaryOperation {
                             op: BinaryOperator::Multiply,
-                            lhs: IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(2)).into(),
-                            rhs: IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(3)).into(),
+                            lhs: IntegerTerm::Numeral(2).into(),
+                            rhs: IntegerTerm::Numeral(3).into(),
                         }
                         .into(),
                     }),
@@ -739,11 +656,11 @@ mod tests {
                         op: BinaryOperator::Add,
                         lhs: IntegerTerm::BinaryOperation {
                             op: BinaryOperator::Multiply,
-                            lhs: IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(1)).into(),
-                            rhs: IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(2)).into(),
+                            lhs: IntegerTerm::Numeral(1).into(),
+                            rhs: IntegerTerm::Numeral(2).into(),
                         }
                         .into(),
-                        rhs: IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(3)).into(),
+                        rhs: IntegerTerm::Numeral(3).into(),
                     }),
                 ),
             ])
@@ -817,9 +734,7 @@ mod tests {
                     "p(1)",
                     Atom {
                         predicate_symbol: "p".into(),
-                        terms: vec![GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(
-                            BasicIntegerTerm::Numeral(1),
-                        ))],
+                        terms: vec![GeneralTerm::IntegerTerm(IntegerTerm::Numeral(1))],
                     },
                 ),
                 (
@@ -827,12 +742,8 @@ mod tests {
                     Atom {
                         predicate_symbol: "p".into(),
                         terms: vec![
-                            GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(
-                                BasicIntegerTerm::Numeral(1),
-                            )),
-                            GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(
-                                BasicIntegerTerm::Numeral(2),
-                            )),
+                            GeneralTerm::IntegerTerm(IntegerTerm::Numeral(1)),
+                            GeneralTerm::IntegerTerm(IntegerTerm::Numeral(2)),
                         ],
                     },
                 ),
@@ -899,9 +810,7 @@ mod tests {
                     term: GeneralTerm::Symbol("p".into()),
                     guards: vec![Guard {
                         relation: Relation::Less,
-                        term: GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(
-                            BasicIntegerTerm::Numeral(5),
-                        )),
+                        term: GeneralTerm::IntegerTerm(IntegerTerm::Numeral(5)),
                     }],
                 },
             )])
@@ -917,9 +826,7 @@ mod tests {
                 (
                     "1 = N$g",
                     AtomicFormula::Comparison(Comparison {
-                        term: GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(
-                            BasicIntegerTerm::Numeral(1),
-                        )),
+                        term: GeneralTerm::IntegerTerm(IntegerTerm::Numeral(1)),
                         guards: vec![Guard {
                             relation: Relation::Equal,
                             term: GeneralTerm::GeneralVariable("N".into()),
@@ -929,14 +836,10 @@ mod tests {
                 (
                     "1 = N$",
                     AtomicFormula::Comparison(Comparison {
-                        term: GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(
-                            BasicIntegerTerm::Numeral(1),
-                        )),
+                        term: GeneralTerm::IntegerTerm(IntegerTerm::Numeral(1)),
                         guards: vec![Guard {
                             relation: Relation::Equal,
-                            term: GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(
-                                BasicIntegerTerm::IntegerVariable("N".into()),
-                            )),
+                            term: GeneralTerm::IntegerTerm(IntegerTerm::Variable("N".into())),
                         }],
                     }),
                 ),
@@ -946,18 +849,14 @@ mod tests {
                         term: GeneralTerm::Symbol("n".to_string()),
                         guards: vec![Guard {
                             relation: Relation::Greater,
-                            term: GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(
-                                BasicIntegerTerm::Numeral(1),
-                            )),
+                            term: GeneralTerm::IntegerTerm(IntegerTerm::Numeral(1)),
                         }],
                     }),
                 ),
                 (
                     "1 <= N$g > 3 < X$i",
                     AtomicFormula::Comparison(Comparison {
-                        term: GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(
-                            BasicIntegerTerm::Numeral(1),
-                        )),
+                        term: GeneralTerm::IntegerTerm(IntegerTerm::Numeral(1)),
                         guards: vec![
                             Guard {
                                 relation: Relation::LessEqual,
@@ -965,15 +864,11 @@ mod tests {
                             },
                             Guard {
                                 relation: Relation::Greater,
-                                term: GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(
-                                    BasicIntegerTerm::Numeral(3),
-                                )),
+                                term: GeneralTerm::IntegerTerm(IntegerTerm::Numeral(3)),
                             },
                             Guard {
                                 relation: Relation::Less,
-                                term: GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(
-                                    BasicIntegerTerm::IntegerVariable("X".into()),
-                                )),
+                                term: GeneralTerm::IntegerTerm(IntegerTerm::Variable("X".into())),
                             },
                         ],
                     }),
@@ -983,15 +878,11 @@ mod tests {
                     AtomicFormula::Atom(Atom {
                         predicate_symbol: "p".into(),
                         terms: vec![
-                            GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(
-                                BasicIntegerTerm::IntegerVariable("N".into()),
-                            )),
+                            GeneralTerm::IntegerTerm(IntegerTerm::Variable("N".into())),
                             GeneralTerm::IntegerTerm(IntegerTerm::BinaryOperation {
                                 op: BinaryOperator::Multiply,
-                                lhs: IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(3))
-                                    .into(),
-                                rhs: IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(2))
-                                    .into(),
+                                lhs: IntegerTerm::Numeral(3).into(),
+                                rhs: IntegerTerm::Numeral(2).into(),
                             }),
                         ],
                     }),
@@ -1282,14 +1173,8 @@ mod tests {
                                 GeneralTerm::GeneralVariable("G".into()),
                                 GeneralTerm::IntegerTerm(IntegerTerm::BinaryOperation {
                                     op: BinaryOperator::Add,
-                                    lhs: IntegerTerm::BasicIntegerTerm(
-                                        BasicIntegerTerm::IntegerVariable("X".into()),
-                                    )
-                                    .into(),
-                                    rhs: IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(
-                                        30,
-                                    ))
-                                    .into(),
+                                    lhs: IntegerTerm::Variable("X".into()).into(),
+                                    rhs: IntegerTerm::Numeral(30).into(),
                                 }),
                             ],
                         }))
