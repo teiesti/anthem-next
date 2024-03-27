@@ -88,7 +88,7 @@ impl Display for Format<'_, GeneralTerm> {
             GeneralTerm::Infimum => write!(f, "#inf"),
             GeneralTerm::Supremum => write!(f, "#sup"),
             GeneralTerm::Symbol(s) => write!(f, "{s}"),
-            GeneralTerm::GeneralVariable(v) => write!(f, "{v}"),
+            GeneralTerm::Variable(v) => write!(f, "{v}"),
             GeneralTerm::IntegerTerm(t) => Format(t).fmt(f),
         }
     }
@@ -450,7 +450,7 @@ mod tests {
                 term: GeneralTerm::IntegerTerm(IntegerTerm::Numeral(5)),
                 guards: vec![Guard {
                     relation: Relation::Less,
-                    term: GeneralTerm::GeneralVariable("I".into()),
+                    term: GeneralTerm::Variable("I".into()),
                 }]
             }))
             .to_string(),
@@ -494,7 +494,7 @@ mod tests {
                 },
                 formula: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
                     predicate_symbol: "p".into(),
-                    terms: vec![GeneralTerm::GeneralVariable("X".into())]
+                    terms: vec![GeneralTerm::Variable("X".into())]
                 }))
                 .into()
             })

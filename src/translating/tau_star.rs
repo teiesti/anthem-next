@@ -76,7 +76,7 @@ fn choose_fresh_variable_names(
 // Z = t
 fn construct_equality_formula(term: asp::Term, z: fol::Variable) -> fol::Formula {
     let z_var_term = match z.sort {
-        fol::Sort::General => fol::GeneralTerm::GeneralVariable(z.name),
+        fol::Sort::General => fol::GeneralTerm::Variable(z.name),
         fol::Sort::Integer => fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::Variable(z.name)),
     };
 
@@ -89,7 +89,7 @@ fn construct_equality_formula(term: asp::Term, z: fol::Variable) -> fol::Formula
             }
             asp::PrecomputedTerm::Symbol(s) => fol::GeneralTerm::Symbol(s),
         },
-        asp::Term::Variable(v) => fol::GeneralTerm::GeneralVariable(v.0),
+        asp::Term::Variable(v) => fol::GeneralTerm::Variable(v.0),
         _ => panic!(), // Error
     };
 
@@ -115,7 +115,7 @@ fn construct_total_function_formula(
     let i = i_var.name;
     let j = j_var.name;
     let z_var_term = match z.sort {
-        fol::Sort::General => fol::GeneralTerm::GeneralVariable(z.name),
+        fol::Sort::General => fol::GeneralTerm::Variable(z.name),
         fol::Sort::Integer => fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::Variable(z.name)),
     };
     let zequals = fol::Formula::AtomicFormula(fol::AtomicFormula::Comparison(fol::Comparison {
@@ -192,7 +192,7 @@ fn construct_partial_function_formula(
     }
 
     let z_var_term = match z.sort {
-        fol::Sort::General => fol::GeneralTerm::GeneralVariable(z.name),
+        fol::Sort::General => fol::GeneralTerm::Variable(z.name),
         fol::Sort::Integer => fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::Variable(z.name)),
     };
 
@@ -339,7 +339,7 @@ fn construct_interval_formula(
     z: fol::Variable,
 ) -> fol::Formula {
     let z_var_term = match z.sort {
-        fol::Sort::General => fol::GeneralTerm::GeneralVariable(z.name),
+        fol::Sort::General => fol::GeneralTerm::Variable(z.name),
         fol::Sort::Integer => fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::Variable(z.name)),
     };
 
@@ -517,7 +517,7 @@ fn tau_b_first_order_literal(l: asp::Literal, taken_vars: HashSet<fol::Variable>
             name: varnames[i].clone(),
         };
         valtz_vec.push(val(t.clone(), var.clone()));
-        var_terms.push(fol::GeneralTerm::GeneralVariable(varnames[i].clone()));
+        var_terms.push(fol::GeneralTerm::Variable(varnames[i].clone()));
         var_vars.push(var);
     }
     let valtz = fol::Formula::conjoin(valtz_vec);
@@ -618,8 +618,8 @@ fn tau_b_comparison(c: asp::Comparison, taken_vars: HashSet<fol::Variable>) -> f
     let varnames = choose_fresh_variable_names(&taken_vars, "Z", 2);
 
     // Compute val_t1(Z1) & val_t2(Z2)
-    let term_z1 = fol::GeneralTerm::GeneralVariable(varnames[0].clone());
-    let term_z2 = fol::GeneralTerm::GeneralVariable(varnames[1].clone());
+    let term_z1 = fol::GeneralTerm::Variable(varnames[0].clone());
+    let term_z2 = fol::GeneralTerm::Variable(varnames[1].clone());
     let var_z1 = fol::Variable {
         sort: fol::Sort::General,
         name: varnames[0].clone(),
@@ -716,7 +716,7 @@ fn tau_star_fo_head_rule(r: &asp::Rule, globals: &[String]) -> fol::Formula {
             name: fvars[i].to_string(),
             sort: fol::Sort::General,
         };
-        let fol_term = fol::GeneralTerm::GeneralVariable(fvars[i].to_string());
+        let fol_term = fol::GeneralTerm::Variable(fvars[i].to_string());
         fo_vars.push(fol_var);
         new_terms.push(fol_term);
     }

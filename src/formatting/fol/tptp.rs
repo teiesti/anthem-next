@@ -68,7 +68,7 @@ impl Display for Format<'_, GeneralTerm> {
             GeneralTerm::Infimum => write!(f, "c__infimum__"),
             GeneralTerm::Supremum => write!(f, "c__supremum__"),
             GeneralTerm::Symbol(s) => write!(f, "{s}"),
-            GeneralTerm::GeneralVariable(v) => write!(f, "{v}"),
+            GeneralTerm::Variable(v) => write!(f, "{v}"),
             GeneralTerm::IntegerTerm(t) => Format(t).fmt(f),
         }
     }
@@ -313,7 +313,7 @@ mod tests {
         assert_eq!(Format(&GeneralTerm::Supremum).to_string(), "c__supremum__");
         assert_eq!(Format(&GeneralTerm::Symbol("p".into())).to_string(), "p");
         assert_eq!(
-            Format(&GeneralTerm::GeneralVariable("N1".into())).to_string(),
+            Format(&GeneralTerm::Variable("N1".into())).to_string(),
             "N1"
         );
     }
