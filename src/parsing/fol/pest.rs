@@ -2,8 +2,8 @@ use crate::{
     parsing::PestParser,
     syntax_tree::fol::{
         Atom, AtomicFormula, BinaryConnective, BinaryOperator, Comparison, Formula, GeneralTerm,
-        Guard, IntegerTerm, Predicate, Quantification, Quantifier, Relation, Sort, Theory,
-        UnaryConnective, UnaryOperator, Variable,
+        Guard, IntegerTerm, Predicate, Quantification, Quantifier, Relation, Sort, SymbolicTerm,
+        Theory, UnaryConnective, UnaryOperator, Variable,
     },
 };
 
@@ -110,6 +110,25 @@ impl PestParser for IntegerTermParser {
     }
 }
 
+pub struct SymbolicTermParser;
+
+impl PestParser for SymbolicTermParser {
+    type Node = SymbolicTerm;
+
+    type InternalParser = internal::Parser;
+    type Rule = internal::Rule;
+    const RULE: internal::Rule = internal::Rule::symbolic_term;
+
+    fn translate_pair(pair: pest::iterators::Pair<'_, Self::Rule>) -> Self::Node {
+        match pair.as_rule() {
+            internal::Rule::symbolic_term => Self::translate_pairs(pair.into_inner()),
+            internal::Rule::symbolic_constant => SymbolicTerm::Symbol(pair.as_str().into()),
+            internal::Rule::symbolic_variable => SymbolicTerm::Variable(pair.as_str().into()),
+            _ => Self::report_unexpected_pair(pair),
+        }
+    }
+}
+
 pub struct GeneralTermParser;
 
 impl PestParser for GeneralTermParser {
@@ -124,10 +143,6 @@ impl PestParser for GeneralTermParser {
             internal::Rule::general_term => Self::translate_pairs(pair.into_inner()),
             internal::Rule::infimum => GeneralTerm::Infimum,
             internal::Rule::supremum => GeneralTerm::Supremum,
-            internal::Rule::symbolic_constant => GeneralTerm::Symbol(pair.as_str().into()),
-            internal::Rule::integer_term => {
-                GeneralTerm::IntegerTerm(IntegerTermParser::translate_pair(pair))
-            }
             internal::Rule::general_variable => match pair.into_inner().next() {
                 Some(pair) if pair.as_rule() == internal::Rule::unsorted_variable => {
                     GeneralTerm::Variable(pair.as_str().into())
@@ -135,6 +150,12 @@ impl PestParser for GeneralTermParser {
                 Some(pair) => Self::report_unexpected_pair(pair),
                 None => Self::report_missing_pair(),
             },
+            internal::Rule::integer_term => {
+                GeneralTerm::IntegerTerm(IntegerTermParser::translate_pair(pair))
+            }
+            internal::Rule::symbolic_term => {
+                GeneralTerm::SymbolicTerm(SymbolicTermParser::translate_pair(pair))
+            }
             _ => Self::report_unexpected_pair(pair),
         }
     }
@@ -499,7 +520,7 @@ mod tests {
             syntax_tree::fol::{
                 Atom, AtomicFormula, BinaryConnective, BinaryOperator, Comparison, Formula,
                 GeneralTerm, Guard, IntegerTerm, Predicate, Quantification, Quantifier, Relation,
-                Sort, Theory, UnaryConnective, UnaryOperator, Variable,
+                Sort, SymbolicTerm, Theory, UnaryConnective, UnaryOperator, Variable,
             },
         },
         std::vec,
@@ -589,9 +610,18 @@ mod tests {
                         rhs: IntegerTerm::Numeral(2).into(),
                     }),
                 ),
-                ("a", GeneralTerm::Symbol("a".into())),
-                ("ca_12", GeneralTerm::Symbol("ca_12".into())),
-                ("_b12A", GeneralTerm::Symbol("_b12A".into())),
+                (
+                    "a",
+                    GeneralTerm::SymbolicTerm(SymbolicTerm::Symbol("a".into())),
+                ),
+                (
+                    "ca_12",
+                    GeneralTerm::SymbolicTerm(SymbolicTerm::Symbol("ca_12".into())),
+                ),
+                (
+                    "_b12A",
+                    GeneralTerm::SymbolicTerm(SymbolicTerm::Symbol("_b12A".into())),
+                ),
                 ("A", GeneralTerm::Variable("A".into())),
                 (
                     "1 + A$i",
@@ -753,7 +783,7 @@ mod tests {
                         predicate_symbol: "p".into(),
                         terms: vec![
                             GeneralTerm::Variable("X".into()),
-                            GeneralTerm::Symbol("a".into()),
+                            GeneralTerm::SymbolicTerm(SymbolicTerm::Symbol("a".into())),
                         ],
                     },
                 ),
@@ -807,7 +837,7 @@ mod tests {
             .should_parse_into([(
                 "p < 5",
                 Comparison {
-                    term: GeneralTerm::Symbol("p".into()),
+                    term: GeneralTerm::SymbolicTerm(SymbolicTerm::Symbol("p".into())),
                     guards: vec![Guard {
                         relation: Relation::Less,
                         term: GeneralTerm::IntegerTerm(IntegerTerm::Numeral(5)),
@@ -846,7 +876,7 @@ mod tests {
                 (
                     "n > 1",
                     AtomicFormula::Comparison(Comparison {
-                        term: GeneralTerm::Symbol("n".to_string()),
+                        term: GeneralTerm::SymbolicTerm(SymbolicTerm::Symbol("n".to_string())),
                         guards: vec![Guard {
                             relation: Relation::Greater,
                             term: GeneralTerm::IntegerTerm(IntegerTerm::Numeral(1)),

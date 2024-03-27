@@ -29,9 +29,10 @@ keyword = _{ primitive | binary_connective | unary_connective | quantifier }
         forall = { "forall" }
         exists = { "exists" }
 
-    sort = { integer_sort | general_sort }
-        integer_sort = { "i" }
+    sort = { general_sort | integer_sort | symbolic_sort }
         general_sort = { "g" }
+        integer_sort = { "i" }
+        symbolic_sort = { "s" }
 
 basic_integer_term = _{ numeral | integer_variable }
     numeral           = @{ ("0") | ("-"? ~ ASCII_NONZERO_DIGIT ~ ASCII_DIGIT*) }
@@ -49,8 +50,11 @@ binary_operator = _{ add | subtract | multiply }
 integer_term = { unary_operator* ~ n_primary ~ (binary_operator ~ unary_operator* ~ n_primary)* }
     n_primary = _{ basic_integer_term | "(" ~ integer_term ~ ")" }
 
-general_term = { integer_term | symbolic_constant | general_variable | infimum | supremum }
+symbolic_term = { symbolic_constant | symbolic_variable }
     symbolic_constant = @{ !keyword ~ "_"? ~ ASCII_ALPHA_LOWER ~ (ASCII_ALPHANUMERIC | "_")* }
+    symbolic_variable  = ${ (unsorted_variable ~ "$" ~ symbolic_sort) }
+
+general_term = { integer_term | symbolic_term | general_variable | infimum | supremum }
     general_variable  = ${ unsorted_variable ~ ("$" ~ general_sort)? }
 
 variable = { integer_variable | general_variable }

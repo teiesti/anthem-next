@@ -5,7 +5,7 @@ use {
             fol::{
                 Atom, AtomicFormula, BinaryConnective, BinaryOperator, Comparison, Formula,
                 GeneralTerm, Guard, IntegerTerm, Predicate, Quantification, Quantifier, Relation,
-                Sort, Theory, UnaryConnective, UnaryOperator, Variable,
+                Sort, SymbolicTerm, Theory, UnaryConnective, UnaryOperator, Variable,
             },
             Node,
         },
@@ -73,11 +73,20 @@ impl Display for Format<'_, IntegerTerm> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self.0 {
             IntegerTerm::Numeral(n) => write!(f, "{n}"),
-            IntegerTerm::Variable(s) => write!(f, "{s}$i"),
+            IntegerTerm::Variable(v) => write!(f, "{v}$i"),
             IntegerTerm::UnaryOperation { arg, .. } => self.fmt_unary(Format(arg.as_ref()), f),
             IntegerTerm::BinaryOperation { lhs, rhs, .. } => {
                 self.fmt_binary(Format(lhs.as_ref()), Format(rhs.as_ref()), f)
             }
+        }
+    }
+}
+
+impl Display for Format<'_, SymbolicTerm> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self.0 {
+            SymbolicTerm::Symbol(s) => write!(f, "{s}"),
+            SymbolicTerm::Variable(v) => write!(f, "{v}$s"),
         }
     }
 }
@@ -87,9 +96,9 @@ impl Display for Format<'_, GeneralTerm> {
         match self.0 {
             GeneralTerm::Infimum => write!(f, "#inf"),
             GeneralTerm::Supremum => write!(f, "#sup"),
-            GeneralTerm::Symbol(s) => write!(f, "{s}"),
             GeneralTerm::Variable(v) => write!(f, "{v}"),
             GeneralTerm::IntegerTerm(t) => Format(t).fmt(f),
+            GeneralTerm::SymbolicTerm(t) => Format(t).fmt(f),
         }
     }
 }
@@ -184,6 +193,7 @@ impl Display for Format<'_, Variable> {
         match sort {
             Sort::General => write!(f, "{name}"),
             Sort::Integer => write!(f, "{name}$i"),
+            Sort::Symbol => write!(f, "{name}$s"),
         }
     }
 }
@@ -326,7 +336,7 @@ mod tests {
         syntax_tree::fol::{
             Atom, AtomicFormula, BinaryConnective, BinaryOperator, Comparison, Formula,
             GeneralTerm, Guard, IntegerTerm, Quantification, Quantifier, Relation, Sort,
-            UnaryConnective, Variable,
+            SymbolicTerm, UnaryConnective, Variable,
         },
     };
 
@@ -353,7 +363,10 @@ mod tests {
             "N$i"
         );
         assert_eq!(
-            Format(&GeneralTerm::Symbol("abc".into())).to_string(),
+            Format(&GeneralTerm::SymbolicTerm(SymbolicTerm::Symbol(
+                "abc".into()
+            )))
+            .to_string(),
             "abc"
         );
         assert_eq!(
@@ -438,7 +451,7 @@ mod tests {
             Format(&AtomicFormula::Atom(Atom {
                 predicate_symbol: "p".into(),
                 terms: vec![
-                    GeneralTerm::Symbol("a".into()),
+                    GeneralTerm::SymbolicTerm(SymbolicTerm::Symbol("a".into())),
                     GeneralTerm::IntegerTerm(IntegerTerm::Variable("X".into())),
                 ]
             }))
