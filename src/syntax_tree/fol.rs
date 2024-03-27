@@ -2,36 +2,15 @@ use {
     crate::{
         formatting::fol::default::Format,
         parsing::fol::pest::{
-            AtomParser, AtomicFormulaParser, BasicIntegerTermParser, BinaryConnectiveParser,
-            BinaryOperatorParser, ComparisonParser, FormulaParser, GeneralTermParser, GuardParser,
-            IntegerTermParser, PredicateParser, QuantificationParser, QuantifierParser,
-            RelationParser, TheoryParser, UnaryConnectiveParser, UnaryOperatorParser,
-            VariableParser,
+            AtomParser, AtomicFormulaParser, BinaryConnectiveParser, BinaryOperatorParser,
+            ComparisonParser, FormulaParser, GeneralTermParser, GuardParser, IntegerTermParser,
+            PredicateParser, QuantificationParser, QuantifierParser, RelationParser, TheoryParser,
+            UnaryConnectiveParser, UnaryOperatorParser, VariableParser,
         },
         syntax_tree::{impl_node, Node},
     },
     std::{collections::HashSet, hash::Hash},
 };
-
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
-pub enum BasicIntegerTerm {
-    Numeral(isize),
-    IntegerVariable(String),
-}
-
-impl_node!(BasicIntegerTerm, Format, BasicIntegerTermParser);
-
-impl BasicIntegerTerm {
-    pub fn variables(&self) -> HashSet<Variable> {
-        match &self {
-            BasicIntegerTerm::IntegerVariable(v) => HashSet::from([Variable {
-                name: v.to_string(),
-                sort: Sort::Integer,
-            }]),
-            _ => HashSet::new(),
-        }
-    }
-}
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub enum UnaryOperator {
@@ -51,7 +30,8 @@ impl_node!(BinaryOperator, Format, BinaryOperatorParser);
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub enum IntegerTerm {
-    BasicIntegerTerm(BasicIntegerTerm),
+    Numeral(isize),
+    Variable(String),
     UnaryOperation {
         op: UnaryOperator,
         arg: Box<IntegerTerm>,
@@ -68,7 +48,11 @@ impl_node!(IntegerTerm, Format, IntegerTermParser);
 impl IntegerTerm {
     pub fn variables(&self) -> HashSet<Variable> {
         match &self {
-            IntegerTerm::BasicIntegerTerm(t) => t.variables(),
+            IntegerTerm::Numeral(_) => HashSet::new(),
+            IntegerTerm::Variable(v) => HashSet::from([Variable {
+                name: v.to_string(),
+                sort: Sort::Integer,
+            }]),
             IntegerTerm::UnaryOperation { arg: t, .. } => t.variables(),
             IntegerTerm::BinaryOperation { lhs, rhs, .. } => {
                 let mut vars = lhs.variables();
@@ -80,14 +64,8 @@ impl IntegerTerm {
 
     pub fn substitute(self, var: Variable, term: IntegerTerm) -> Self {
         match self {
-            IntegerTerm::BasicIntegerTerm(t) => match t {
-                BasicIntegerTerm::IntegerVariable(s)
-                    if var.name == s && var.sort == Sort::Integer =>
-                {
-                    term
-                }
-                _ => IntegerTerm::BasicIntegerTerm(t),
-            },
+            IntegerTerm::Variable(s) if var.name == s && var.sort == Sort::Integer => term,
+            IntegerTerm::Numeral(_) | IntegerTerm::Variable(_) => self,
             IntegerTerm::UnaryOperation { op, arg } => IntegerTerm::UnaryOperation {
                 op,
                 arg: arg.substitute(var, term).into(),

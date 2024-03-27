@@ -3,9 +3,9 @@ use {
         formatting::{Associativity, Precedence},
         syntax_tree::{
             fol::{
-                Atom, AtomicFormula, BasicIntegerTerm, BinaryConnective, BinaryOperator,
-                Comparison, Formula, GeneralTerm, Guard, IntegerTerm, Predicate, Quantification,
-                Quantifier, Relation, Sort, Theory, UnaryConnective, UnaryOperator, Variable,
+                Atom, AtomicFormula, BinaryConnective, BinaryOperator, Comparison, Formula,
+                GeneralTerm, Guard, IntegerTerm, Predicate, Quantification, Quantifier, Relation,
+                Sort, Theory, UnaryConnective, UnaryOperator, Variable,
             },
             Node,
         },
@@ -14,15 +14,6 @@ use {
 };
 
 pub struct Format<'a, N: Node>(pub &'a N);
-
-impl Display for Format<'_, BasicIntegerTerm> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self.0 {
-            BasicIntegerTerm::Numeral(n) => write!(f, "{n}"),
-            BasicIntegerTerm::IntegerVariable(s) => write!(f, "{s}$i"),
-        }
-    }
-}
 
 impl Display for Format<'_, UnaryOperator> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
@@ -47,12 +38,13 @@ impl Format<'_, IntegerTerm> {}
 impl Precedence for Format<'_, IntegerTerm> {
     fn precedence(&self) -> usize {
         match self.0 {
-            IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(1..)) => 1,
+            IntegerTerm::Numeral(1..) => 1,
             IntegerTerm::UnaryOperation {
                 op: UnaryOperator::Negative,
                 ..
             }
-            | IntegerTerm::BasicIntegerTerm(_) => 0,
+            | IntegerTerm::Numeral(_)
+            | IntegerTerm::Variable(_) => 0,
             IntegerTerm::BinaryOperation {
                 op: BinaryOperator::Multiply,
                 ..
@@ -72,7 +64,7 @@ impl Precedence for Format<'_, IntegerTerm> {
         match self.0 {
             IntegerTerm::UnaryOperation { op, .. } => write!(f, "{}", Format(op)),
             IntegerTerm::BinaryOperation { op, .. } => write!(f, " {} ", Format(op)),
-            IntegerTerm::BasicIntegerTerm(_) => unreachable!(),
+            IntegerTerm::Numeral(_) | IntegerTerm::Variable(_) => unreachable!(),
         }
     }
 }
@@ -80,7 +72,8 @@ impl Precedence for Format<'_, IntegerTerm> {
 impl Display for Format<'_, IntegerTerm> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self.0 {
-            IntegerTerm::BasicIntegerTerm(t) => Format(t).fmt(f),
+            IntegerTerm::Numeral(n) => write!(f, "{n}"),
+            IntegerTerm::Variable(s) => write!(f, "{s}$i"),
             IntegerTerm::UnaryOperation { arg, .. } => self.fmt_unary(Format(arg.as_ref()), f),
             IntegerTerm::BinaryOperation { lhs, rhs, .. } => {
                 self.fmt_binary(Format(lhs.as_ref()), Format(rhs.as_ref()), f)
@@ -331,19 +324,19 @@ mod tests {
     use crate::{
         formatting::fol::default::Format,
         syntax_tree::fol::{
-            Atom, AtomicFormula, BasicIntegerTerm, BinaryConnective, BinaryOperator, Comparison,
-            Formula, GeneralTerm, Guard, IntegerTerm, Quantification, Quantifier, Relation, Sort,
+            Atom, AtomicFormula, BinaryConnective, BinaryOperator, Comparison, Formula,
+            GeneralTerm, Guard, IntegerTerm, Quantification, Quantifier, Relation, Sort,
             UnaryConnective, Variable,
         },
     };
 
     #[test]
-    fn format_basic_integer_term() {
-        assert_eq!(Format(&BasicIntegerTerm::Numeral(-1)).to_string(), "-1");
-        assert_eq!(Format(&BasicIntegerTerm::Numeral(0)).to_string(), "0");
-        assert_eq!(Format(&BasicIntegerTerm::Numeral(42)).to_string(), "42");
+    fn format_integer_term() {
+        assert_eq!(Format(&IntegerTerm::Numeral(-1)).to_string(), "-1");
+        assert_eq!(Format(&IntegerTerm::Numeral(0)).to_string(), "0");
+        assert_eq!(Format(&IntegerTerm::Numeral(42)).to_string(), "42");
         assert_eq!(
-            Format(&BasicIntegerTerm::IntegerVariable("A".into())).to_string(),
+            Format(&IntegerTerm::Variable("A".into())).to_string(),
             "A$i"
         );
     }
@@ -354,7 +347,7 @@ mod tests {
         assert_eq!(Format(&GeneralTerm::Supremum).to_string(), "#sup");
         assert_eq!(
             Format(&GeneralTerm::IntegerTerm(
-                IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::IntegerVariable("N".into())).into()
+                IntegerTerm::Variable("N".into()).into()
             ))
             .to_string(),
             "N$i"
@@ -366,8 +359,8 @@ mod tests {
         assert_eq!(
             Format(&GeneralTerm::IntegerTerm(IntegerTerm::BinaryOperation {
                 op: BinaryOperator::Multiply,
-                lhs: IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(1)).into(),
-                rhs: IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(5)).into(),
+                lhs: IntegerTerm::Numeral(1).into(),
+                rhs: IntegerTerm::Numeral(5).into(),
             }))
             .to_string(),
             "1 * 5"
@@ -378,14 +371,10 @@ mod tests {
     fn format_comparison() {
         assert_eq!(
             Format(&Comparison {
-                term: GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(
-                    BasicIntegerTerm::Numeral(1)
-                )),
+                term: GeneralTerm::IntegerTerm(IntegerTerm::Numeral(1)),
                 guards: vec![Guard {
                     relation: Relation::Less,
-                    term: GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(
-                        BasicIntegerTerm::Numeral(5)
-                    )),
+                    term: GeneralTerm::IntegerTerm(IntegerTerm::Numeral(5)),
                 }]
             })
             .to_string(),
@@ -393,29 +382,23 @@ mod tests {
         );
         assert_eq!(
             Format(&Comparison {
-                term: GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(
-                    BasicIntegerTerm::IntegerVariable("N".into())
-                )),
+                term: GeneralTerm::IntegerTerm(IntegerTerm::Variable("N".into())),
                 guards: vec![
                     Guard {
                         relation: Relation::Less,
-                        term: GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(
-                            BasicIntegerTerm::Numeral(5)
-                        )),
+                        term: GeneralTerm::IntegerTerm(IntegerTerm::Numeral(5)),
                     },
                     Guard {
                         relation: Relation::NotEqual,
                         term: GeneralTerm::IntegerTerm(IntegerTerm::BinaryOperation {
                             op: BinaryOperator::Multiply,
-                            lhs: IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(7)).into(),
-                            rhs: IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(2)).into(),
+                            lhs: IntegerTerm::Numeral(7).into(),
+                            rhs: IntegerTerm::Numeral(2).into(),
                         }),
                     },
                     Guard {
                         relation: Relation::GreaterEqual,
-                        term: GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(
-                            BasicIntegerTerm::IntegerVariable("Xa".into())
-                        )),
+                        term: GeneralTerm::IntegerTerm(IntegerTerm::Variable("Xa".into())),
                     },
                 ]
             })
@@ -456,9 +439,7 @@ mod tests {
                 predicate_symbol: "p".into(),
                 terms: vec![
                     GeneralTerm::Symbol("a".into()),
-                    GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(
-                        BasicIntegerTerm::IntegerVariable("X".into())
-                    )),
+                    GeneralTerm::IntegerTerm(IntegerTerm::Variable("X".into())),
                 ]
             }))
             .to_string(),
@@ -466,9 +447,7 @@ mod tests {
         );
         assert_eq!(
             Format(&AtomicFormula::Comparison(Comparison {
-                term: GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(
-                    BasicIntegerTerm::Numeral(5)
-                )),
+                term: GeneralTerm::IntegerTerm(IntegerTerm::Numeral(5)),
                 guards: vec![Guard {
                     relation: Relation::Less,
                     term: GeneralTerm::GeneralVariable("I".into()),
