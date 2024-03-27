@@ -78,6 +78,7 @@ fn construct_equality_formula(term: asp::Term, z: fol::Variable) -> fol::Formula
     let z_var_term = match z.sort {
         fol::Sort::General => fol::GeneralTerm::Variable(z.name),
         fol::Sort::Integer => fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::Variable(z.name)),
+        fol::Sort::Symbol => fol::GeneralTerm::SymbolicTerm(fol::SymbolicTerm::Variable(z.name)),
     };
 
     let rhs = match term {
@@ -87,7 +88,9 @@ fn construct_equality_formula(term: asp::Term, z: fol::Variable) -> fol::Formula
             asp::PrecomputedTerm::Numeral(i) => {
                 fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::Numeral(i))
             }
-            asp::PrecomputedTerm::Symbol(s) => fol::GeneralTerm::Symbol(s),
+            asp::PrecomputedTerm::Symbol(s) => {
+                fol::GeneralTerm::SymbolicTerm(fol::SymbolicTerm::Symbol(s))
+            }
         },
         asp::Term::Variable(v) => fol::GeneralTerm::Variable(v.0),
         _ => panic!(), // Error
@@ -117,6 +120,7 @@ fn construct_total_function_formula(
     let z_var_term = match z.sort {
         fol::Sort::General => fol::GeneralTerm::Variable(z.name),
         fol::Sort::Integer => fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::Variable(z.name)),
+        fol::Sort::Symbol => fol::GeneralTerm::SymbolicTerm(fol::SymbolicTerm::Variable(z.name)),
     };
     let zequals = fol::Formula::AtomicFormula(fol::AtomicFormula::Comparison(fol::Comparison {
         // Z = I binop J
@@ -194,6 +198,7 @@ fn construct_partial_function_formula(
     let z_var_term = match z.sort {
         fol::Sort::General => fol::GeneralTerm::Variable(z.name),
         fol::Sort::Integer => fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::Variable(z.name)),
+        fol::Sort::Symbol => fol::GeneralTerm::SymbolicTerm(fol::SymbolicTerm::Variable(z.name)),
     };
 
     // I = J * Q + R
@@ -341,6 +346,7 @@ fn construct_interval_formula(
     let z_var_term = match z.sort {
         fol::Sort::General => fol::GeneralTerm::Variable(z.name),
         fol::Sort::Integer => fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::Variable(z.name)),
+        fol::Sort::Symbol => fol::GeneralTerm::SymbolicTerm(fol::SymbolicTerm::Variable(z.name)),
     };
 
     // I <= K <= J

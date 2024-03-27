@@ -4,7 +4,7 @@ use {
         syntax_tree::{
             fol::{
                 Atom, AtomicFormula, BinaryConnective, BinaryOperator, Comparison, Formula,
-                GeneralTerm, IntegerTerm, Quantification, Quantifier, Relation, Sort,
+                GeneralTerm, IntegerTerm, Quantification, Quantifier, Relation, Sort, SymbolicTerm,
                 UnaryConnective, UnaryOperator, Variable,
             },
             Node,
@@ -62,14 +62,23 @@ impl Display for Format<'_, IntegerTerm> {
     }
 }
 
+impl Display for Format<'_, SymbolicTerm> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self.0 {
+            SymbolicTerm::Symbol(s) => write!(f, "{s}"),
+            SymbolicTerm::Variable(v) => write!(f, "{v}"),
+        }
+    }
+}
+
 impl Display for Format<'_, GeneralTerm> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self.0 {
             GeneralTerm::Infimum => write!(f, "c__infimum__"),
             GeneralTerm::Supremum => write!(f, "c__supremum__"),
-            GeneralTerm::Symbol(s) => write!(f, "{s}"),
             GeneralTerm::Variable(v) => write!(f, "{v}"),
             GeneralTerm::IntegerTerm(t) => Format(t).fmt(f),
+            GeneralTerm::SymbolicTerm(t) => Format(t).fmt(f),
         }
     }
 }
@@ -176,8 +185,9 @@ impl Display for Format<'_, Quantification> {
                 write!(f, ", ")?;
             }
             match var.sort {
+                Sort::General => write!(f, "{}: general", var.name),
                 Sort::Integer => write!(f, "{}: $int", var.name),
-                Sort::General => write!(f, "{}: object", var.name),
+                Sort::Symbol => write!(f, "{}: symbol", var.name),
             }?;
         }
 
@@ -261,7 +271,7 @@ mod tests {
         syntax_tree::fol::{
             Atom, AtomicFormula, BinaryConnective, BinaryOperator, Comparison, Formula,
             GeneralTerm, Guard, IntegerTerm, Quantification, Quantifier, Relation, Sort,
-            UnaryOperator, Variable,
+            SymbolicTerm, UnaryOperator, Variable,
         },
     };
 
@@ -311,7 +321,10 @@ mod tests {
     fn format_general_term() {
         assert_eq!(Format(&GeneralTerm::Infimum).to_string(), "c__infimum__");
         assert_eq!(Format(&GeneralTerm::Supremum).to_string(), "c__supremum__");
-        assert_eq!(Format(&GeneralTerm::Symbol("p".into())).to_string(), "p");
+        assert_eq!(
+            Format(&GeneralTerm::SymbolicTerm(SymbolicTerm::Symbol("p".into()))).to_string(),
+            "p"
+        );
         assert_eq!(
             Format(&GeneralTerm::Variable("N1".into())).to_string(),
             "N1"
@@ -429,7 +442,7 @@ mod tests {
                 ]
             })
             .to_string(),
-            "![X1: $int, N2: object]"
+            "![X1: $int, N2: general]"
         );
         assert_eq!(
             Format(&Quantification {
@@ -511,7 +524,7 @@ mod tests {
                 .into()
             })
             .to_string(),
-            "![X: $int, Y1: object]: (p & q)"
+            "![X: $int, Y1: general]: (p & q)"
         );
     }
 }

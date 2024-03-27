@@ -4,8 +4,9 @@ use {
         parsing::fol::pest::{
             AtomParser, AtomicFormulaParser, BinaryConnectiveParser, BinaryOperatorParser,
             ComparisonParser, FormulaParser, GeneralTermParser, GuardParser, IntegerTermParser,
-            PredicateParser, QuantificationParser, QuantifierParser, RelationParser, TheoryParser,
-            UnaryConnectiveParser, UnaryOperatorParser, VariableParser,
+            PredicateParser, QuantificationParser, QuantifierParser, RelationParser,
+            SymbolicTermParser, TheoryParser, UnaryConnectiveParser, UnaryOperatorParser,
+            VariableParser,
         },
         syntax_tree::{impl_node, Node},
     },
@@ -80,12 +81,32 @@ impl IntegerTerm {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
+pub enum SymbolicTerm {
+    Symbol(String),
+    Variable(String),
+}
+
+impl_node!(SymbolicTerm, Format, SymbolicTermParser);
+
+impl SymbolicTerm {
+    pub fn variables(&self) -> HashSet<Variable> {
+        match &self {
+            SymbolicTerm::Symbol(_) => HashSet::new(),
+            SymbolicTerm::Variable(v) => HashSet::from([Variable {
+                name: v.to_string(),
+                sort: Sort::Symbol,
+            }]),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub enum GeneralTerm {
     Infimum,
     Supremum,
     Variable(String),
     IntegerTerm(IntegerTerm),
-    Symbol(String),
+    SymbolicTerm(SymbolicTerm),
 }
 
 impl_node!(GeneralTerm, Format, GeneralTermParser);
@@ -93,12 +114,13 @@ impl_node!(GeneralTerm, Format, GeneralTermParser);
 impl GeneralTerm {
     pub fn variables(&self) -> HashSet<Variable> {
         match &self {
-            GeneralTerm::Infimum | GeneralTerm::Supremum | GeneralTerm::Symbol(_) => HashSet::new(),
+            GeneralTerm::Infimum | GeneralTerm::Supremum => HashSet::new(),
             GeneralTerm::Variable(v) => HashSet::from([Variable {
                 name: v.to_string(),
                 sort: Sort::General,
             }]),
             GeneralTerm::IntegerTerm(t) => t.variables(),
+            GeneralTerm::SymbolicTerm(t) => t.variables(),
         }
     }
 
@@ -282,8 +304,9 @@ impl_node!(Quantification, Format, QuantificationParser);
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash, Ord, PartialOrd)]
 pub enum Sort {
-    Integer,
     General,
+    Integer,
+    Symbol,
 }
 
 // TODO: Should Sort be a Node?
