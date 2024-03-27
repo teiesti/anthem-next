@@ -50,8 +50,6 @@ impl PestParser for BasicIntegerTermParser {
     fn translate_pair(pair: pest::iterators::Pair<'_, Self::Rule>) -> Self::Node {
         match pair.as_rule() {
             internal::Rule::basic_integer_term => Self::translate_pairs(pair.into_inner()),
-            internal::Rule::infimum => BasicIntegerTerm::Infimum,
-            internal::Rule::supremum => BasicIntegerTerm::Supremum,
             internal::Rule::numeral => BasicIntegerTerm::Numeral(pair.as_str().parse().unwrap()),
             internal::Rule::integer_variable => match pair.into_inner().next() {
                 Some(pair) if pair.as_rule() == internal::Rule::unsorted_variable => {
@@ -144,6 +142,8 @@ impl PestParser for GeneralTermParser {
     fn translate_pair(pair: pest::iterators::Pair<'_, Self::Rule>) -> Self::Node {
         match pair.as_rule() {
             internal::Rule::general_term => Self::translate_pairs(pair.into_inner()),
+            internal::Rule::infimum => GeneralTerm::Infimum,
+            internal::Rule::supremum => GeneralTerm::Supremum,
             internal::Rule::symbolic_constant => GeneralTerm::Symbol(pair.as_str().into()),
             internal::Rule::integer_term => {
                 GeneralTerm::IntegerTerm(IntegerTermParser::translate_pair(pair))
@@ -531,8 +531,6 @@ mod tests {
     fn parse_basic_integer_term() {
         BasicIntegerTermParser
             .should_parse_into([
-                ("#inf", BasicIntegerTerm::Infimum),
-                ("#sup", BasicIntegerTerm::Supremum),
                 ("0", BasicIntegerTerm::Numeral(0)),
                 ("1", BasicIntegerTerm::Numeral(1)),
                 ("-1", BasicIntegerTerm::Numeral(-1)),
@@ -541,7 +539,9 @@ mod tests {
                 ("A$i", BasicIntegerTerm::IntegerVariable("A".into())),
                 ("Avar$", BasicIntegerTerm::IntegerVariable("Avar".into())),
             ])
-            .should_reject(["00", "-0", "#", "#infi", "#supa", "_", "1_", "A"]);
+            .should_reject([
+                "00", "-0", "#", "#inf", "#infi", "#sup", "#supa", "_", "1_", "A",
+            ]);
     }
 
     #[test]
@@ -562,14 +562,6 @@ mod tests {
     fn parse_integer_term() {
         IntegerTermParser
             .should_parse_into([
-                (
-                    "#inf",
-                    IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Infimum),
-                ),
-                (
-                    "#sup",
-                    IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Supremum),
-                ),
                 (
                     "0",
                     IntegerTerm::BasicIntegerTerm(BasicIntegerTerm::Numeral(0)),
@@ -614,25 +606,17 @@ mod tests {
                     },
                 ),
             ])
-            .should_reject(["00", "#", "#infi", "#supa", "_", "1_", "(1", "X"]);
+            .should_reject([
+                "00", "#", "#inf", "#infi", "#sup", "#supa", "_", "1_", "(1", "X",
+            ]);
     }
 
     #[test]
     fn parse_general_term() {
         GeneralTermParser
             .should_parse_into([
-                (
-                    "#inf",
-                    GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(
-                        BasicIntegerTerm::Infimum,
-                    )),
-                ),
-                (
-                    "#sup",
-                    GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(
-                        BasicIntegerTerm::Supremum,
-                    )),
-                ),
+                ("#inf", GeneralTerm::Infimum),
+                ("#sup", GeneralTerm::Supremum),
                 (
                     "1",
                     GeneralTerm::IntegerTerm(IntegerTerm::BasicIntegerTerm(
