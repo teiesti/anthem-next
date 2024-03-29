@@ -4,8 +4,9 @@ use {
         syntax_tree::{
             fol::{
                 Atom, AtomicFormula, BinaryConnective, BinaryOperator, Comparison, Formula,
-                GeneralTerm, Guard, IntegerTerm, Predicate, Quantification, Quantifier, Relation,
-                Sort, SymbolicTerm, Theory, UnaryConnective, UnaryOperator, Variable,
+                FunctionConstant, GeneralTerm, Guard, IntegerTerm, Predicate, Quantification,
+                Quantifier, Relation, Sort, SymbolicTerm, Theory, UnaryConnective, UnaryOperator,
+                Variable,
             },
             Node,
         },
@@ -187,6 +188,19 @@ impl Display for Format<'_, Quantifier> {
         match self.0 {
             Quantifier::Forall => write!(f, "forall"),
             Quantifier::Exists => write!(f, "exists"),
+        }
+    }
+}
+
+impl Display for Format<'_, FunctionConstant> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let name = &self.0.name;
+        let sort = &self.0.sort;
+
+        match sort {
+            Sort::General => write!(f, "{name}$g"),
+            Sort::Integer => write!(f, "{name}$i"),
+            Sort::Symbol => write!(f, "{name}$s"),
         }
     }
 }

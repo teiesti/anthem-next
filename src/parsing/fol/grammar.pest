@@ -60,7 +60,9 @@ general_term = { general_function_constant | integer_term | symbolic_term | gene
     general_variable  = ${ unsorted_variable ~ ("$" ~ general_sort)? }
     general_function_constant = ${ symbolic_constant ~ "$" ~ general_sort }
 
-variable = { integer_variable | general_variable }
+function_constant = { integer_function_constant | symbolic_function_constant | general_function_constant }
+
+variable = { integer_variable | symbolic_variable | general_variable }
 
 predicate = { predicate_symbol ~ "/" ~ arity }
     predicate_symbol  = _{ symbolic_constant }

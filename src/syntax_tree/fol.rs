@@ -3,10 +3,10 @@ use {
         formatting::fol::default::Format,
         parsing::fol::pest::{
             AtomParser, AtomicFormulaParser, BinaryConnectiveParser, BinaryOperatorParser,
-            ComparisonParser, FormulaParser, GeneralTermParser, GuardParser, IntegerTermParser,
-            PredicateParser, QuantificationParser, QuantifierParser, RelationParser,
-            SymbolicTermParser, TheoryParser, UnaryConnectiveParser, UnaryOperatorParser,
-            VariableParser,
+            ComparisonParser, FormulaParser, FunctionConstantParser, GeneralTermParser,
+            GuardParser, IntegerTermParser, PredicateParser, QuantificationParser,
+            QuantifierParser, RelationParser, SymbolicTermParser, TheoryParser,
+            UnaryConnectiveParser, UnaryOperatorParser, VariableParser,
         },
         syntax_tree::{impl_node, Node},
     },
@@ -64,6 +64,22 @@ impl IntegerTerm {
         }
     }
 
+    pub fn function_constants(&self) -> HashSet<FunctionConstant> {
+        match &self {
+            IntegerTerm::FunctionConstant(c) => HashSet::from([FunctionConstant {
+                name: c.clone(),
+                sort: Sort::Integer,
+            }]),
+            IntegerTerm::Numeral(_) | IntegerTerm::Variable(_) => HashSet::new(),
+            IntegerTerm::UnaryOperation { arg: t, .. } => t.function_constants(),
+            IntegerTerm::BinaryOperation { lhs, rhs, .. } => {
+                let mut constants = lhs.function_constants();
+                constants.extend(rhs.function_constants());
+                constants
+            }
+        }
+    }
+
     pub fn substitute(self, var: Variable, term: IntegerTerm) -> Self {
         match self {
             IntegerTerm::Variable(s) if var.name == s && var.sort == Sort::Integer => term,
@@ -102,6 +118,23 @@ impl SymbolicTerm {
             }]),
         }
     }
+
+    pub fn symbols(&self) -> HashSet<String> {
+        match &self {
+            SymbolicTerm::Symbol(s) => HashSet::from([s.clone()]),
+            SymbolicTerm::FunctionConstant(_) | SymbolicTerm::Variable(_) => HashSet::new(),
+        }
+    }
+
+    pub fn function_constants(&self) -> HashSet<FunctionConstant> {
+        match &self {
+            SymbolicTerm::FunctionConstant(c) => HashSet::from([FunctionConstant {
+                name: c.clone(),
+                sort: Sort::Symbol,
+            }]),
+            SymbolicTerm::Symbol(_) | SymbolicTerm::Variable(_) => HashSet::new(),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
@@ -128,6 +161,27 @@ impl GeneralTerm {
             }]),
             GeneralTerm::IntegerTerm(t) => t.variables(),
             GeneralTerm::SymbolicTerm(t) => t.variables(),
+        }
+    }
+
+    pub fn symbols(&self) -> HashSet<String> {
+        match &self {
+            GeneralTerm::SymbolicTerm(t) => t.symbols(),
+            _ => HashSet::new(),
+        }
+    }
+
+    pub fn function_constants(&self) -> HashSet<FunctionConstant> {
+        match &self {
+            GeneralTerm::FunctionConstant(c) => HashSet::from([FunctionConstant {
+                name: c.clone(),
+                sort: Sort::General,
+            }]),
+            GeneralTerm::IntegerTerm(t) => t.function_constants(),
+            GeneralTerm::SymbolicTerm(t) => t.function_constants(),
+            GeneralTerm::Infimum | GeneralTerm::Supremum | GeneralTerm::Variable(_) => {
+                HashSet::new()
+            }
         }
     }
 
@@ -210,6 +264,14 @@ impl Guard {
     pub fn variables(&self) -> HashSet<Variable> {
         self.term.variables()
     }
+
+    pub fn symbols(&self) -> HashSet<String> {
+        self.term.symbols()
+    }
+
+    pub fn function_constants(&self) -> HashSet<FunctionConstant> {
+        self.term.function_constants()
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
@@ -277,6 +339,46 @@ impl AtomicFormula {
         }
     }
 
+    pub fn symbols(&self) -> HashSet<String> {
+        match &self {
+            AtomicFormula::Falsity | AtomicFormula::Truth => HashSet::new(),
+            AtomicFormula::Atom(a) => {
+                let mut symbols = HashSet::new();
+                for t in a.terms.iter() {
+                    symbols.extend(t.symbols());
+                }
+                symbols
+            }
+            AtomicFormula::Comparison(c) => {
+                let mut symbols = c.term.symbols();
+                for guard in c.guards.iter() {
+                    symbols.extend(guard.symbols())
+                }
+                symbols
+            }
+        }
+    }
+
+    pub fn function_constants(&self) -> HashSet<FunctionConstant> {
+        match &self {
+            AtomicFormula::Falsity | AtomicFormula::Truth => HashSet::new(),
+            AtomicFormula::Atom(a) => {
+                let mut function_constants = HashSet::new();
+                for t in a.terms.iter() {
+                    function_constants.extend(t.function_constants());
+                }
+                function_constants
+            }
+            AtomicFormula::Comparison(c) => {
+                let mut function_constants = c.term.function_constants();
+                for guard in c.guards.iter() {
+                    function_constants.extend(guard.function_constants())
+                }
+                function_constants
+            }
+        }
+    }
+
     pub fn substitute(self, var: Variable, term: GeneralTerm) -> Self {
         match self {
             AtomicFormula::Atom(a) => AtomicFormula::Atom(a.substitute(var, term)),
@@ -323,6 +425,8 @@ pub struct FunctionConstant {
     pub name: String,
     pub sort: Sort,
 }
+
+impl_node!(FunctionConstant, Format, FunctionConstantParser);
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash, Ord, PartialOrd)]
 pub struct Variable {
@@ -459,6 +563,32 @@ impl Formula {
                 vars
             }
             Formula::QuantifiedFormula { formula, .. } => formula.predicates(),
+        }
+    }
+
+    pub fn symbols(&self) -> HashSet<String> {
+        match &self {
+            Formula::AtomicFormula(f) => f.symbols(),
+            Formula::UnaryFormula { formula, .. } => formula.symbols(),
+            Formula::BinaryFormula { lhs, rhs, .. } => {
+                let mut vars = lhs.symbols();
+                vars.extend(rhs.symbols());
+                vars
+            }
+            Formula::QuantifiedFormula { formula, .. } => formula.symbols(),
+        }
+    }
+
+    pub fn function_constants(&self) -> HashSet<FunctionConstant> {
+        match &self {
+            Formula::AtomicFormula(f) => f.function_constants(),
+            Formula::UnaryFormula { formula, .. } => formula.function_constants(),
+            Formula::BinaryFormula { lhs, rhs, .. } => {
+                let mut vars = lhs.function_constants();
+                vars.extend(rhs.function_constants());
+                vars
+            }
+            Formula::QuantifiedFormula { formula, .. } => formula.function_constants(),
         }
     }
 
