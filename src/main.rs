@@ -2,6 +2,7 @@ pub mod command_line;
 pub mod convenience;
 pub mod formatting;
 pub mod parsing;
+pub mod problem_building;
 pub mod simplifying;
 pub mod syntax_tree;
 pub mod translating;

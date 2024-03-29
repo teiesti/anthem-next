@@ -1,9 +1,9 @@
 use crate::{
     parsing::PestParser,
     syntax_tree::fol::{
-        Atom, AtomicFormula, BinaryConnective, BinaryOperator, Comparison, Formula, GeneralTerm,
-        Guard, IntegerTerm, Predicate, Quantification, Quantifier, Relation, Sort, SymbolicTerm,
-        Theory, UnaryConnective, UnaryOperator, Variable,
+        Atom, AtomicFormula, BinaryConnective, BinaryOperator, Comparison, Formula,
+        FunctionConstant, GeneralTerm, Guard, IntegerTerm, Predicate, Quantification, Quantifier,
+        Relation, Sort, SymbolicTerm, Theory, UnaryConnective, UnaryOperator, Variable,
     },
 };
 
@@ -372,6 +372,55 @@ impl PestParser for QuantifierParser {
     }
 }
 
+pub struct FunctionConstantParser;
+
+impl PestParser for FunctionConstantParser {
+    type Node = FunctionConstant;
+
+    type InternalParser = internal::Parser;
+    type Rule = internal::Rule;
+    const RULE: internal::Rule = internal::Rule::function_constant;
+
+    fn translate_pair(pair: pest::iterators::Pair<'_, Self::Rule>) -> Self::Node {
+        match pair.as_rule() {
+            internal::Rule::function_constant => {
+                FunctionConstantParser::translate_pairs(pair.into_inner())
+            }
+            internal::Rule::integer_function_constant => match pair.into_inner().next() {
+                Some(pair) if pair.as_rule() == internal::Rule::symbolic_constant => {
+                    FunctionConstant {
+                        name: pair.as_str().into(),
+                        sort: Sort::Integer,
+                    }
+                }
+                Some(pair) => Self::report_unexpected_pair(pair),
+                None => Self::report_missing_pair(),
+            },
+            internal::Rule::symbolic_function_constant => match pair.into_inner().next() {
+                Some(pair) if pair.as_rule() == internal::Rule::symbolic_constant => {
+                    FunctionConstant {
+                        name: pair.as_str().into(),
+                        sort: Sort::Symbol,
+                    }
+                }
+                Some(pair) => Self::report_unexpected_pair(pair),
+                None => Self::report_missing_pair(),
+            },
+            internal::Rule::general_function_constant => match pair.into_inner().next() {
+                Some(pair) if pair.as_rule() == internal::Rule::symbolic_constant => {
+                    FunctionConstant {
+                        name: pair.as_str().into(),
+                        sort: Sort::General,
+                    }
+                }
+                Some(pair) => Self::report_unexpected_pair(pair),
+                None => Self::report_missing_pair(),
+            },
+            _ => Self::report_unexpected_pair(pair),
+        }
+    }
+}
+
 pub struct VariableParser;
 
 impl PestParser for VariableParser {
@@ -388,6 +437,14 @@ impl PestParser for VariableParser {
                 Some(pair) if pair.as_rule() == internal::Rule::unsorted_variable => Variable {
                     name: pair.as_str().into(),
                     sort: Sort::Integer,
+                },
+                Some(pair) => Self::report_unexpected_pair(pair),
+                None => Self::report_missing_pair(),
+            },
+            internal::Rule::symbolic_variable => match pair.into_inner().next() {
+                Some(pair) if pair.as_rule() == internal::Rule::unsorted_variable => Variable {
+                    name: pair.as_str().into(),
+                    sort: Sort::Symbol,
                 },
                 Some(pair) => Self::report_unexpected_pair(pair),
                 None => Self::report_missing_pair(),
