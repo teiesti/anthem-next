@@ -44,6 +44,7 @@ impl Precedence for Format<'_, IntegerTerm> {
                 ..
             }
             | IntegerTerm::Numeral(_)
+            | IntegerTerm::FunctionConstant(_)
             | IntegerTerm::Variable(_) => 0,
             IntegerTerm::BinaryOperation {
                 op: BinaryOperator::Multiply,
@@ -64,7 +65,9 @@ impl Precedence for Format<'_, IntegerTerm> {
         match self.0 {
             IntegerTerm::UnaryOperation { op, .. } => write!(f, "{}", Format(op)),
             IntegerTerm::BinaryOperation { op, .. } => write!(f, " {} ", Format(op)),
-            IntegerTerm::Numeral(_) | IntegerTerm::Variable(_) => unreachable!(),
+            IntegerTerm::Numeral(_)
+            | IntegerTerm::Variable(_)
+            | IntegerTerm::FunctionConstant(_) => unreachable!(),
         }
     }
 }
@@ -73,6 +76,7 @@ impl Display for Format<'_, IntegerTerm> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self.0 {
             IntegerTerm::Numeral(n) => write!(f, "{n}"),
+            IntegerTerm::FunctionConstant(c) => write!(f, "{c}$i"),
             IntegerTerm::Variable(v) => write!(f, "{v}$i"),
             IntegerTerm::UnaryOperation { arg, .. } => self.fmt_unary(Format(arg.as_ref()), f),
             IntegerTerm::BinaryOperation { lhs, rhs, .. } => {
@@ -86,6 +90,7 @@ impl Display for Format<'_, SymbolicTerm> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self.0 {
             SymbolicTerm::Symbol(s) => write!(f, "{s}"),
+            SymbolicTerm::FunctionConstant(c) => write!(f, "{c}$s"),
             SymbolicTerm::Variable(v) => write!(f, "{v}$s"),
         }
     }
@@ -96,6 +101,7 @@ impl Display for Format<'_, GeneralTerm> {
         match self.0 {
             GeneralTerm::Infimum => write!(f, "#inf"),
             GeneralTerm::Supremum => write!(f, "#sup"),
+            GeneralTerm::FunctionConstant(c) => write!(f, "{c}$g"),
             GeneralTerm::Variable(v) => write!(f, "{v}"),
             GeneralTerm::IntegerTerm(t) => Format(t).fmt(f),
             GeneralTerm::SymbolicTerm(t) => Format(t).fmt(f),

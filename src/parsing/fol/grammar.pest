@@ -34,8 +34,9 @@ keyword = _{ primitive | binary_connective | unary_connective | quantifier }
         integer_sort = { "i" }
         symbolic_sort = { "s" }
 
-basic_integer_term = _{ numeral | integer_variable }
+basic_integer_term = _{ numeral | integer_function_constant | integer_variable }
     numeral           = @{ ("0") | ("-"? ~ ASCII_NONZERO_DIGIT ~ ASCII_DIGIT*) }
+    integer_function_constant = ${ symbolic_constant ~ "$" ~ integer_sort }
     unsorted_variable = @{ "_"? ~ ASCII_ALPHA_UPPER ~ (ASCII_ALPHANUMERIC | "_")* }
     integer_variable  = ${ (unsorted_variable ~ "$" ~ integer_sort) | !(unsorted_variable ~ "$" ~ sort) ~ (unsorted_variable ~ "$") }
 
@@ -50,12 +51,14 @@ binary_operator = _{ add | subtract | multiply }
 integer_term = { unary_operator* ~ n_primary ~ (binary_operator ~ unary_operator* ~ n_primary)* }
     n_primary = _{ basic_integer_term | "(" ~ integer_term ~ ")" }
 
-symbolic_term = { symbolic_constant | symbolic_variable }
+symbolic_term = { symbolic_function_constant | symbolic_constant | symbolic_variable }
     symbolic_constant = @{ !keyword ~ "_"? ~ ASCII_ALPHA_LOWER ~ (ASCII_ALPHANUMERIC | "_")* }
+    symbolic_function_constant = ${ symbolic_constant ~ "$" ~ symbolic_sort }
     symbolic_variable  = ${ (unsorted_variable ~ "$" ~ symbolic_sort) }
 
-general_term = { integer_term | symbolic_term | general_variable | infimum | supremum }
+general_term = { general_function_constant | integer_term | symbolic_term | general_variable | infimum | supremum }
     general_variable  = ${ unsorted_variable ~ ("$" ~ general_sort)? }
+    general_function_constant = ${ symbolic_constant ~ "$" ~ general_sort }
 
 variable = { integer_variable | general_variable }
 

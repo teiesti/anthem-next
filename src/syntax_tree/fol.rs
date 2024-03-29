@@ -32,6 +32,7 @@ impl_node!(BinaryOperator, Format, BinaryOperatorParser);
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub enum IntegerTerm {
     Numeral(isize),
+    FunctionConstant(String),
     Variable(String),
     UnaryOperation {
         op: UnaryOperator,
@@ -49,7 +50,7 @@ impl_node!(IntegerTerm, Format, IntegerTermParser);
 impl IntegerTerm {
     pub fn variables(&self) -> HashSet<Variable> {
         match &self {
-            IntegerTerm::Numeral(_) => HashSet::new(),
+            IntegerTerm::Numeral(_) | IntegerTerm::FunctionConstant(_) => HashSet::new(),
             IntegerTerm::Variable(v) => HashSet::from([Variable {
                 name: v.to_string(),
                 sort: Sort::Integer,
@@ -66,7 +67,9 @@ impl IntegerTerm {
     pub fn substitute(self, var: Variable, term: IntegerTerm) -> Self {
         match self {
             IntegerTerm::Variable(s) if var.name == s && var.sort == Sort::Integer => term,
-            IntegerTerm::Numeral(_) | IntegerTerm::Variable(_) => self,
+            IntegerTerm::Numeral(_)
+            | IntegerTerm::FunctionConstant(_)
+            | IntegerTerm::Variable(_) => self,
             IntegerTerm::UnaryOperation { op, arg } => IntegerTerm::UnaryOperation {
                 op,
                 arg: arg.substitute(var, term).into(),
@@ -83,6 +86,7 @@ impl IntegerTerm {
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub enum SymbolicTerm {
     Symbol(String),
+    FunctionConstant(String),
     Variable(String),
 }
 
@@ -91,7 +95,7 @@ impl_node!(SymbolicTerm, Format, SymbolicTermParser);
 impl SymbolicTerm {
     pub fn variables(&self) -> HashSet<Variable> {
         match &self {
-            SymbolicTerm::Symbol(_) => HashSet::new(),
+            SymbolicTerm::Symbol(_) | SymbolicTerm::FunctionConstant(_) => HashSet::new(),
             SymbolicTerm::Variable(v) => HashSet::from([Variable {
                 name: v.to_string(),
                 sort: Sort::Symbol,
@@ -104,6 +108,7 @@ impl SymbolicTerm {
 pub enum GeneralTerm {
     Infimum,
     Supremum,
+    FunctionConstant(String),
     Variable(String),
     IntegerTerm(IntegerTerm),
     SymbolicTerm(SymbolicTerm),
@@ -114,7 +119,9 @@ impl_node!(GeneralTerm, Format, GeneralTermParser);
 impl GeneralTerm {
     pub fn variables(&self) -> HashSet<Variable> {
         match &self {
-            GeneralTerm::Infimum | GeneralTerm::Supremum => HashSet::new(),
+            GeneralTerm::Infimum | GeneralTerm::Supremum | GeneralTerm::FunctionConstant(_) => {
+                HashSet::new()
+            }
             GeneralTerm::Variable(v) => HashSet::from([Variable {
                 name: v.to_string(),
                 sort: Sort::General,
@@ -310,6 +317,12 @@ pub enum Sort {
 }
 
 // TODO: Should Sort be a Node?
+
+#[derive(Clone, Debug, Eq, PartialEq, Hash, Ord, PartialOrd)]
+pub struct FunctionConstant {
+    pub name: String,
+    pub sort: Sort,
+}
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash, Ord, PartialOrd)]
 pub struct Variable {

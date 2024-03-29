@@ -47,6 +47,7 @@ impl Display for Format<'_, IntegerTerm> {
                 Ok(())
             }
             IntegerTerm::Variable(v) => write!(f, "{v}$i"),
+            IntegerTerm::FunctionConstant(c) => write!(f, "{c}$i"),
             IntegerTerm::UnaryOperation { op, arg } => {
                 let op = Format(op);
                 let arg = Format(arg.as_ref());
@@ -66,6 +67,7 @@ impl Display for Format<'_, SymbolicTerm> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self.0 {
             SymbolicTerm::Symbol(s) => write!(f, "{s}"),
+            SymbolicTerm::FunctionConstant(c) => write!(f, "{c}$s"),
             SymbolicTerm::Variable(v) => write!(f, "{v}$s"),
         }
     }
@@ -76,6 +78,7 @@ impl Display for Format<'_, GeneralTerm> {
         match self.0 {
             GeneralTerm::Infimum => write!(f, "c__infimum__"),
             GeneralTerm::Supremum => write!(f, "c__supremum__"),
+            GeneralTerm::FunctionConstant(c) => write!(f, "{c}$g"),
             GeneralTerm::Variable(v) => write!(f, "{v}"),
             GeneralTerm::IntegerTerm(t) => write!(f, "f__integer__({})", Format(t)),
             GeneralTerm::SymbolicTerm(t) => write!(f, "f__symbolic__({})", Format(t)),
