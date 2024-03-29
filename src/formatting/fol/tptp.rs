@@ -46,7 +46,7 @@ impl Display for Format<'_, IntegerTerm> {
 
                 Ok(())
             }
-            IntegerTerm::Variable(v) => write!(f, "{v}"),
+            IntegerTerm::Variable(v) => write!(f, "{v}$i"),
             IntegerTerm::UnaryOperation { op, arg } => {
                 let op = Format(op);
                 let arg = Format(arg.as_ref());
@@ -66,7 +66,7 @@ impl Display for Format<'_, SymbolicTerm> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self.0 {
             SymbolicTerm::Symbol(s) => write!(f, "{s}"),
-            SymbolicTerm::Variable(v) => write!(f, "{v}"),
+            SymbolicTerm::Variable(v) => write!(f, "{v}$s"),
         }
     }
 }
@@ -77,8 +77,8 @@ impl Display for Format<'_, GeneralTerm> {
             GeneralTerm::Infimum => write!(f, "c__infimum__"),
             GeneralTerm::Supremum => write!(f, "c__supremum__"),
             GeneralTerm::Variable(v) => write!(f, "{v}"),
-            GeneralTerm::IntegerTerm(t) => Format(t).fmt(f),
-            GeneralTerm::SymbolicTerm(t) => Format(t).fmt(f),
+            GeneralTerm::IntegerTerm(t) => write!(f, "f__integer__({})", Format(t)),
+            GeneralTerm::SymbolicTerm(t) => write!(f, "f__symbolic__({})", Format(t)),
         }
     }
 }
@@ -108,10 +108,10 @@ impl Display for Format<'_, Relation> {
         match self.0 {
             Relation::Equal => write!(f, "="),
             Relation::NotEqual => write!(f, "!="),
-            Relation::GreaterEqual => write!(f, "$greatereq"),
-            Relation::LessEqual => write!(f, "$lesseq"),
-            Relation::Greater => write!(f, "$greater"),
-            Relation::Less => write!(f, "$less"),
+            Relation::GreaterEqual => write!(f, "p__greater_equal__"),
+            Relation::LessEqual => write!(f, "p__less_equal__"),
+            Relation::Greater => write!(f, "p__greater__"),
+            Relation::Less => write!(f, "p__less__"),
         }
     }
 }
@@ -123,7 +123,7 @@ impl Display for Format<'_, Comparison> {
         let mut previous_term = &self.0.term;
         for (counter, g) in guards.iter().enumerate() {
             if counter > 0 {
-                write!(f, " and ")?;
+                write!(f, " & ")?;
             }
             match g.relation {
                 Relation::Equal | Relation::NotEqual => write!(
@@ -170,7 +170,14 @@ impl Display for Format<'_, Quantifier> {
 
 impl Display for Format<'_, Variable> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", &self.0.name)
+        let name = &self.0.name;
+        let sort = &self.0.sort;
+
+        match sort {
+            Sort::General => write!(f, "{name}"),
+            Sort::Integer => write!(f, "{name}$i"),
+            Sort::Symbol => write!(f, "{name}$s"),
+        }
     }
 }
 
@@ -185,9 +192,9 @@ impl Display for Format<'_, Quantification> {
                 write!(f, ", ")?;
             }
             match var.sort {
-                Sort::General => write!(f, "{}: general", var.name),
-                Sort::Integer => write!(f, "{}: $int", var.name),
-                Sort::Symbol => write!(f, "{}: symbol", var.name),
+                Sort::General => write!(f, "{}: general", Format(var)),
+                Sort::Integer => write!(f, "{}: $int", Format(var)),
+                Sort::Symbol => write!(f, "{}: symbol", Format(var)),
             }?;
         }
 
@@ -283,7 +290,10 @@ mod tests {
             Format(&IntegerTerm::Numeral(-42)).to_string(),
             "$uminus(42)"
         );
-        assert_eq!(Format(&IntegerTerm::Variable("A".into())).to_string(), "A");
+        assert_eq!(
+            Format(&IntegerTerm::Variable("A".into())).to_string(),
+            "A$i"
+        );
         assert_eq!(
             Format(&IntegerTerm::BinaryOperation {
                 op: BinaryOperator::Multiply,
@@ -300,7 +310,7 @@ mod tests {
                 rhs: IntegerTerm::Variable("N".into()).into(),
             })
             .to_string(),
-            "$sum(10, N)"
+            "$sum(10, N$i)"
         );
         assert_eq!(
             Format(&IntegerTerm::BinaryOperation {
@@ -313,8 +323,17 @@ mod tests {
                 .into(),
             })
             .to_string(),
-            "$difference($uminus(195), $uminus(N))"
+            "$difference($uminus(195), $uminus(N$i))"
         );
+    }
+
+    #[test]
+    fn format_symbolic_term() {
+        assert_eq!(Format(&SymbolicTerm::Symbol("p".into())).to_string(), "p");
+        assert_eq!(
+            Format(&SymbolicTerm::Variable("X".into())).to_string(),
+            "X$s"
+        )
     }
 
     #[test]
@@ -322,13 +341,17 @@ mod tests {
         assert_eq!(Format(&GeneralTerm::Infimum).to_string(), "c__infimum__");
         assert_eq!(Format(&GeneralTerm::Supremum).to_string(), "c__supremum__");
         assert_eq!(
-            Format(&GeneralTerm::SymbolicTerm(SymbolicTerm::Symbol("p".into()))).to_string(),
-            "p"
-        );
-        assert_eq!(
             Format(&GeneralTerm::Variable("N1".into())).to_string(),
             "N1"
         );
+        assert_eq!(
+            Format(&GeneralTerm::SymbolicTerm(SymbolicTerm::Symbol("p".into()))).to_string(),
+            "f__symbolic__(p)"
+        );
+        assert_eq!(
+            Format(&GeneralTerm::IntegerTerm(IntegerTerm::Numeral(1))).to_string(),
+            "f__integer__(1)"
+        )
     }
 
     #[test]
@@ -346,7 +369,7 @@ mod tests {
                 ]
             })
             .to_string(),
-            "prime($sum(N1, 3), 5)"
+            "prime(f__integer__($sum(N1$i, 3)), f__integer__(5))"
         )
     }
 
@@ -361,7 +384,7 @@ mod tests {
                 }]
             })
             .to_string(),
-            "5 = 3"
+            "f__integer__(5) = f__integer__(3)"
         );
         assert_eq!(
             Format(&Comparison {
@@ -372,7 +395,7 @@ mod tests {
                 }]
             })
             .to_string(),
-            "5 != 3"
+            "f__integer__(5) != f__integer__(3)"
         );
         assert_eq!(
             Format(&Comparison {
@@ -383,7 +406,7 @@ mod tests {
                 }]
             })
             .to_string(),
-            "$lesseq(5, 3)"
+            "p__less_equal__(f__integer__(5), f__integer__(3))"
         );
         assert_eq!(
             Format(&Comparison {
@@ -400,7 +423,7 @@ mod tests {
                 ]
             })
             .to_string(),
-            "$lesseq(5, 3) and 3 = 4"
+            "p__less_equal__(f__integer__(5), f__integer__(3)) & f__integer__(3) = f__integer__(4)"
         );
         assert_eq!(
             Format(&Comparison {
@@ -421,7 +444,7 @@ mod tests {
                 ]
             })
             .to_string(),
-            "$lesseq(5, 3) and $less(3, 6) and 6 != 5"
+            "p__less_equal__(f__integer__(5), f__integer__(3)) & p__less__(f__integer__(3), f__integer__(6)) & f__integer__(6) != f__integer__(5)"
         );
     }
 
@@ -442,18 +465,18 @@ mod tests {
                 ]
             })
             .to_string(),
-            "![X1: $int, N2: general]"
+            "![X1$i: $int, N2: general]"
         );
         assert_eq!(
             Format(&Quantification {
                 quantifier: Quantifier::Exists,
                 variables: vec![Variable {
                     name: "X1".into(),
-                    sort: Sort::Integer,
+                    sort: Sort::Symbol,
                 },]
             })
             .to_string(),
-            "?[X1: $int]"
+            "?[X1$s: symbol]"
         );
     }
 
@@ -524,7 +547,7 @@ mod tests {
                 .into()
             })
             .to_string(),
-            "![X: $int, Y1: general]: (p & q)"
+            "![X$i: $int, Y1: general]: (p & q)"
         );
     }
 }
