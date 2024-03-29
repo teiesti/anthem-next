@@ -88,6 +88,13 @@ impl PestParser for IntegerTermParser {
             .map_primary(|primary| match primary.as_rule() {
                 internal::Rule::integer_term => IntegerTermParser::translate_pair(primary),
                 internal::Rule::numeral => IntegerTerm::Numeral(primary.as_str().parse().unwrap()),
+                internal::Rule::integer_function_constant => match primary.into_inner().next() {
+                    Some(pair) if pair.as_rule() == internal::Rule::symbolic_constant => {
+                        IntegerTerm::FunctionConstant(pair.as_str().into())
+                    }
+                    Some(pair) => Self::report_unexpected_pair(pair),
+                    None => Self::report_missing_pair(),
+                },
                 internal::Rule::integer_variable => match primary.into_inner().next() {
                     Some(pair) if pair.as_rule() == internal::Rule::unsorted_variable => {
                         IntegerTerm::Variable(pair.as_str().into())
@@ -123,7 +130,20 @@ impl PestParser for SymbolicTermParser {
         match pair.as_rule() {
             internal::Rule::symbolic_term => Self::translate_pairs(pair.into_inner()),
             internal::Rule::symbolic_constant => SymbolicTerm::Symbol(pair.as_str().into()),
-            internal::Rule::symbolic_variable => SymbolicTerm::Variable(pair.as_str().into()),
+            internal::Rule::symbolic_function_constant => match pair.into_inner().next() {
+                Some(pair) if pair.as_rule() == internal::Rule::symbolic_constant => {
+                    SymbolicTerm::FunctionConstant(pair.as_str().into())
+                }
+                Some(pair) => Self::report_unexpected_pair(pair),
+                None => Self::report_missing_pair(),
+            },
+            internal::Rule::symbolic_variable => match pair.into_inner().next() {
+                Some(pair) if pair.as_rule() == internal::Rule::unsorted_variable => {
+                    SymbolicTerm::Variable(pair.as_str().into())
+                }
+                Some(pair) => Self::report_unexpected_pair(pair),
+                None => Self::report_missing_pair(),
+            },
             _ => Self::report_unexpected_pair(pair),
         }
     }
@@ -143,6 +163,13 @@ impl PestParser for GeneralTermParser {
             internal::Rule::general_term => Self::translate_pairs(pair.into_inner()),
             internal::Rule::infimum => GeneralTerm::Infimum,
             internal::Rule::supremum => GeneralTerm::Supremum,
+            internal::Rule::general_function_constant => match pair.into_inner().next() {
+                Some(pair) if pair.as_rule() == internal::Rule::symbolic_constant => {
+                    GeneralTerm::FunctionConstant(pair.as_str().into())
+                }
+                Some(pair) => Self::report_unexpected_pair(pair),
+                None => Self::report_missing_pair(),
+            },
             internal::Rule::general_variable => match pair.into_inner().next() {
                 Some(pair) if pair.as_rule() == internal::Rule::unsorted_variable => {
                     GeneralTerm::Variable(pair.as_str().into())
@@ -512,8 +539,9 @@ mod tests {
         super::{
             AtomParser, AtomicFormulaParser, BinaryConnectiveParser, BinaryOperatorParser,
             ComparisonParser, FormulaParser, GeneralTermParser, GuardParser, IntegerTermParser,
-            PredicateParser, QuantificationParser, QuantifierParser, RelationParser, TheoryParser,
-            UnaryConnectiveParser, UnaryOperatorParser, VariableParser,
+            PredicateParser, QuantificationParser, QuantifierParser, RelationParser,
+            SymbolicTermParser, TheoryParser, UnaryConnectiveParser, UnaryOperatorParser,
+            VariableParser,
         },
         crate::{
             parsing::TestedParser,
@@ -549,6 +577,7 @@ mod tests {
                 ("-1", IntegerTerm::Numeral(-1)),
                 ("-48", IntegerTerm::Numeral(-48)),
                 ("(-48)", IntegerTerm::Numeral(-48)),
+                ("a$i", IntegerTerm::FunctionConstant("a".into())),
                 ("X$i", IntegerTerm::Variable("X".into())),
                 ("Xvar$", IntegerTerm::Variable("Xvar".into())),
                 (
@@ -575,8 +604,19 @@ mod tests {
                 ),
             ])
             .should_reject([
-                "00", "#", "#inf", "#infi", "#sup", "#supa", "_", "1_", "(1", "X",
+                "00", "#", "#inf", "#infi", "#sup", "#supa", "_", "1_", "(1", "X", "X$s", "X$g",
             ]);
+    }
+
+    #[test]
+    fn parse_symbolic_terms() {
+        SymbolicTermParser
+            .should_parse_into([
+                ("a", SymbolicTerm::Symbol("a".into())),
+                ("a$s", SymbolicTerm::FunctionConstant("a".into())),
+                ("X$s", SymbolicTerm::Variable("X".into())),
+            ])
+            .should_reject(["0", "a$i", "a$g", "X$i", "X$g"]);
     }
 
     #[test]
@@ -585,6 +625,7 @@ mod tests {
             .should_parse_into([
                 ("#inf", GeneralTerm::Infimum),
                 ("#sup", GeneralTerm::Supremum),
+                ("a$g", GeneralTerm::FunctionConstant("a".into())),
                 ("1", GeneralTerm::IntegerTerm(IntegerTerm::Numeral(1))),
                 ("(1)", GeneralTerm::IntegerTerm(IntegerTerm::Numeral(1))),
                 ("-1", GeneralTerm::IntegerTerm(IntegerTerm::Numeral(-1))),
