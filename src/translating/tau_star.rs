@@ -78,7 +78,7 @@ fn construct_equality_formula(term: asp::Term, z: fol::Variable) -> fol::Formula
     let z_var_term = match z.sort {
         fol::Sort::General => fol::GeneralTerm::Variable(z.name),
         fol::Sort::Integer => fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::Variable(z.name)),
-        fol::Sort::Symbol => fol::GeneralTerm::SymbolicTerm(fol::SymbolicTerm::Variable(z.name)),
+        fol::Sort::Symbol => unreachable!("tau* should not produce variables of the Symbol sort"),
     };
 
     let rhs = match term {
@@ -93,7 +93,9 @@ fn construct_equality_formula(term: asp::Term, z: fol::Variable) -> fol::Formula
             }
         },
         asp::Term::Variable(v) => fol::GeneralTerm::Variable(v.0),
-        _ => panic!(), // Error
+        _ => unreachable!(
+            "equality should be between two variables or a variable and a precomputed term"
+        ),
     };
 
     fol::Formula::AtomicFormula(fol::AtomicFormula::Comparison(fol::Comparison {
@@ -120,7 +122,7 @@ fn construct_total_function_formula(
     let z_var_term = match z.sort {
         fol::Sort::General => fol::GeneralTerm::Variable(z.name),
         fol::Sort::Integer => fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::Variable(z.name)),
-        fol::Sort::Symbol => fol::GeneralTerm::SymbolicTerm(fol::SymbolicTerm::Variable(z.name)),
+        fol::Sort::Symbol => unreachable!("tau* should not produce variables of the Symbol sort"),
     };
     let zequals = fol::Formula::AtomicFormula(fol::AtomicFormula::Comparison(fol::Comparison {
         // Z = I binop J
@@ -132,7 +134,7 @@ fn construct_total_function_formula(
                     asp::BinaryOperator::Add => fol::BinaryOperator::Add,
                     asp::BinaryOperator::Subtract => fol::BinaryOperator::Subtract,
                     asp::BinaryOperator::Multiply => fol::BinaryOperator::Multiply,
-                    _ => panic!(), // More error handling
+                    _ => unreachable!("addition, subtraction and multiplication are the only supported total functions"),
                 },
                 lhs: fol::IntegerTerm::Variable(i.clone()).into(),
                 rhs: fol::IntegerTerm::Variable(j.clone()).into(),
@@ -167,7 +169,7 @@ fn construct_total_function_formula(
     }
 }
 
-// Are these definitions correct?
+// Integer division. Not Abstract Gringo compliant in negative divisor edge cases.
 // Division: exists I J Q R (I = J * Q + R & val_t1(I) & val_t2(J) & J != 0 & R >= 0 & R < Q & Z = Q)
 // Modulo:   exists I J Q R (I = J * Q + R & val_t1(I) & val_t2(J) & J != 0 & R >= 0 & R < Q & Z = R)
 fn construct_partial_function_formula(
@@ -198,7 +200,7 @@ fn construct_partial_function_formula(
     let z_var_term = match z.sort {
         fol::Sort::General => fol::GeneralTerm::Variable(z.name),
         fol::Sort::Integer => fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::Variable(z.name)),
-        fol::Sort::Symbol => fol::GeneralTerm::SymbolicTerm(fol::SymbolicTerm::Variable(z.name)),
+        fol::Sort::Symbol => unreachable!("tau* should not produce variables of the Symbol sort"),
     };
 
     // I = J * Q + R
@@ -299,7 +301,7 @@ fn construct_partial_function_formula(
                 }],
             }))
         }
-        _ => panic!(), // Error
+        _ => unreachable!("division and modulo are the only supported partial functions"),
     };
 
     fol::Formula::QuantifiedFormula {
@@ -346,7 +348,7 @@ fn construct_interval_formula(
     let z_var_term = match z.sort {
         fol::Sort::General => fol::GeneralTerm::Variable(z.name),
         fol::Sort::Integer => fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::Variable(z.name)),
-        fol::Sort::Symbol => fol::GeneralTerm::SymbolicTerm(fol::SymbolicTerm::Variable(z.name)),
+        fol::Sort::Symbol => unreachable!("tau* should not produce variables of the Symbol sort"),
     };
 
     // I <= K <= J
@@ -753,7 +755,7 @@ fn tau_star_fo_head_rule(r: &asp::Rule, globals: &[String]) -> fol::Formula {
             }
             .into(),
         },
-        _ => panic!(),
+        _ => unreachable!("only atoms and choice rules are supported in this function constructor"),
     };
     let imp = fol::Formula::BinaryFormula {
         connective: fol::BinaryConnective::Implication,
@@ -817,7 +819,7 @@ fn tau_star_prop_head_rule(r: &asp::Rule) -> fol::Formula {
             }
         }
         asp::Head::Falsity => {
-            panic!()
+            unreachable!("a constraint head is not permitted in this formula constructor")
         }
     };
 
