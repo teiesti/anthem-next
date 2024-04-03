@@ -63,7 +63,7 @@ fn choose_fresh_variable_names(
         candidate.push_str(number);
         let mut m = n;
         while taken_vars.contains(&candidate) || fresh_vars.contains(&candidate) {
-            candidate = variant.to_owned();
+            variant.clone_into(&mut candidate);
             m += 1;
             let number = &m.to_string();
             candidate.push_str(number);

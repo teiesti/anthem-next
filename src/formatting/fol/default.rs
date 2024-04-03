@@ -376,10 +376,7 @@ mod tests {
         assert_eq!(Format(&GeneralTerm::Infimum).to_string(), "#inf");
         assert_eq!(Format(&GeneralTerm::Supremum).to_string(), "#sup");
         assert_eq!(
-            Format(&GeneralTerm::IntegerTerm(
-                IntegerTerm::Variable("N".into()).into()
-            ))
-            .to_string(),
+            Format(&GeneralTerm::IntegerTerm(IntegerTerm::Variable("N".into()))).to_string(),
             "N$i"
         );
         assert_eq!(
