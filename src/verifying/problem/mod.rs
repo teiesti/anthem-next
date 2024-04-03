@@ -67,7 +67,21 @@ pub struct Problem {
 }
 
 impl Problem {
-    // TODO Tobias: Implement getters for axioms and conjectures
+    pub fn axioms(&self) -> Vec<AnnotatedFormula> {
+        self.formulas
+            .iter()
+            .filter(|f| f.role == Role::Axiom)
+            .cloned()
+            .collect_vec()
+    }
+
+    pub fn conjectures(&self) -> Vec<AnnotatedFormula> {
+        self.formulas
+            .iter()
+            .filter(|f| f.role == Role::Conjecture)
+            .cloned()
+            .collect_vec()
+    }
 
     pub fn predicates(&self) -> HashSet<Predicate> {
         let mut result = HashSet::new();
