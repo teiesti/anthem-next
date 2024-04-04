@@ -183,3 +183,137 @@ impl fmt::Display for Problem {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use {
+        super::{AnnotatedFormula, Interpretation, Problem, Role},
+        std::vec,
+    };
+
+    #[test]
+    fn test_decomposition() {
+        let problem = Problem {
+            interpretation: Interpretation::Standard,
+            formulas: vec![
+                AnnotatedFormula {
+                    name: "axiom_0".into(),
+                    role: Role::Axiom,
+                    formula: "p(a)".parse().unwrap(),
+                },
+                AnnotatedFormula {
+                    name: "axiom_1".into(),
+                    role: Role::Axiom,
+                    formula: "forall X p(X) -> q(X)".parse().unwrap(),
+                },
+                AnnotatedFormula {
+                    name: "conjecture_0".into(),
+                    role: Role::Conjecture,
+                    formula: "p(a)".parse().unwrap(),
+                },
+                AnnotatedFormula {
+                    name: "conjecture_1".into(),
+                    role: Role::Conjecture,
+                    formula: "q(a)".parse().unwrap(),
+                },
+            ],
+        };
+
+        assert_eq!(
+            problem.decompose_independent(),
+            vec![
+                Problem {
+                    interpretation: Interpretation::Standard,
+                    formulas: vec![
+                        AnnotatedFormula {
+                            name: "axiom_0".into(),
+                            role: Role::Axiom,
+                            formula: "p(a)".parse().unwrap(),
+                        },
+                        AnnotatedFormula {
+                            name: "axiom_1".into(),
+                            role: Role::Axiom,
+                            formula: "forall X p(X) -> q(X)".parse().unwrap(),
+                        },
+                        AnnotatedFormula {
+                            name: "conjecture_0".into(),
+                            role: Role::Conjecture,
+                            formula: "p(a)".parse().unwrap(),
+                        },
+                    ],
+                },
+                Problem {
+                    interpretation: Interpretation::Standard,
+                    formulas: vec![
+                        AnnotatedFormula {
+                            name: "axiom_0".into(),
+                            role: Role::Axiom,
+                            formula: "p(a)".parse().unwrap(),
+                        },
+                        AnnotatedFormula {
+                            name: "axiom_1".into(),
+                            role: Role::Axiom,
+                            formula: "forall X p(X) -> q(X)".parse().unwrap(),
+                        },
+                        AnnotatedFormula {
+                            name: "conjecture_1".into(),
+                            role: Role::Conjecture,
+                            formula: "q(a)".parse().unwrap(),
+                        },
+                    ],
+                }
+            ]
+        );
+
+        assert_eq!(
+            problem.decompose_sequential(),
+            vec![
+                Problem {
+                    interpretation: Interpretation::Standard,
+                    formulas: vec![
+                        AnnotatedFormula {
+                            name: "axiom_0".into(),
+                            role: Role::Axiom,
+                            formula: "p(a)".parse().unwrap(),
+                        },
+                        AnnotatedFormula {
+                            name: "axiom_1".into(),
+                            role: Role::Axiom,
+                            formula: "forall X p(X) -> q(X)".parse().unwrap(),
+                        },
+                        AnnotatedFormula {
+                            name: "conjecture_0".into(),
+                            role: Role::Conjecture,
+                            formula: "p(a)".parse().unwrap(),
+                        },
+                    ],
+                },
+                Problem {
+                    interpretation: Interpretation::Standard,
+                    formulas: vec![
+                        AnnotatedFormula {
+                            name: "axiom_0".into(),
+                            role: Role::Axiom,
+                            formula: "p(a)".parse().unwrap(),
+                        },
+                        AnnotatedFormula {
+                            name: "axiom_1".into(),
+                            role: Role::Axiom,
+                            formula: "forall X p(X) -> q(X)".parse().unwrap(),
+                        },
+                        AnnotatedFormula {
+                            name: "conjecture_0".into(),
+                            role: Role::Axiom,
+                            formula: "p(a)".parse().unwrap(),
+                        },
+                        AnnotatedFormula {
+                            name: "conjecture_1".into(),
+                            role: Role::Conjecture,
+                            formula: "q(a)".parse().unwrap(),
+                        },
+                    ],
+                }
+            ]
+        );
+    }
+}
