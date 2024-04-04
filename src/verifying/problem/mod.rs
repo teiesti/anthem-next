@@ -127,7 +127,12 @@ impl Problem {
         self.conjectures()
             .into_iter()
             .map(|c| {
+                if let Some(last) = formulas.last_mut() {
+                    last.role = Role::Axiom;
+                }
+
                 formulas.push(c);
+
                 Problem {
                     interpretation: self.interpretation.clone(),
                     formulas: formulas.clone(),
