@@ -106,6 +106,35 @@ impl Problem {
         }
         result
     }
+
+    pub fn decompose_independent(&self) -> Vec<Self> {
+        let axioms = self.axioms();
+        self.conjectures()
+            .into_iter()
+            .map(|c| {
+                let mut formulas = axioms.clone();
+                formulas.push(c);
+                Problem {
+                    interpretation: self.interpretation.clone(),
+                    formulas,
+                }
+            })
+            .collect_vec()
+    }
+
+    pub fn decompose_sequential(&self) -> Vec<Self> {
+        let mut formulas = self.axioms();
+        self.conjectures()
+            .into_iter()
+            .map(|c| {
+                formulas.push(c);
+                Problem {
+                    interpretation: self.interpretation.clone(),
+                    formulas: formulas.clone(),
+                }
+            })
+            .collect_vec()
+    }
 }
 
 impl fmt::Display for Problem {
