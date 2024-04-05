@@ -93,5 +93,28 @@ formula = { prefix* ~ primary ~ (infix ~ prefix* ~ primary)* }
     infix   = _{ binary_connective }
     primary = _{ "(" ~ formula ~ ")" | atomic_formula }
 
-// TODO: Think about a proper way to handle the whitespace at the end of programs
+// TODO: Think about a proper way to handle the whitespace at the end of theories
 theory = { (formula ~ ".")* ~ WHITESPACE* }
+
+role = { assumption | spec | lemma }
+    assumption  = { "assumption" }
+    spec        = { "spec" }
+    lemma       = { "lemma" }
+
+direction = { universal | forward | backward }
+    universal = { "universal" }
+    forward   = { "forward" }
+    backward  = { "backward" }
+
+annotated_formula = { role ~ ("(" ~ direction ~ ")")? ~ ("[" ~ symbolic_constant ~ "]")? ~ ":" ~ formula }
+
+// TODO: Think about a proper way to handle the whitespace at the end of specifications
+specification = { (annotated_formula ~ ".")* ~ WHITESPACE* }
+
+user_guide_entry = { input_predicate | output_predicate | placeholder_declaration | annotated_formula }
+    input_predicate         = { "input" ~ ":" ~ predicate}
+    output_predicate        = { "output" ~ ":" ~ predicate}
+    placeholder_declaration = { "input" ~ ":" ~ function_constant}
+
+// TODO: Think about a proper way to handle the whitespace at the end of user guides
+user_guide = { (user_guide_entry ~ ".")* ~ WHITESPACE* }

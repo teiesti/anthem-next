@@ -3,9 +3,10 @@ use {
         formatting::{Associativity, Precedence},
         syntax_tree::{
             fol::{
-                Atom, AtomicFormula, BinaryConnective, BinaryOperator, Comparison, Formula,
-                FunctionConstant, GeneralTerm, Guard, IntegerTerm, Predicate, Quantification,
-                Quantifier, Relation, Sort, SymbolicTerm, Theory, UnaryConnective, UnaryOperator,
+                AnnotatedFormula, Atom, AtomicFormula, BinaryConnective, BinaryOperator,
+                Comparison, Direction, Formula, FunctionConstant, GeneralTerm, Guard, IntegerTerm,
+                Predicate, Quantification, Quantifier, Relation, Role, Sort, Specification,
+                SymbolicTerm, Theory, UnaryConnective, UnaryOperator, UserGuide, UserGuideEntry,
                 Variable,
             },
             Node,
@@ -344,6 +345,75 @@ impl Display for Format<'_, Theory> {
         let iter = formulas.iter().map(Format);
         for form in iter {
             writeln!(f, "{form}.")?;
+        }
+        Ok(())
+    }
+}
+
+impl Display for Format<'_, Role> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self.0 {
+            Role::Assumption => write!(f, "assumption"),
+            Role::Spec => write!(f, "spec"),
+            Role::Lemma => write!(f, "lemma"),
+        }
+    }
+}
+
+impl Display for Format<'_, Direction> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self.0 {
+            Direction::Universal => write!(f, "universal"),
+            Direction::Forward => write!(f, "forward"),
+            Direction::Backward => write!(f, "backward"),
+        }
+    }
+}
+
+impl Display for Format<'_, AnnotatedFormula> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        Format(&self.0.role).fmt(f)?;
+
+        if !matches!(self.0.direction, Direction::Universal) {
+            write!(f, "({})", Format(&self.0.direction))?
+        }
+
+        if !self.0.name.is_empty() {
+            write!(f, "[{}]", self.0.name)?;
+        }
+
+        Format(&self.0.formula).fmt(f)?;
+
+        Ok(())
+    }
+}
+
+impl Display for Format<'_, Specification> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let iter = self.0.formulas.iter().map(Format);
+        for formula in iter {
+            writeln!(f, "{formula}.")?;
+        }
+        Ok(())
+    }
+}
+
+impl Display for Format<'_, UserGuideEntry> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self.0 {
+            UserGuideEntry::InputPredicate(p) => write!(f, "input: {}", Format(p)),
+            UserGuideEntry::OutputPredicate(p) => write!(f, "output: {}", Format(p)),
+            UserGuideEntry::PlaceholderDeclaration(c) => write!(f, "input: {}", Format(c)),
+            UserGuideEntry::AnnotatedFormula(g) => Format(g).fmt(f),
+        }
+    }
+}
+
+impl Display for Format<'_, UserGuide> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let iter = self.0.entries.iter().map(Format);
+        for entry in iter {
+            writeln!(f, "{entry}.")?;
         }
         Ok(())
     }

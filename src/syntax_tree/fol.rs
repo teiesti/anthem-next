@@ -2,11 +2,12 @@ use {
     crate::{
         formatting::fol::default::Format,
         parsing::fol::pest::{
-            AtomParser, AtomicFormulaParser, BinaryConnectiveParser, BinaryOperatorParser,
-            ComparisonParser, FormulaParser, FunctionConstantParser, GeneralTermParser,
-            GuardParser, IntegerTermParser, PredicateParser, QuantificationParser,
-            QuantifierParser, RelationParser, SymbolicTermParser, TheoryParser,
-            UnaryConnectiveParser, UnaryOperatorParser, VariableParser,
+            AnnotatedFormulaParser, AtomParser, AtomicFormulaParser, BinaryConnectiveParser,
+            BinaryOperatorParser, ComparisonParser, DirectionParser, FormulaParser,
+            FunctionConstantParser, GeneralTermParser, GuardParser, IntegerTermParser,
+            PredicateParser, QuantificationParser, QuantifierParser, RelationParser, RoleParser,
+            SpecificationParser, SymbolicTermParser, TheoryParser, UnaryConnectiveParser,
+            UnaryOperatorParser, UserGuideEntryParser, UserGuideParser, VariableParser,
         },
         syntax_tree::{impl_node, Node},
     },
@@ -633,6 +634,101 @@ pub struct Theory {
 }
 
 impl_node!(Theory, Format, TheoryParser);
+
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+pub enum Role {
+    Assumption,
+    Spec,
+    Lemma,
+}
+
+impl_node!(Role, Format, RoleParser);
+
+#[derive(Clone, Debug, Default, Eq, PartialEq, Hash)]
+pub enum Direction {
+    #[default]
+    Universal,
+    Forward,
+    Backward,
+}
+
+impl_node!(Direction, Format, DirectionParser);
+
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+pub struct AnnotatedFormula {
+    pub role: Role,
+    pub direction: Direction,
+    pub name: String,
+    pub formula: Formula,
+}
+
+impl_node!(AnnotatedFormula, Format, AnnotatedFormulaParser);
+
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+pub struct Specification {
+    pub formulas: Vec<AnnotatedFormula>,
+}
+
+impl_node!(Specification, Format, SpecificationParser);
+
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+pub enum UserGuideEntry {
+    InputPredicate(Predicate),
+    OutputPredicate(Predicate),
+    PlaceholderDeclaration(FunctionConstant),
+    AnnotatedFormula(AnnotatedFormula),
+}
+
+impl_node!(UserGuideEntry, Format, UserGuideEntryParser);
+
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+pub struct UserGuide {
+    pub entries: Vec<UserGuideEntry>,
+}
+
+impl_node!(UserGuide, Format, UserGuideParser);
+
+impl UserGuide {
+    pub fn input_predicates(&self) -> Vec<Predicate> {
+        let mut result = Vec::new();
+        for entry in &self.entries {
+            if let UserGuideEntry::InputPredicate(p) = entry {
+                result.push(p.clone());
+            }
+        }
+        result
+    }
+
+    pub fn output_predicates(&self) -> Vec<Predicate> {
+        let mut result = Vec::new();
+        for entry in &self.entries {
+            if let UserGuideEntry::OutputPredicate(p) = entry {
+                result.push(p.clone());
+            }
+        }
+        result
+    }
+
+    pub fn placeholders(&self) -> Vec<FunctionConstant> {
+        let mut result = Vec::new();
+        for entry in &self.entries {
+            if let UserGuideEntry::PlaceholderDeclaration(p) = entry {
+                result.push(p.clone());
+            }
+        }
+        result
+    }
+
+    pub fn formulas(&self) -> Vec<AnnotatedFormula> {
+        let mut result = Vec::new();
+        for entry in &self.entries {
+            if let UserGuideEntry::AnnotatedFormula(p) = entry {
+                result.push(p.clone());
+            }
+        }
+        result
+    }
+}
 
 #[cfg(test)]
 mod tests {
