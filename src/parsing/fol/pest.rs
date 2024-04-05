@@ -1,9 +1,10 @@
 use crate::{
     parsing::PestParser,
     syntax_tree::fol::{
-        Atom, AtomicFormula, BinaryConnective, BinaryOperator, Comparison, Formula,
-        FunctionConstant, GeneralTerm, Guard, IntegerTerm, Predicate, Quantification, Quantifier,
-        Relation, Sort, SymbolicTerm, Theory, UnaryConnective, UnaryOperator, Variable,
+        AnnotatedFormula, Atom, AtomicFormula, BinaryConnective, BinaryOperator, Comparison,
+        Direction, Formula, FunctionConstant, GeneralTerm, Guard, IntegerTerm, Predicate,
+        Quantification, Quantifier, Relation, Role, Sort, Specification, SymbolicTerm, Theory,
+        UnaryConnective, UnaryOperator, UserGuide, UserGuideEntry, Variable,
     },
 };
 
@@ -585,6 +586,170 @@ impl PestParser for TheoryParser {
             formulas: pair
                 .into_inner()
                 .map(FormulaParser::translate_pair)
+                .collect(),
+        }
+    }
+}
+
+pub struct RoleParser;
+
+impl PestParser for RoleParser {
+    type Node = Role;
+
+    type InternalParser = internal::Parser;
+    type Rule = internal::Rule;
+    const RULE: internal::Rule = internal::Rule::role;
+
+    fn translate_pair(pair: pest::iterators::Pair<'_, Self::Rule>) -> Self::Node {
+        match pair.as_rule() {
+            internal::Rule::role => Self::translate_pairs(pair.into_inner()),
+            internal::Rule::assumption => Role::Assumption,
+            internal::Rule::spec => Role::Spec,
+            internal::Rule::lemma => Role::Lemma,
+            _ => Self::report_unexpected_pair(pair),
+        }
+    }
+}
+
+pub struct DirectionParser;
+
+impl PestParser for DirectionParser {
+    type Node = Direction;
+
+    type InternalParser = internal::Parser;
+    type Rule = internal::Rule;
+    const RULE: internal::Rule = internal::Rule::direction;
+
+    fn translate_pair(pair: pest::iterators::Pair<'_, Self::Rule>) -> Self::Node {
+        match pair.as_rule() {
+            internal::Rule::direction => Self::translate_pairs(pair.into_inner()),
+            internal::Rule::universal => Direction::Universal,
+            internal::Rule::forward => Direction::Forward,
+            internal::Rule::backward => Direction::Backward,
+            _ => Self::report_unexpected_pair(pair),
+        }
+    }
+}
+
+pub struct AnnotatedFormulaParser;
+
+impl PestParser for AnnotatedFormulaParser {
+    type Node = AnnotatedFormula;
+
+    type InternalParser = internal::Parser;
+    type Rule = internal::Rule;
+    const RULE: internal::Rule = internal::Rule::annotated_formula;
+
+    fn translate_pair(pair: pest::iterators::Pair<'_, Self::Rule>) -> Self::Node {
+        if pair.as_rule() != internal::Rule::annotated_formula {
+            Self::report_unexpected_pair(pair)
+        }
+
+        let mut pairs = pair.into_inner();
+        let mut next = pairs.next().unwrap_or_else(|| Self::report_missing_pair());
+
+        let role = RoleParser::translate_pair(next);
+        next = pairs.next().unwrap_or_else(|| Self::report_missing_pair());
+
+        let direction;
+        if matches!(next.as_rule(), internal::Rule::direction) {
+            direction = DirectionParser::translate_pair(next);
+            next = pairs.next().unwrap_or_else(|| Self::report_missing_pair());
+        } else {
+            direction = Direction::default()
+        }
+
+        let name;
+        if matches!(next.as_rule(), internal::Rule::symbolic_constant) {
+            name = next.as_str().into();
+            next = pairs.next().unwrap_or_else(|| Self::report_missing_pair());
+        } else {
+            name = String::default();
+        }
+
+        let formula = FormulaParser::translate_pair(next);
+
+        if let Some(pair) = pairs.next() {
+            Self::report_unexpected_pair(pair)
+        }
+
+        AnnotatedFormula {
+            role,
+            direction,
+            name,
+            formula,
+        }
+    }
+}
+
+pub struct SpecificationParser;
+
+impl PestParser for SpecificationParser {
+    type Node = Specification;
+
+    type InternalParser = internal::Parser;
+    type Rule = internal::Rule;
+    const RULE: internal::Rule = internal::Rule::specification;
+
+    fn translate_pair(pair: pest::iterators::Pair<'_, Self::Rule>) -> Self::Node {
+        if pair.as_rule() != internal::Rule::specification {
+            Self::report_unexpected_pair(pair)
+        }
+        Specification {
+            formulas: pair
+                .into_inner()
+                .map(AnnotatedFormulaParser::translate_pair)
+                .collect(),
+        }
+    }
+}
+
+pub struct UserGuideEntryParser;
+
+impl PestParser for UserGuideEntryParser {
+    type Node = UserGuideEntry;
+
+    type InternalParser = internal::Parser;
+    type Rule = internal::Rule;
+    const RULE: internal::Rule = internal::Rule::user_guide_entry;
+
+    fn translate_pair(pair: pest::iterators::Pair<'_, Self::Rule>) -> Self::Node {
+        match pair.as_rule() {
+            internal::Rule::user_guide_entry => Self::translate_pairs(pair.into_inner()),
+            internal::Rule::input_predicate => {
+                UserGuideEntry::InputPredicate(PredicateParser::translate_pairs(pair.into_inner()))
+            }
+            internal::Rule::output_predicate => {
+                UserGuideEntry::OutputPredicate(PredicateParser::translate_pairs(pair.into_inner()))
+            }
+            internal::Rule::placeholder_declaration => UserGuideEntry::PlaceholderDeclaration(
+                FunctionConstantParser::translate_pairs(pair.into_inner()),
+            ),
+            internal::Rule::annotated_formula => UserGuideEntry::AnnotatedFormula(
+                AnnotatedFormulaParser::translate_pairs(pair.into_inner()),
+            ),
+            _ => Self::report_unexpected_pair(pair),
+        }
+    }
+}
+
+pub struct UserGuideParser;
+
+impl PestParser for UserGuideParser {
+    type Node = UserGuide;
+
+    type InternalParser = internal::Parser;
+    type Rule = internal::Rule;
+    const RULE: internal::Rule = internal::Rule::user_guide;
+
+    fn translate_pair(pair: pest::iterators::Pair<'_, Self::Rule>) -> Self::Node {
+        if pair.as_rule() != internal::Rule::user_guide {
+            Self::report_unexpected_pair(pair)
+        }
+        UserGuide {
+            entries: pair
+                .into_inner()
+                .map(UserGuideEntryParser::translate_pair)
                 .collect(),
         }
     }
