@@ -21,6 +21,38 @@ pub enum Command {
         /// The file to translate
         input: PathBuf,
     },
+
+    /// Create a set of problem files from a claim about answer set programs or first-order theories
+    BuildProblem {
+        /// The equivalence theory used to proof the claim
+        #[arg(long, value_enum)]
+        equivalence: Equivalence,
+
+        /// The decomposition strategy to use
+        #[arg(long, value_enum, default_value_t)]
+        decomposition: Decomposition,
+
+        /// The direction of the proof
+        #[arg(long, value_enum, default_value_t)]
+        direction: Direction,
+
+        /// Omit simplifications
+        #[arg(long, action)]
+        no_simplify: bool,
+
+        /// The destination directory for the problem files
+        #[arg(long)]
+        out_dir: PathBuf,
+
+        /// A specification of intended behavior
+        left: PathBuf,
+
+        /// A file about which the claim is constructed
+        right: PathBuf,
+
+        /// Additional knowledge used to construct the claim (e.g., user guide, proof outline)
+        aux: Vec<PathBuf>,
+    },
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
@@ -28,6 +60,21 @@ pub enum Translation {
     Gamma,
     TauStar,
 }
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
+pub enum Equivalence {
+    Strong,
+    External,
+}
+
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
+pub enum Decomposition {
+    Independent,
+    #[default]
+    Sequential,
+}
+
+pub use crate::syntax_tree::fol::Direction;
 
 #[cfg(test)]
 mod tests {
