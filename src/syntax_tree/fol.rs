@@ -11,6 +11,7 @@ use {
         },
         syntax_tree::{impl_node, Node},
     },
+    clap::ValueEnum,
     std::{collections::HashSet, hash::Hash},
 };
 
@@ -644,7 +645,7 @@ pub enum Role {
 
 impl_node!(Role, Format, RoleParser);
 
-#[derive(Clone, Debug, Default, Eq, PartialEq, Hash)]
+#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Hash, ValueEnum)]
 pub enum Direction {
     #[default]
     Universal,
