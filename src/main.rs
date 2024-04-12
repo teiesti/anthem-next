@@ -135,6 +135,10 @@ fn main() -> Result<()> {
                 user_guide,
                 program,
                 proof_outline,
+                decomposition,
+                direction,
+                simplify: !no_simplify,
+                break_equivalences: !no_eq_break,
             };
 
             todo!()
