@@ -672,6 +672,12 @@ pub struct Specification {
 
 impl_node!(Specification, Format, SpecificationParser);
 
+impl Specification {
+    pub fn empty() -> Self {
+        Specification { formulas: vec![] }
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub enum UserGuideEntry {
     InputPredicate(Predicate),

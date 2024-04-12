@@ -15,8 +15,11 @@ use {
     },
     anyhow::{Context, Result},
     clap::Parser as _,
-    std::fs::read_to_string,
+    command_line::Equivalence,
+    either::Either,
+    std::{ffi::OsStr, fs::read_to_string},
     translating::gamma::gamma,
+    verifying::task::external_equivalence::ExternalEquivalenceTask,
 };
 
 fn main() -> Result<()> {
@@ -50,6 +53,96 @@ fn main() -> Result<()> {
             Ok(())
         }
 
-        Command::Verify { .. } => todo!(),
+        Command::Verify {
+            equivalence: Equivalence::External,
+            decomposition,
+            direction,
+            no_simplify,
+            no_eq_break,
+            no_proof_search,
+            out_dir,
+            left,
+            right,
+            aux,
+        } => {
+            let specification: Either<asp::Program, fol::Specification> = match left
+                .extension()
+                .map(OsStr::to_str)
+            {
+                Some(Some("lp")) => Either::Left(
+                    read_to_string(&left)
+                        .with_context(|| format!("could not read file `{}`", left.display()))?
+                        .parse()
+                        .with_context(|| format!("could not parse file `{}`", left.display()))?,
+                ),
+                Some(Some("spec")) => Either::Right(
+                    read_to_string(&left)
+                        .with_context(|| format!("could not read file `{}`", left.display()))?
+                        .parse()
+                        .with_context(|| format!("could not parse file `{}`", left.display()))?,
+                ),
+                Some(Some(x)) => todo!(),
+                Some(None) => todo!(),
+                None => todo!(),
+            };
+
+            let program: asp::Program = match right.extension().map(|x| x.to_str()) {
+                Some(Some("lp")) => read_to_string(&left)
+                    .with_context(|| format!("could not read file `{}`", left.display()))?
+                    .parse()
+                    .with_context(|| format!("could not parse file `{}`", left.display()))?,
+                Some(Some(x)) => todo!(),
+                Some(None) => todo!(),
+                None => todo!(),
+            };
+
+            let user_guide: fol::UserGuide = match aux
+                .first()
+                .with_context(|| "no user guide was provided")?
+                .extension()
+                .map(OsStr::to_str)
+            {
+                Some(Some("ug")) => {
+                    let path = aux.first().unwrap();
+                    read_to_string(path)
+                        .with_context(|| format!("could not read file `{}`", path.display()))?
+                        .parse()
+                        .with_context(|| format!("could not parse file `{}`", path.display()))?
+                }
+                Some(Some(x)) => todo!(),
+                Some(None) => todo!(),
+                None => todo!(),
+            };
+
+            let proof_outline = match aux.get(1) {
+                Some(path) => match path.extension().map(OsStr::to_str) {
+                    Some(Some("spec")) => {
+                        let path = aux.first().unwrap();
+                        read_to_string(path)
+                            .with_context(|| format!("could not read file `{}`", path.display()))?
+                            .parse()
+                            .with_context(|| format!("could not parse file `{}`", path.display()))?
+                    }
+                    Some(Some(x)) => todo!(),
+                    Some(None) => todo!(),
+                    None => todo!(),
+                },
+                None => fol::Specification::empty(),
+            };
+
+            let task = ExternalEquivalenceTask {
+                specification,
+                user_guide,
+                program,
+                proof_outline,
+            };
+
+            todo!()
+        }
+
+        Command::Verify {
+            equivalence: Equivalence::Strong,
+            ..
+        } => todo!(),
     }
 }
