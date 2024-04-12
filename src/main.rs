@@ -50,6 +50,6 @@ fn main() -> Result<()> {
             Ok(())
         }
 
-        Command::BuildProblem { .. } => todo!(),
+        Command::Verify { .. } => todo!(),
     }
 }
