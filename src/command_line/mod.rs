@@ -22,8 +22,8 @@ pub enum Command {
         input: PathBuf,
     },
 
-    /// Create a set of problem files from a claim about answer set programs or first-order theories
-    BuildProblem {
+    /// Create and optionally verify a set of problem files from a claim about answer set programs or first-order theories
+    Verify {
         /// The equivalence theory used to proof the claim
         #[arg(long, value_enum)]
         equivalence: Equivalence,
@@ -40,9 +40,17 @@ pub enum Command {
         #[arg(long, action)]
         no_simplify: bool,
 
+        /// Omit breaking equivalences
+        #[arg(long, action)]
+        no_eq_break: bool,
+
+        /// Omit proof search and just create problem files
+        #[arg(long, action)]
+        no_proof_search: bool,
+
         /// The destination directory for the problem files
         #[arg(long)]
-        out_dir: PathBuf,
+        out_dir: Option<PathBuf>,
 
         /// A specification of intended behavior
         left: PathBuf,
