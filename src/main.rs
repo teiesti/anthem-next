@@ -87,10 +87,10 @@ fn main() -> Result<()> {
             };
 
             let program: asp::Program = match right.extension().map(|x| x.to_str()) {
-                Some(Some("lp")) => read_to_string(&left)
-                    .with_context(|| format!("could not read file `{}`", left.display()))?
+                Some(Some("lp")) => read_to_string(&right)
+                    .with_context(|| format!("could not read file `{}`", right.display()))?
                     .parse()
-                    .with_context(|| format!("could not parse file `{}`", left.display()))?,
+                    .with_context(|| format!("could not parse file `{}`", right.display()))?,
                 Some(Some(x)) => todo!(),
                 Some(None) => todo!(),
                 None => todo!(),
