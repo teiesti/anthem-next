@@ -9,7 +9,7 @@ pub mod verifying;
 
 use {
     crate::{
-        command_line::{Arguments, Command, Decomposition, Translation},
+        command_line::{Arguments, Command, Translation},
         syntax_tree::{asp, fol},
         translating::tau_star::tau_star,
         verifying::task::Task,
@@ -60,11 +60,12 @@ fn main() -> Result<()> {
             direction,
             no_simplify,
             no_eq_break,
-            no_proof_search,
-            out_dir,
+            // no_proof_search,
+            // out_dir,
             left,
             right,
             aux,
+            ..
         } => {
             let specification: Either<asp::Program, fol::Specification> = match left
                 .extension()
@@ -82,7 +83,7 @@ fn main() -> Result<()> {
                         .parse()
                         .with_context(|| format!("could not parse file `{}`", left.display()))?,
                 ),
-                Some(Some(x)) => todo!(),
+                Some(Some(_x)) => todo!(),
                 Some(None) => todo!(),
                 None => todo!(),
             };
@@ -92,7 +93,7 @@ fn main() -> Result<()> {
                     .with_context(|| format!("could not read file `{}`", right.display()))?
                     .parse()
                     .with_context(|| format!("could not parse file `{}`", right.display()))?,
-                Some(Some(x)) => todo!(),
+                Some(Some(_x)) => todo!(),
                 Some(None) => todo!(),
                 None => todo!(),
             };
@@ -110,7 +111,7 @@ fn main() -> Result<()> {
                         .parse()
                         .with_context(|| format!("could not parse file `{}`", path.display()))?
                 }
-                Some(Some(x)) => todo!(),
+                Some(Some(_x)) => todo!(),
                 Some(None) => todo!(),
                 None => todo!(),
             };
@@ -124,7 +125,7 @@ fn main() -> Result<()> {
                             .parse()
                             .with_context(|| format!("could not parse file `{}`", path.display()))?
                     }
-                    Some(Some(x)) => todo!(),
+                    Some(Some(_x)) => todo!(),
                     Some(None) => todo!(),
                     None => todo!(),
                 },
@@ -142,7 +143,7 @@ fn main() -> Result<()> {
                 break_equivalences: !no_eq_break,
             };
 
-            let problems = task.decompose()?;
+            let _problems = task.decompose()?;
 
             todo!()
         }
