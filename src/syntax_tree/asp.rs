@@ -110,6 +110,15 @@ pub struct Predicate {
 
 impl_node!(Predicate, Format, PredicateParser);
 
+impl From<crate::syntax_tree::fol::Predicate> for Predicate {
+    fn from(value: crate::syntax_tree::fol::Predicate) -> Self {
+        Predicate {
+            symbol: value.symbol,
+            arity: value.arity,
+        }
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Atom {
     pub predicate_symbol: String,
@@ -346,6 +355,16 @@ pub struct Program {
 impl_node!(Program, Format, ProgramParser);
 
 impl Program {
+    pub fn head_predicates(&self) -> HashSet<Predicate> {
+        let mut result = HashSet::new();
+        for rule in &self.rules {
+            if let Some(predicate) = rule.head.predicate() {
+                result.insert(predicate.clone());
+            }
+        }
+        result
+    }
+
     pub fn variables(&self) -> HashSet<Variable> {
         let mut vars = HashSet::new();
         for rule in self.rules.iter() {

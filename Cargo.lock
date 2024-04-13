@@ -72,6 +72,7 @@ dependencies = [
  "pest",
  "pest_derive",
  "regex",
+ "thiserror",
 ]
 
 [[package]]

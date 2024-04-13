@@ -209,6 +209,15 @@ pub struct Predicate {
 
 impl_node!(Predicate, Format, PredicateParser);
 
+impl From<crate::syntax_tree::asp::Predicate> for Predicate {
+    fn from(value: crate::syntax_tree::asp::Predicate) -> Self {
+        Predicate {
+            symbol: value.symbol,
+            arity: value.arity,
+        }
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Atom {
     pub predicate_symbol: String,
@@ -696,31 +705,31 @@ pub struct UserGuide {
 impl_node!(UserGuide, Format, UserGuideParser);
 
 impl UserGuide {
-    pub fn input_predicates(&self) -> Vec<Predicate> {
-        let mut result = Vec::new();
+    pub fn input_predicates(&self) -> HashSet<Predicate> {
+        let mut result = HashSet::new();
         for entry in &self.entries {
             if let UserGuideEntry::InputPredicate(p) = entry {
-                result.push(p.clone());
+                result.insert(p.clone());
             }
         }
         result
     }
 
-    pub fn output_predicates(&self) -> Vec<Predicate> {
-        let mut result = Vec::new();
+    pub fn output_predicates(&self) -> HashSet<Predicate> {
+        let mut result = HashSet::new();
         for entry in &self.entries {
             if let UserGuideEntry::OutputPredicate(p) = entry {
-                result.push(p.clone());
+                result.insert(p.clone());
             }
         }
         result
     }
 
-    pub fn placeholders(&self) -> Vec<FunctionConstant> {
-        let mut result = Vec::new();
+    pub fn placeholders(&self) -> HashSet<FunctionConstant> {
+        let mut result = HashSet::new();
         for entry in &self.entries {
             if let UserGuideEntry::PlaceholderDeclaration(p) = entry {
-                result.push(p.clone());
+                result.insert(p.clone());
             }
         }
         result

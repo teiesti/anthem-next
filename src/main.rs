@@ -9,9 +9,10 @@ pub mod verifying;
 
 use {
     crate::{
-        command_line::{Arguments, Command, Translation},
+        command_line::{Arguments, Command, Decomposition, Translation},
         syntax_tree::{asp, fol},
         translating::tau_star::tau_star,
+        verifying::task::Task,
     },
     anyhow::{Context, Result},
     clap::Parser as _,
@@ -140,6 +141,8 @@ fn main() -> Result<()> {
                 simplify: !no_simplify,
                 break_equivalences: !no_eq_break,
             };
+
+            let problems = task.decompose()?;
 
             todo!()
         }
