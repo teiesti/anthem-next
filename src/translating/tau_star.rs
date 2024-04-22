@@ -914,10 +914,13 @@ mod tests {
             ("X..Y", "Z", "exists I$i J$i K$i (I$i = X and J$i = Y and Z$g = K$i and I$i <= K$i <= J$i)"),
             ("X+1..Y", "Z1", "exists I$i J$i K$i ((exists I1$i J$i (I$i = I1$i + J$i and I1$i = X and J$i = 1)) and J$i = Y and Z1 = K$i and I$i <= K$i <= J$i)"),
         ] {
-            assert_eq!(
-                val(term.parse().unwrap(), var.parse().unwrap()),
-                target.parse().unwrap()
-            )
+            let left = val(term.parse().unwrap(), var.parse().unwrap());
+            let right = target.parse().unwrap();
+
+            assert!(
+                left == right,
+                "assertion `left == right` failed:\n left:\n{left}\n right:\n{right}"
+            );
         }
     }
 
@@ -934,10 +937,13 @@ mod tests {
             ("p(X,-1..5)", "exists Z Z1 (Z = X and exists I$i J$i K$i (I$i = -1 and J$i = 5 and Z1 = K$i and I$i <= K$i <= J$i) and p(Z,Z1))"),
             ("p(X,-(1..5))", "exists Z Z1 (Z = X and exists I$i J$i (Z1 = I$i - J$i and I$i = 0 and exists I$i J1$i K$i (I$i = 1 and J1$i = 5  and J$i = K$i and I$i <= K$i <= J1$i)) and p(Z,Z1))")
         ] {
-            assert_eq!(
-                tau_b(src.parse().unwrap()),
-                target.parse().unwrap(),
-            )
+            let left = tau_b(src.parse().unwrap());
+            let right = target.parse().unwrap();
+
+            assert!(
+                left == right,
+                "assertion `left == right` failed:\n left:\n{left}\n right:\n{right}"
+            );
         }
     }
 
@@ -959,13 +965,13 @@ mod tests {
             ("p. q.", "#true -> p. #true -> q."),
             ("{ra(X,a)} :- ta(X). ra(5,a).", "forall V1 V2 X (V1 = X and V2 = a and exists Z (Z = X and ta(Z)) and not not ra(V1, V2) -> ra(V1, V2)). forall V1 V2 (V1 = 5 and V2 = a and #true -> ra(V1, V2)).")
         ] {
-            let src = tau_star(src.parse().unwrap());
-            let target = target.parse().unwrap();
-            assert_eq!(
-                src,
-                target,
-                "{src} != {target}"
-            )
+            let left = tau_star(src.parse().unwrap());
+            let right = target.parse().unwrap();
+
+            assert!(
+                left == right,
+                "assertion `left == right` failed:\n left:\n{left}\n right:\n{right}"
+            );
         }
     }
 }

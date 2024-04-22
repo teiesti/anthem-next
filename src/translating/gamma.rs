@@ -91,7 +91,7 @@ mod tests {
     use super::gamma_formula;
 
     #[test]
-    fn test_simplify() {
+    fn test_gamma() {
         for (src, target) in [
             ("#true", "#true"),
             ("a", "ha"),
@@ -107,7 +107,13 @@ mod tests {
             ("forall X p(X)", "forall X hp(X)"),
             ("exists X p(X)", "exists X hp(X)"),
         ] {
-            assert_eq!(gamma_formula(src.parse().unwrap()), target.parse().unwrap())
+            let left = gamma_formula(src.parse().unwrap());
+            let right = target.parse().unwrap();
+
+            assert!(
+                left == right,
+                "assertion `left == right` failed:\n left:\n{left}\n right:\n{right}"
+            );
         }
     }
 }
