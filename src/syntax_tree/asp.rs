@@ -9,7 +9,7 @@ use {
         },
         syntax_tree::{impl_node, Node},
     },
-    std::collections::HashSet,
+    indexmap::IndexSet,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
@@ -21,12 +21,12 @@ pub enum PrecomputedTerm {
 }
 
 impl PrecomputedTerm {
-    pub fn function_constants(&self) -> HashSet<String> {
+    pub fn function_constants(&self) -> IndexSet<String> {
         match &self {
-            PrecomputedTerm::Infimum => HashSet::new(),
-            PrecomputedTerm::Numeral(_) => HashSet::new(),
-            PrecomputedTerm::Symbol(s) => HashSet::from([s.clone()]),
-            PrecomputedTerm::Supremum => HashSet::new(),
+            PrecomputedTerm::Infimum => IndexSet::new(),
+            PrecomputedTerm::Numeral(_) => IndexSet::new(),
+            PrecomputedTerm::Symbol(s) => IndexSet::from([s.clone()]),
+            PrecomputedTerm::Supremum => IndexSet::new(),
         }
     }
 }
@@ -75,10 +75,10 @@ pub enum Term {
 impl_node!(Term, Format, TermParser);
 
 impl Term {
-    pub fn variables(&self) -> HashSet<Variable> {
+    pub fn variables(&self) -> IndexSet<Variable> {
         match &self {
-            Term::PrecomputedTerm(_) => HashSet::new(),
-            Term::Variable(v) => HashSet::from([v.clone()]),
+            Term::PrecomputedTerm(_) => IndexSet::new(),
+            Term::Variable(v) => IndexSet::from([v.clone()]),
             Term::UnaryOperation { arg, .. } => arg.variables(),
             Term::BinaryOperation { lhs, rhs, .. } => {
                 let mut vars = lhs.variables();
@@ -88,10 +88,10 @@ impl Term {
         }
     }
 
-    pub fn function_constants(&self) -> HashSet<String> {
+    pub fn function_constants(&self) -> IndexSet<String> {
         match &self {
             Term::PrecomputedTerm(t) => t.function_constants(),
-            Term::Variable(_) => HashSet::new(),
+            Term::Variable(_) => IndexSet::new(),
             Term::UnaryOperation { arg, .. } => arg.function_constants(),
             Term::BinaryOperation { lhs, rhs, .. } => {
                 let mut functions = lhs.function_constants();
@@ -135,16 +135,16 @@ impl Atom {
         }
     }
 
-    pub fn variables(&self) -> HashSet<Variable> {
-        let mut vars = HashSet::new();
+    pub fn variables(&self) -> IndexSet<Variable> {
+        let mut vars = IndexSet::new();
         for term in self.terms.iter() {
             vars.extend(term.variables())
         }
         vars
     }
 
-    pub fn function_constants(&self) -> HashSet<String> {
-        let mut functions = HashSet::new();
+    pub fn function_constants(&self) -> IndexSet<String> {
+        let mut functions = IndexSet::new();
         for term in self.terms.iter() {
             functions.extend(term.function_constants())
         }
@@ -174,11 +174,11 @@ impl Literal {
         self.atom.predicate()
     }
 
-    pub fn variables(&self) -> HashSet<Variable> {
+    pub fn variables(&self) -> IndexSet<Variable> {
         self.atom.variables()
     }
 
-    pub fn function_constants(&self) -> HashSet<String> {
+    pub fn function_constants(&self) -> IndexSet<String> {
         self.atom.function_constants()
     }
 }
@@ -205,13 +205,13 @@ pub struct Comparison {
 impl_node!(Comparison, Format, ComparisonParser);
 
 impl Comparison {
-    pub fn variables(&self) -> HashSet<Variable> {
+    pub fn variables(&self) -> IndexSet<Variable> {
         let mut vars = self.lhs.variables();
         vars.extend(self.rhs.variables());
         vars
     }
 
-    pub fn function_constants(&self) -> HashSet<String> {
+    pub fn function_constants(&self) -> IndexSet<String> {
         let mut functions = self.lhs.function_constants();
         functions.extend(self.rhs.function_constants());
         functions
@@ -227,21 +227,21 @@ pub enum AtomicFormula {
 impl_node!(AtomicFormula, Format, AtomicFormulaParser);
 
 impl AtomicFormula {
-    pub fn variables(&self) -> HashSet<Variable> {
+    pub fn variables(&self) -> IndexSet<Variable> {
         match &self {
             AtomicFormula::Literal(l) => l.variables(),
             AtomicFormula::Comparison(c) => c.variables(),
         }
     }
 
-    pub fn predicates(&self) -> HashSet<Predicate> {
+    pub fn predicates(&self) -> IndexSet<Predicate> {
         match &self {
-            AtomicFormula::Literal(l) => HashSet::from([l.predicate()]),
-            AtomicFormula::Comparison(_) => HashSet::new(),
+            AtomicFormula::Literal(l) => IndexSet::from([l.predicate()]),
+            AtomicFormula::Comparison(_) => IndexSet::new(),
         }
     }
 
-    pub fn function_constants(&self) -> HashSet<String> {
+    pub fn function_constants(&self) -> IndexSet<String> {
         match &self {
             AtomicFormula::Literal(l) => l.function_constants(),
             AtomicFormula::Comparison(c) => c.function_constants(),
@@ -285,17 +285,17 @@ impl Head {
         }
     }
 
-    pub fn variables(&self) -> HashSet<Variable> {
+    pub fn variables(&self) -> IndexSet<Variable> {
         match &self {
             Head::Basic(a) | Head::Choice(a) => a.variables(),
-            Head::Falsity => HashSet::new(),
+            Head::Falsity => IndexSet::new(),
         }
     }
 
-    pub fn function_constants(&self) -> HashSet<String> {
+    pub fn function_constants(&self) -> IndexSet<String> {
         match &self {
             Head::Basic(a) | Head::Choice(a) => a.function_constants(),
-            Head::Falsity => HashSet::new(),
+            Head::Falsity => IndexSet::new(),
         }
     }
 }
@@ -308,16 +308,16 @@ pub struct Body {
 impl_node!(Body, Format, BodyParser);
 
 impl Body {
-    pub fn variables(&self) -> HashSet<Variable> {
-        let mut vars = HashSet::new();
+    pub fn variables(&self) -> IndexSet<Variable> {
+        let mut vars = IndexSet::new();
         for formula in self.formulas.iter() {
             vars.extend(formula.variables())
         }
         vars
     }
 
-    pub fn function_constants(&self) -> HashSet<String> {
-        let mut functions = HashSet::new();
+    pub fn function_constants(&self) -> IndexSet<String> {
+        let mut functions = IndexSet::new();
         for formula in self.formulas.iter() {
             functions.extend(formula.function_constants())
         }
@@ -334,13 +334,13 @@ pub struct Rule {
 impl_node!(Rule, Format, RuleParser);
 
 impl Rule {
-    pub fn variables(&self) -> HashSet<Variable> {
+    pub fn variables(&self) -> IndexSet<Variable> {
         let mut vars = self.head.variables();
         vars.extend(self.body.variables());
         vars
     }
 
-    pub fn function_constants(&self) -> HashSet<String> {
+    pub fn function_constants(&self) -> IndexSet<String> {
         let mut functions = self.head.function_constants();
         functions.extend(self.body.function_constants());
         functions
@@ -355,8 +355,8 @@ pub struct Program {
 impl_node!(Program, Format, ProgramParser);
 
 impl Program {
-    pub fn head_predicates(&self) -> HashSet<Predicate> {
-        let mut result = HashSet::new();
+    pub fn head_predicates(&self) -> IndexSet<Predicate> {
+        let mut result = IndexSet::new();
         for rule in &self.rules {
             if let Some(predicate) = rule.head.predicate() {
                 result.insert(predicate.clone());
@@ -365,16 +365,16 @@ impl Program {
         result
     }
 
-    pub fn variables(&self) -> HashSet<Variable> {
-        let mut vars = HashSet::new();
+    pub fn variables(&self) -> IndexSet<Variable> {
+        let mut vars = IndexSet::new();
         for rule in self.rules.iter() {
             vars.extend(rule.variables())
         }
         vars
     }
 
-    pub fn function_constants(&self) -> HashSet<String> {
-        let mut functions = HashSet::new();
+    pub fn function_constants(&self) -> IndexSet<String> {
+        let mut functions = IndexSet::new();
         for rule in self.rules.iter() {
             functions.extend(rule.function_constants());
         }
@@ -389,7 +389,7 @@ mod tests {
             Atom, AtomicFormula, Body, Comparison, Head, PrecomputedTerm, Program, Relation, Rule,
             Term,
         },
-        std::collections::HashSet,
+        indexmap::IndexSet,
     };
 
     #[test]
@@ -412,7 +412,7 @@ mod tests {
         };
         assert_eq!(
             program.function_constants(),
-            HashSet::from(["a".into(), "b".into()])
+            IndexSet::from(["a".into(), "b".into()])
         )
     }
 }

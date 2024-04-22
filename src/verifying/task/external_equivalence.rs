@@ -5,6 +5,7 @@ use {
         verifying::{problem::Problem, task::Task},
     },
     either::Either,
+    indexmap::IndexSet,
     std::fmt::Display,
     thiserror::Error,
 };
@@ -91,10 +92,10 @@ impl ExternalEquivalenceTask {
         &self,
     ) -> Result<(), ExternalEquivalenceTaskError> {
         let input_predicates = self.user_guide.input_predicates();
-        let head_predicates = self
+        let head_predicates: IndexSet<_> = self
             .program
             .head_predicates()
-            .drain()
+            .into_iter()
             .map(fol::Predicate::from)
             .collect();
 

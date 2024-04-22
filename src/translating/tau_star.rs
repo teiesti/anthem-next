@@ -1,8 +1,8 @@
 use {
     crate::syntax_tree::{asp, fol},
+    indexmap::IndexSet,
     lazy_static::lazy_static,
     regex::Regex,
-    std::collections::HashSet,
 };
 
 lazy_static! {
@@ -41,7 +41,7 @@ fn choose_fresh_global_variables(program: &asp::Program) -> Vec<String> {
 
 /// Choose `arity` variable names by incrementing `variant`, disjoint from `variables`
 fn choose_fresh_variable_names(
-    variables: &HashSet<fol::Variable>,
+    variables: &IndexSet<fol::Variable>,
     variant: &str,
     arity: usize,
 ) -> Vec<String> {
@@ -183,7 +183,7 @@ fn construct_partial_function_formula(
     let i = i_var.name;
     let j = j_var.name;
 
-    let mut taken_vars = HashSet::<fol::Variable>::new();
+    let mut taken_vars = IndexSet::<fol::Variable>::new();
     for var in valti.variables().iter() {
         taken_vars.insert(fol::Variable {
             name: var.to_string(),
@@ -401,7 +401,7 @@ fn construct_interval_formula(
 
 // val_t(Z)
 fn val(t: asp::Term, z: fol::Variable) -> fol::Formula {
-    let mut taken_vars = HashSet::<fol::Variable>::new();
+    let mut taken_vars = IndexSet::<fol::Variable>::new();
     for var in t.variables().iter() {
         taken_vars.insert(fol::Variable {
             name: var.to_string(),
@@ -509,7 +509,7 @@ fn valtz(mut terms: Vec<asp::Term>, mut variables: Vec<fol::Variable>) -> fol::F
 }
 
 // Translate a first-order body literal
-fn tau_b_first_order_literal(l: asp::Literal, taken_vars: HashSet<fol::Variable>) -> fol::Formula {
+fn tau_b_first_order_literal(l: asp::Literal, taken_vars: IndexSet<fol::Variable>) -> fol::Formula {
     let atom = l.atom;
     let terms = atom.terms;
     let arity = terms.len();
@@ -622,7 +622,7 @@ fn tau_b_propositional_literal(l: asp::Literal) -> fol::Formula {
 }
 
 // Translate a body comparison
-fn tau_b_comparison(c: asp::Comparison, taken_vars: HashSet<fol::Variable>) -> fol::Formula {
+fn tau_b_comparison(c: asp::Comparison, taken_vars: IndexSet<fol::Variable>) -> fol::Formula {
     let varnames = choose_fresh_variable_names(&taken_vars, "Z", 2);
 
     // Compute val_t1(Z1) & val_t2(Z2)
@@ -670,7 +670,7 @@ fn tau_b_comparison(c: asp::Comparison, taken_vars: HashSet<fol::Variable>) -> f
 
 // Translate a body literal or comparison
 fn tau_b(f: asp::AtomicFormula) -> fol::Formula {
-    let mut taken_vars = HashSet::<fol::Variable>::new();
+    let mut taken_vars = IndexSet::<fol::Variable>::new();
     for var in f.variables().iter() {
         taken_vars.insert(fol::Variable {
             name: var.to_string(),
