@@ -9,18 +9,15 @@ pub mod verifying;
 
 use {
     crate::{
-        command_line::{Arguments, Command, Translation},
+        command_line::{Arguments, Command, Equivalence, Translation},
         syntax_tree::{asp, fol},
-        translating::tau_star::tau_star,
-        verifying::task::Task,
+        translating::{completion::completion, gamma::gamma, tau_star::tau_star},
+        verifying::task::{external_equivalence::ExternalEquivalenceTask, Task},
     },
     anyhow::{Context, Result},
     clap::Parser as _,
-    command_line::Equivalence,
     either::Either,
     std::{ffi::OsStr, fs::read_to_string},
-    translating::gamma::gamma,
-    verifying::task::external_equivalence::ExternalEquivalenceTask,
 };
 
 fn main() -> Result<()> {
@@ -30,6 +27,17 @@ fn main() -> Result<()> {
                 .with_context(|| format!("could not read file `{}`", input.display()))?;
 
             match with {
+                Translation::Completion => {
+                    let theory: fol::Theory = content
+                        .parse()
+                        .with_context(|| format!("could not parse file `{}`", input.display()))?;
+
+                    let theory =
+                        completion(theory).context("the given theory is not completable")?;
+
+                    print!("{theory}")
+                }
+
                 Translation::Gamma => {
                     let theory: fol::Theory = content
                         .parse()
