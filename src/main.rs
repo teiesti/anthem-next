@@ -18,10 +18,48 @@ use {
     clap::Parser as _,
     command_line::Equivalence,
     either::Either,
-    std::{ffi::OsStr, fs::read_to_string},
+    std::{ffi::OsStr, fs::read_to_string, path::PathBuf},
     translating::gamma::gamma,
     verifying::task::external_equivalence::ExternalEquivalenceTask,
 };
+
+fn parse_asp_program(content: String, context: PathBuf) -> Result<asp::Program> {
+    let program_parsing_result: Result<asp::Program, _> = content.parse();
+    match program_parsing_result {
+        Ok(program) => Ok(program),
+        Err(err) => {
+            let rule_parsing_result: Result<asp::Rule, _> = err
+                .line()
+                .parse()
+                .with_context(|| format!("could not parse file `{}`", context.display()));
+            match rule_parsing_result {
+                Ok(_) => {
+                    unreachable!("this rule should be responsible for the program parsing error")
+                }
+                Err(inner_error) => Err(inner_error),
+            }
+        }
+    }
+}
+
+fn parse_fol_theory(content: String, context: PathBuf) -> Result<fol::Theory> {
+    let theory_parsing_result: Result<fol::Theory, _> = content.parse();
+    match theory_parsing_result {
+        Ok(theory) => Ok(theory),
+        Err(err) => {
+            let formula_parsing_result: Result<fol::Formula, _> = err
+                .line()
+                .parse()
+                .with_context(|| format!("could not parse file `{}`", context.display()));
+            match formula_parsing_result {
+                Ok(_) => {
+                    unreachable!("this formula should be responsible for the theory parsing error")
+                }
+                Err(inner_error) => Err(inner_error),
+            }
+        }
+    }
+}
 
 fn main() -> Result<()> {
     match Arguments::parse().command {
@@ -31,9 +69,7 @@ fn main() -> Result<()> {
 
             match with {
                 Translation::Gamma => {
-                    let theory: fol::Theory = content
-                        .parse()
-                        .with_context(|| format!("could not parse file `{}`", input.display()))?;
+                    let theory = parse_fol_theory(content, input)?;
 
                     let theory = gamma(theory);
 
@@ -41,9 +77,7 @@ fn main() -> Result<()> {
                 }
 
                 Translation::TauStar => {
-                    let program: asp::Program = content
-                        .parse()
-                        .with_context(|| format!("could not parse file `{}`", input.display()))?;
+                    let program = parse_asp_program(content, input)?;
 
                     let theory = tau_star(program);
 
