@@ -65,6 +65,7 @@ pub enum Command {
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 pub enum Translation {
+    Completion,
     Gamma,
     TauStar,
 }
