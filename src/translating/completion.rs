@@ -7,27 +7,35 @@ use {
 };
 
 pub fn completion(theory: fol::Theory) -> Option<fol::Theory> {
-    let definitions = definitions(theory)?;
-
-    // TODO: Take care for constraints
+    let mut definitions = definitions(theory)?;
     // TODO: Confirm there are not head mismatches
 
-    let formulas = definitions
+    let constraints = definitions
+        .shift_remove(&fol::AtomicFormula::Falsity)
+        .unwrap_or_else(|| vec![])
         .into_iter()
-        .map(|(g, f)| {
-            let v = g.variables();
-            fol::Formula::BinaryFormula {
-                connective: fol::BinaryConnective::Equivalence,
-                lhs: fol::Formula::AtomicFormula(g).into(),
-                rhs: fol::Formula::disjoin(f.into_iter().map(|f_i| {
-                    let variables = f_i.free_variables().difference(&v).cloned().collect();
-                    f_i.quantify(fol::Quantifier::Exists, variables)
-                }))
-                .into(),
-            }
-            .quantify(fol::Quantifier::Forall, v.into_iter().collect())
-        })
-        .collect();
+        .map(|f| fol::Formula::BinaryFormula {
+            connective: fol::BinaryConnective::Implication,
+            lhs: f.into(),
+            rhs: fol::Formula::AtomicFormula(fol::AtomicFormula::Falsity).into(),
+        });
+
+    let completed_definitions = definitions.into_iter().map(|(g, f)| {
+        let v = g.variables();
+        fol::Formula::BinaryFormula {
+            connective: fol::BinaryConnective::Equivalence,
+            lhs: fol::Formula::AtomicFormula(g).into(),
+            rhs: fol::Formula::disjoin(f.into_iter().map(|f_i| {
+                let variables = f_i.free_variables().difference(&v).cloned().collect();
+                f_i.quantify(fol::Quantifier::Exists, variables)
+            }))
+            .into(),
+        }
+        .quantify(fol::Quantifier::Forall, v.into_iter().collect())
+    });
+
+    let mut formulas: Vec<_> = constraints.collect();
+    formulas.extend(completed_definitions);
 
     Some(fol::Theory { formulas })
 }
@@ -105,7 +113,7 @@ mod tests {
             ("r(X) :- q(X). r(G,Y) :- G < Y. r(a).", "forall V1 (r(V1) <-> exists X (V1 = X and exists Z (Z = X and q(Z))) or V1 = a and #true). forall V1 V2 (r(V1,V2) <-> exists G Y (V1 = G and V2 = Y and exists Z Z1 (Z = G and Z1 = Y and Z < Z1) ) )."),
             ("composite(I*J) :- I>1, J>1. prime(I) :- I = 2..n, not composite(I).", "forall V1 (composite(V1) <-> exists I J (exists I1$i J1$i (V1 = I1$i * J1$i and I1$i = I and J1$i = J) and (exists Z Z1 (Z = I and Z1 = 1 and Z > Z1) and exists Z Z1 (Z = J and Z1 = 1 and Z > Z1)))). forall V1 (prime(V1) <-> exists I (V1 = I and (exists Z Z1 (Z = I and exists I$i J$i K$i (I$i = 2 and J$i = n and Z1 = K$i and I$i <= K$i <= J$i) and Z = Z1) and exists Z (Z = I and not composite(Z)))))."),
             ("p :- q, not t. p :- r. r :- t.", "p <-> (q and not t) or (r). r <-> t."),
-            ("p. p(a). :- q.", "q -> #false. p <-> #true. forall V1 (p(V1) <-> V1 = a)."),
+            ("p. p(a). :- q.", "q -> #false. p <-> #true. forall V1 (p(V1) <-> V1 = a and #true)."),
         ] {
             let left = completion(tau_star(src.parse().unwrap())).unwrap();
             let right = target.parse().unwrap();
