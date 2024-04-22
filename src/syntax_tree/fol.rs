@@ -637,6 +637,20 @@ impl Formula {
             } => f,
         }
     }
+
+    pub fn quantify(self, quantifier: Quantifier, variables: Vec<Variable>) -> Formula {
+        if variables.is_empty() {
+            self
+        } else {
+            Formula::QuantifiedFormula {
+                quantification: Quantification {
+                    quantifier,
+                    variables,
+                },
+                formula: Box::new(self),
+            }
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
