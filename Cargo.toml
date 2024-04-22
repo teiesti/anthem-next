@@ -14,8 +14,9 @@ license = "MIT"
 
 [dependencies]
 anyhow = "1"
-either = "1"
 clap = { version = "4", features = ["derive"] }
+either = "1"
+indexmap = "2"
 itertools = "0.12"
 lazy_static = "1"
 pest = "2"

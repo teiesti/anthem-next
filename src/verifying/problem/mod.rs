@@ -1,7 +1,8 @@
 use {
     crate::syntax_tree::fol::{Formula, FunctionConstant, Predicate, Sort},
+    indexmap::IndexSet,
     itertools::Itertools,
-    std::{collections::HashSet, fmt, iter::repeat},
+    std::{fmt, iter::repeat},
 };
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
@@ -38,15 +39,15 @@ pub struct AnnotatedFormula {
 }
 
 impl AnnotatedFormula {
-    pub fn predicates(&self) -> HashSet<Predicate> {
+    pub fn predicates(&self) -> IndexSet<Predicate> {
         self.formula.predicates()
     }
 
-    pub fn symbols(&self) -> HashSet<String> {
+    pub fn symbols(&self) -> IndexSet<String> {
         self.formula.symbols()
     }
 
-    pub fn function_constants(&self) -> HashSet<FunctionConstant> {
+    pub fn function_constants(&self) -> IndexSet<FunctionConstant> {
         self.formula.function_constants()
     }
 }
@@ -83,24 +84,24 @@ impl Problem {
             .collect_vec()
     }
 
-    pub fn predicates(&self) -> HashSet<Predicate> {
-        let mut result = HashSet::new();
+    pub fn predicates(&self) -> IndexSet<Predicate> {
+        let mut result = IndexSet::new();
         for formula in &self.formulas {
             result.extend(formula.predicates())
         }
         result
     }
 
-    pub fn symbols(&self) -> HashSet<String> {
-        let mut result = HashSet::new();
+    pub fn symbols(&self) -> IndexSet<String> {
+        let mut result = IndexSet::new();
         for formula in &self.formulas {
             result.extend(formula.symbols())
         }
         result
     }
 
-    pub fn function_constants(&self) -> HashSet<FunctionConstant> {
-        let mut result = HashSet::new();
+    pub fn function_constants(&self) -> IndexSet<FunctionConstant> {
+        let mut result = IndexSet::new();
         for formula in &self.formulas {
             result.extend(formula.function_constants())
         }
