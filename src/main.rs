@@ -10,51 +10,36 @@ pub mod verifying;
 use {
     crate::{
         command_line::{Arguments, Command, Equivalence, Translation},
-        syntax_tree::{asp, fol},
+        syntax_tree::{asp, fol, Node as _},
         translating::{completion::completion, gamma::gamma, tau_star::tau_star},
         verifying::task::{external_equivalence::ExternalEquivalenceTask, Task},
     },
     anyhow::{Context, Result},
     clap::Parser as _,
     either::Either,
-    std::{ffi::OsStr, fs::read_to_string},
+    std::ffi::OsStr,
 };
 
 fn main() -> Result<()> {
     match Arguments::parse().command {
         Command::Translate { with, input } => {
-            let content = read_to_string(&input)
-                .with_context(|| format!("could not read file `{}`", input.display()))?;
-
             match with {
                 Translation::Completion => {
-                    let theory: fol::Theory = content
-                        .parse()
-                        .with_context(|| format!("could not parse file `{}`", input.display()))?;
-
-                    let theory =
+                    let theory = fol::Theory::from_file(input)?;
+                    let completed_theory =
                         completion(theory).context("the given theory is not completable")?;
-
-                    print!("{theory}")
+                    print!("{completed_theory}")
                 }
 
                 Translation::Gamma => {
-                    let theory: fol::Theory = content
-                        .parse()
-                        .with_context(|| format!("could not parse file `{}`", input.display()))?;
-
-                    let theory = gamma(theory);
-
-                    print!("{theory}")
+                    let theory = fol::Theory::from_file(input)?;
+                    let gamma_theory = gamma(theory);
+                    print!("{gamma_theory}")
                 }
 
                 Translation::TauStar => {
-                    let program: asp::Program = content
-                        .parse()
-                        .with_context(|| format!("could not parse file `{}`", input.display()))?;
-
+                    let program = asp::Program::from_file(input)?;
                     let theory = tau_star(program);
-
                     print!("{theory}")
                 }
             }
@@ -75,32 +60,17 @@ fn main() -> Result<()> {
             aux,
             ..
         } => {
-            let specification: Either<asp::Program, fol::Specification> = match left
-                .extension()
-                .map(OsStr::to_str)
-            {
-                Some(Some("lp")) => Either::Left(
-                    read_to_string(&left)
-                        .with_context(|| format!("could not read file `{}`", left.display()))?
-                        .parse()
-                        .with_context(|| format!("could not parse file `{}`", left.display()))?,
-                ),
-                Some(Some("spec")) => Either::Right(
-                    read_to_string(&left)
-                        .with_context(|| format!("could not read file `{}`", left.display()))?
-                        .parse()
-                        .with_context(|| format!("could not parse file `{}`", left.display()))?,
-                ),
-                Some(Some(_x)) => todo!(),
-                Some(None) => todo!(),
-                None => todo!(),
-            };
+            let specification: Either<asp::Program, fol::Specification> =
+                match left.extension().map(OsStr::to_str) {
+                    Some(Some("lp")) => Either::Left(asp::Program::from_file(left)?),
+                    Some(Some("spec")) => Either::Right(fol::Specification::from_file(left)?),
+                    Some(Some(_x)) => todo!(),
+                    Some(None) => todo!(),
+                    None => todo!(),
+                };
 
             let program: asp::Program = match right.extension().map(|x| x.to_str()) {
-                Some(Some("lp")) => read_to_string(&right)
-                    .with_context(|| format!("could not read file `{}`", right.display()))?
-                    .parse()
-                    .with_context(|| format!("could not parse file `{}`", right.display()))?,
+                Some(Some("lp")) => asp::Program::from_file(right)?,
                 Some(Some(_x)) => todo!(),
                 Some(None) => todo!(),
                 None => todo!(),
@@ -112,13 +82,7 @@ fn main() -> Result<()> {
                 .extension()
                 .map(OsStr::to_str)
             {
-                Some(Some("ug")) => {
-                    let path = aux.first().unwrap();
-                    read_to_string(path)
-                        .with_context(|| format!("could not read file `{}`", path.display()))?
-                        .parse()
-                        .with_context(|| format!("could not parse file `{}`", path.display()))?
-                }
+                Some(Some("ug")) => fol::UserGuide::from_file(aux.first().unwrap())?,
                 Some(Some(_x)) => todo!(),
                 Some(None) => todo!(),
                 None => todo!(),
@@ -126,13 +90,7 @@ fn main() -> Result<()> {
 
             let proof_outline = match aux.get(1) {
                 Some(path) => match path.extension().map(OsStr::to_str) {
-                    Some(Some("spec")) => {
-                        let path = aux.first().unwrap();
-                        read_to_string(path)
-                            .with_context(|| format!("could not read file `{}`", path.display()))?
-                            .parse()
-                            .with_context(|| format!("could not parse file `{}`", path.display()))?
-                    }
+                    Some(Some("spec")) => fol::Specification::from_file(aux.first().unwrap())?,
                     Some(Some(_x)) => todo!(),
                     Some(None) => todo!(),
                     None => todo!(),
