@@ -54,10 +54,6 @@ fn components(theory: fol::Theory) -> Option<(Definitions, Constraints)> {
 type Definitions = IndexMap<fol::AtomicFormula, Vec<fol::Formula>>;
 type Constraints = Vec<fol::Formula>;
 
-pub fn is_completable_formula(formula: fol::Formula) -> bool {
-    split(formula).is_some()
-}
-
 fn split(formula: fol::Formula) -> Option<Component> {
     if !formula.free_variables().is_empty() {
         return None;
