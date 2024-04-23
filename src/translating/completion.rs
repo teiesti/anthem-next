@@ -116,8 +116,35 @@ fn split_implication(formula: fol::Formula) -> Option<Component> {
             fol::Formula::AtomicFormula(fol::AtomicFormula::Falsity) => {
                 Some(Component::Constraint(formula))
             }
-            fol::Formula::AtomicFormula(a @ fol::AtomicFormula::Atom(_)) => {
-                Some(Component::PartialDefinition { f, a })
+            fol::Formula::AtomicFormula(fol::AtomicFormula::Atom(a)) => {
+                let mut v = a.terms.iter().map(|t| match t {
+                    fol::GeneralTerm::Variable(v) => Some(fol::Variable {
+                        name: v.clone(),
+                        sort: fol::Sort::General,
+                    }),
+                    fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::Variable(v)) => {
+                        Some(fol::Variable {
+                            name: v.clone(),
+                            sort: fol::Sort::Integer,
+                        })
+                    }
+                    fol::GeneralTerm::SymbolicTerm(fol::SymbolicTerm::Variable(v)) => {
+                        Some(fol::Variable {
+                            name: v.clone(),
+                            sort: fol::Sort::Symbol,
+                        })
+                    }
+                    _ => None,
+                });
+
+                if v.clone().contains(&None) | !v.all_unique() {
+                    None
+                } else {
+                    Some(Component::PartialDefinition {
+                        f,
+                        a: fol::AtomicFormula::Atom(a),
+                    })
+                }
             }
             _ => None,
         },
@@ -135,7 +162,10 @@ enum Component {
 
 #[cfg(test)]
 mod tests {
-    use crate::translating::{completion::completion, tau_star::tau_star};
+    use crate::{
+        syntax_tree::fol,
+        translating::{completion::completion, tau_star::tau_star},
+    };
 
     #[test]
     fn test_completion() {
@@ -154,6 +184,17 @@ mod tests {
             assert!(
                 left == right,
                 "assertion `left == right` failed:\n left:\n{left}\n right:\n{right}"
+            );
+        }
+    }
+
+    #[test]
+    fn test_incompletable() {
+        for theory in ["forall X (p(X, a) <- q(X)).", "forall X (p(X, X) <- q(X))."] {
+            let theory: fol::Theory = theory.parse().unwrap();
+            assert!(
+                completion(theory.clone()).is_none(),
+                "`{theory}` should not be completable"
             );
         }
     }
