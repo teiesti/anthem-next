@@ -1,38 +1,15 @@
-// Grammar for two-sorted target language (specifications, lemmas, user guides, etc.).
-// X$i denotes variable X of sort integer, X$g denotes variable of sort general.
-// Unsorted variables are assumed to be of sort general.
-// Distinguishes between integer and general terms, variables, etc.
-// Both of these are distinct from program terms, variables, etc.
-// This language is NOT a subset of TPTP BNF, but formulas written in this language.
-// can be transformed into TPTP formulas (Vampire-compatible input).
-
 WHITESPACE = _{ " " | NEWLINE }
 COMMENT = _{ "%" ~ (!NEWLINE ~ ANY)* ~ (NEWLINE | EOI) }
 
 keyword = _{ primitive | binary_connective | unary_connective | quantifier }
-
     primitive = _{ infimum | supremum }
         infimum  = { "#inf" }
         supremum = { "#sup" }
 
-    binary_connective = _{ equivalence | implication | reverse_implication | conjunction | disjunction }
-        equivalence         = { "<->" }
-        implication         = { "->"  }
-        reverse_implication = { "<-"  }
-        conjunction         = { "and" }
-        disjunction         = { "or"  }
-
-    unary_connective = _{ negation }
-        negation = { "not" }
-
-    quantifier = _{ forall | exists }
-        forall = { "forall" }
-        exists = { "exists" }
-
-    sort = { general_sort | integer_sort | symbolic_sort }
-        general_sort = { "g" }
-        integer_sort = { "i" }
-        symbolic_sort = { "s" }
+sort = { general_sort | integer_sort | symbolic_sort }
+    general_sort = { "g" }
+    integer_sort = { "i" }
+    symbolic_sort = { "s" }
 
 basic_integer_term = _{ numeral | integer_function_constant | integer_variable }
     numeral           = @{ ("0") | ("-"? ~ ASCII_NONZERO_DIGIT ~ ASCII_DIGIT*) }
@@ -41,37 +18,47 @@ basic_integer_term = _{ numeral | integer_function_constant | integer_variable }
     integer_variable  = ${ (unsorted_variable ~ "$" ~ integer_sort) | !(unsorted_variable ~ "$" ~ sort) ~ (unsorted_variable ~ "$") }
 
 unary_operator = _{ negative }
+unary_operator_eoi = _{ unary_operator ~ EOI }
     negative = { !numeral ~ "-" }
 
 binary_operator = _{ add | subtract | multiply }
+binary_operator_eoi = _{ binary_operator ~ EOI }
     add      = { "+" }
     subtract = { "-" }
     multiply = { "*" }
 
 integer_term = { unary_operator* ~ n_primary ~ (binary_operator ~ unary_operator* ~ n_primary)* }
+integer_term_eoi = _{ integer_term ~ EOI }
     n_primary = _{ basic_integer_term | "(" ~ integer_term ~ ")" }
 
 symbolic_term = { symbolic_function_constant | symbolic_constant | symbolic_variable }
+symbolic_term_eoi = _{ symbolic_term ~ EOI }
     symbolic_constant = @{ !keyword ~ "_"? ~ ASCII_ALPHA_LOWER ~ (ASCII_ALPHANUMERIC | "_")* }
     symbolic_function_constant = ${ symbolic_constant ~ "$" ~ symbolic_sort }
     symbolic_variable  = ${ (unsorted_variable ~ "$" ~ symbolic_sort) }
 
 general_term = { general_function_constant | integer_term | symbolic_term | general_variable | infimum | supremum }
+general_term_eoi = _{ general_term ~ EOI }
     general_variable  = ${ unsorted_variable ~ ("$" ~ general_sort)? }
     general_function_constant = ${ symbolic_constant ~ "$" ~ general_sort }
 
 function_constant = { integer_function_constant | symbolic_function_constant | general_function_constant }
+function_constant_eoi = _{ function_constant ~ EOI }
 
 variable = { integer_variable | symbolic_variable | general_variable }
+variable_eoi = _{ variable ~ EOI }
 
 predicate = { predicate_symbol ~ "/" ~ arity }
+predicate_eoi = _{ predicate ~ EOI }
     predicate_symbol  = _{ symbolic_constant }
     arity =  @{ ("0") | (ASCII_NONZERO_DIGIT ~ ASCII_DIGIT*) }
 
 atom = { predicate_symbol ~ term_tuple? }
+atom_eoi = _{ atom ~ EOI }
     term_tuple = _{ "(" ~ (general_term ~ ("," ~ general_term)*)? ~ ")" }
 
 relation = { greater_equal | less_equal | greater | less | not_equal | equal }
+relation_eoi = _{ relation ~ EOI }
     greater_equal = { ">=" }
     less_equal    = { "<=" }
     greater       = { ">"  }
@@ -80,41 +67,68 @@ relation = { greater_equal | less_equal | greater | less | not_equal | equal }
     equal         = { "="  }
 
 guard = { relation ~ general_term }
+guard_eoi = _{ guard ~ EOI }
+
+comparison = { general_term ~ guard+ }
+comparison_eoi = _{ comparison ~ EOI }
 
 atomic_formula = { truth | falsity | comparison | atom }
+atomic_formula_eoi = _{ atomic_formula ~ EOI }
     truth      = { "#true" }
     falsity    = { "#false" }
-    comparison = { general_term ~ guard+ }
+
+quantifier = _{ forall | exists }
+quantifier_eoi = _{ quantifier ~ EOI }
+    forall = { "forall" }
+    exists = { "exists" }
 
 quantification = { quantifier ~ variable+ }
+quantification_eoi = _{ quantification ~ EOI }
+
+unary_connective = _{ negation }
+unary_connective_eoi = _{ unary_connective ~ EOI }
+    negation = { "not" }
+
+binary_connective = _{ equivalence | implication | reverse_implication | conjunction | disjunction }
+binary_connective_eoi = _{ binary_connective ~ EOI }
+    equivalence         = { "<->" }
+    implication         = { "->"  }
+    reverse_implication = { "<-"  }
+    conjunction         = { "and" }
+    disjunction         = { "or"  }
 
 formula = { prefix* ~ primary ~ (infix ~ prefix* ~ primary)* }
+formula_eoi = _{ formula ~ EOI }
     prefix  = _{ quantification | unary_connective }
     infix   = _{ binary_connective }
     primary = _{ "(" ~ formula ~ ")" | atomic_formula }
 
-// TODO: Think about a proper way to handle the whitespace at the end of theories
-theory = { (formula ~ ".")* ~ WHITESPACE* }
+theory = { (formula ~ ".")* }
+theory_eoi = _{ theory ~ EOI }
 
 role = { assumption | spec | lemma }
+role_eoi = _{ role ~ EOI }
     assumption  = { "assumption" }
     spec        = { "spec" }
     lemma       = { "lemma" }
 
 direction = { universal | forward | backward }
+direction_eoi = _{ direction ~ EOI }
     universal = { "universal" }
     forward   = { "forward" }
     backward  = { "backward" }
 
 annotated_formula = { role ~ ("(" ~ direction ~ ")")? ~ ("[" ~ symbolic_constant ~ "]")? ~ ":" ~ formula }
+annotated_formula_eoi = _{ annotated_formula ~ EOI }
 
-// TODO: Think about a proper way to handle the whitespace at the end of specifications
-specification = { (annotated_formula ~ ".")* ~ WHITESPACE* }
+specification = { (annotated_formula ~ ".")* }
+specification_eoi = _{ specification ~ EOI }
 
 user_guide_entry = { input_predicate | output_predicate | placeholder_declaration | annotated_formula }
+user_guide_entry_eoi = _{ user_guide_entry ~ EOI }
     input_predicate         = { "input" ~ ":" ~ predicate}
     output_predicate        = { "output" ~ ":" ~ predicate}
     placeholder_declaration = { "input" ~ ":" ~ function_constant}
 
-// TODO: Think about a proper way to handle the whitespace at the end of user guides
-user_guide = { (user_guide_entry ~ ".")* ~ WHITESPACE* }
+user_guide = { (user_guide_entry ~ ".")* }
+user_guide_eoi = _{ user_guide ~ EOI }
