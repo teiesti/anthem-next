@@ -1,13 +1,29 @@
-use std::{
-    fmt::{Debug, Display},
-    hash::Hash,
-    str::FromStr,
+use {
+    anyhow::{Context, Result},
+    std::{
+        fmt::{Debug, Display},
+        fs::read_to_string,
+        hash::Hash,
+        path::Path,
+        str::FromStr,
+    },
 };
 
 pub mod asp;
 pub mod fol;
 
-pub trait Node: Clone + Debug + Eq + PartialEq + FromStr + Display + Hash {}
+pub trait Node: Clone + Debug + Eq + PartialEq + FromStr + Display + Hash {
+    fn from_file<P: AsRef<Path>>(path: P) -> Result<Self>
+    where
+        <Self as FromStr>::Err: std::error::Error + Sync + Send + 'static,
+    {
+        let path = path.as_ref();
+        read_to_string(path)
+            .with_context(|| format!("could not read file `{}`", path.display()))?
+            .parse()
+            .with_context(|| format!("could not parse file `{}`", path.display()))
+    }
+}
 
 macro_rules! impl_node {
     ($node:ty, $format:expr, $parser:ty) => {
