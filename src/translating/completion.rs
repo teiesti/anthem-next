@@ -7,60 +7,58 @@ use {
 };
 
 pub fn completion(theory: fol::Theory) -> Option<fol::Theory> {
-    let mut definitions = definitions(theory)?;
+    let (definitions, constraints) = components(theory)?;
     // TODO: Confirm there are not head mismatches
 
-    let constraints = definitions
-        .shift_remove(&fol::AtomicFormula::Falsity)
-        .unwrap_or_else(|| vec![])
-        .into_iter()
-        .map(|f| fol::Formula::BinaryFormula {
-            connective: fol::BinaryConnective::Implication,
-            lhs: f.into(),
-            rhs: fol::Formula::AtomicFormula(fol::AtomicFormula::Falsity).into(),
-        });
-
-    let completed_definitions = definitions.into_iter().map(|(g, f)| {
+    let completed_definitions = definitions.into_iter().map(|(g, a)| {
         let v = g.variables();
         fol::Formula::BinaryFormula {
             connective: fol::BinaryConnective::Equivalence,
             lhs: fol::Formula::AtomicFormula(g).into(),
-            rhs: fol::Formula::disjoin(f.into_iter().map(|f_i| {
-                let variables = f_i.free_variables().difference(&v).cloned().collect();
-                f_i.quantify(fol::Quantifier::Exists, variables)
+            rhs: fol::Formula::disjoin(a.into_iter().map(|f_i| {
+                let u_i = f_i.free_variables().difference(&v).cloned().collect();
+                f_i.quantify(fol::Quantifier::Exists, u_i)
             }))
             .into(),
         }
         .quantify(fol::Quantifier::Forall, v.into_iter().collect())
     });
 
-    let mut formulas: Vec<_> = constraints.collect();
+    let mut formulas: Vec<_> = constraints;
     formulas.extend(completed_definitions);
 
     Some(fol::Theory { formulas })
 }
 
-fn definitions(theory: fol::Theory) -> Option<IndexMap<fol::AtomicFormula, Vec<fol::Formula>>> {
-    let mut result: IndexMap<_, Vec<fol::Formula>> = IndexMap::new();
+fn components(theory: fol::Theory) -> Option<(Definitions, Constraints)> {
+    let mut definitions: Definitions = IndexMap::new();
+    let mut constraints = Vec::new();
+
     for formula in theory.formulas {
-        let (f, g) = split(formula)?;
-        match result.entry(g) {
-            Entry::Occupied(mut e) => {
-                e.get_mut().push(f);
-            }
-            Entry::Vacant(e) => {
-                e.insert(vec![f]);
-            }
-        };
+        match split(formula)? {
+            Component::Constraint(c) => constraints.push(c),
+            Component::PartialDefinition { f, a } => match definitions.entry(a) {
+                Entry::Occupied(mut e) => {
+                    e.get_mut().push(f);
+                }
+                Entry::Vacant(e) => {
+                    e.insert(vec![f]);
+                }
+            },
+        }
     }
-    Some(result)
+
+    Some((definitions, constraints))
 }
+
+type Definitions = IndexMap<fol::AtomicFormula, Vec<fol::Formula>>;
+type Constraints = Vec<fol::Formula>;
 
 pub fn is_completable_formula(formula: fol::Formula) -> bool {
     split(formula).is_some()
 }
 
-fn split(formula: fol::Formula) -> Option<(fol::Formula, fol::AtomicFormula)> {
+fn split(formula: fol::Formula) -> Option<Component> {
     if !formula.free_variables().is_empty() {
         return None;
     }
@@ -78,8 +76,8 @@ fn split(formula: fol::Formula) -> Option<(fol::Formula, fol::AtomicFormula)> {
     }
 }
 
-fn split_implication(formula: fol::Formula) -> Option<(fol::Formula, fol::AtomicFormula)> {
-    match formula.unbox() {
+fn split_implication(formula: fol::Formula) -> Option<Component> {
+    match formula.clone().unbox() {
         UnboxedFormula::BinaryFormula {
             connective: fol::BinaryConnective::Implication,
             lhs: f,
@@ -90,14 +88,25 @@ fn split_implication(formula: fol::Formula) -> Option<(fol::Formula, fol::Atomic
             lhs: g,
             rhs: f,
         } => match g {
-            fol::Formula::AtomicFormula(
-                // TODO: What about fol::AtomicFormula::Truth?
-                a @ fol::AtomicFormula::Falsity | a @ fol::AtomicFormula::Atom(_),
-            ) => Some((f, a)),
+            // TODO: What about fol::AtomicFormula::Truth?
+            fol::Formula::AtomicFormula(fol::AtomicFormula::Falsity) => {
+                Some(Component::Constraint(formula))
+            }
+            fol::Formula::AtomicFormula(a @ fol::AtomicFormula::Atom(_)) => {
+                Some(Component::PartialDefinition { f, a })
+            }
             _ => None,
         },
         _ => None,
     }
+}
+
+enum Component {
+    PartialDefinition {
+        f: fol::Formula,
+        a: fol::AtomicFormula,
+    },
+    Constraint(fol::Formula),
 }
 
 #[cfg(test)]
