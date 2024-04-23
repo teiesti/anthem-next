@@ -4,12 +4,21 @@ use {
         syntax_tree::fol,
     },
     indexmap::{map::Entry, IndexMap},
+    itertools::Itertools,
 };
 
 pub fn completion(theory: fol::Theory) -> Option<fol::Theory> {
+    // Retrieve the definitions and constraints
     let (definitions, constraints) = components(theory)?;
-    // TODO: Confirm there are not head mismatches
 
+    // Confirm there are not head mismatches
+    for (_, heads) in heads(&definitions) {
+        if !heads.iter().all_equal() {
+            return None;
+        }
+    }
+
+    // Complete the definitions
     let completed_definitions = definitions.into_iter().map(|(g, a)| {
         let v = g.variables();
         fol::Formula::BinaryFormula {
@@ -28,6 +37,25 @@ pub fn completion(theory: fol::Theory) -> Option<fol::Theory> {
     formulas.extend(completed_definitions);
 
     Some(fol::Theory { formulas })
+}
+
+fn heads(definitions: &Definitions) -> IndexMap<fol::Predicate, Vec<&fol::AtomicFormula>> {
+    let mut result: IndexMap<_, Vec<_>> = IndexMap::new();
+    for head in definitions.keys() {
+        if let fol::AtomicFormula::Atom(a) = head {
+            match result.entry(a.predicate()) {
+                Entry::Occupied(mut e) => {
+                    e.get_mut().push(head);
+                }
+                Entry::Vacant(e) => {
+                    e.insert(vec![head]);
+                }
+            }
+        } else {
+            unreachable!();
+        }
+    }
+    result
 }
 
 fn components(theory: fol::Theory) -> Option<(Definitions, Constraints)> {
