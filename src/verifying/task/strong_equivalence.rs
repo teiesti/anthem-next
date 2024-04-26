@@ -2,7 +2,10 @@ use {
     crate::{
         command_line::Decomposition,
         syntax_tree::{asp, fol},
-        translating::{gamma::gamma, tau_star::tau_star},
+        translating::{
+            gamma::{self, gamma},
+            tau_star::tau_star,
+        },
         verifying::{
             problem::{AnnotatedFormula, Problem, Role},
             task::Task,
@@ -24,6 +27,33 @@ pub struct StrongEquivalenceTask {
     pub break_equivalences: bool,
 }
 
+impl StrongEquivalenceTask {
+    fn transition_axioms(&self) -> fol::Theory {
+        fn transition(p: asp::Predicate) -> fol::Formula {
+            let p: fol::Predicate = p.into();
+
+            let hp = gamma::here(p.clone().to_formula());
+            let tp = gamma::there(p.to_formula());
+
+            let variables = hp.free_variables();
+
+            fol::Formula::BinaryFormula {
+                connective: fol::BinaryConnective::Implication,
+                lhs: hp.into(),
+                rhs: tp.into(),
+            }
+            .quantify(fol::Quantifier::Forall, variables.into_iter().collect())
+        }
+
+        let mut predicates = self.left.predicates();
+        predicates.extend(self.right.predicates());
+
+        fol::Theory {
+            formulas: predicates.into_iter().map(transition).collect(),
+        }
+    }
+}
+
 impl Task for StrongEquivalenceTask {
     type Error = StrongEquivalenceTaskError;
 
@@ -31,10 +61,11 @@ impl Task for StrongEquivalenceTask {
         // TODO: Apply simplifications, if requested
         // TODO: Break equivalences, if requested
         // TODO: Avoid cloning the programs
-        // TODO: Add "forall X (hp(X) -> tp(X))" axioms
 
         let left = gamma(tau_star(self.left.clone()));
         let right = gamma(tau_star(self.right.clone()));
+
+        let transition_axioms = self.transition_axioms(); // These are the "forall X (hp(X) -> tp(X))" axioms.
 
         let mut problems = Vec::new();
         if matches!(
@@ -43,6 +74,11 @@ impl Task for StrongEquivalenceTask {
         ) {
             problems.push(
                 Problem::default()
+                    .add_theory(transition_axioms.clone(), |i, formula| AnnotatedFormula {
+                        name: format!("transition_axiom_{i}"),
+                        role: Role::Axiom,
+                        formula,
+                    })
                     .add_theory(left.clone(), |i, formula| AnnotatedFormula {
                         name: format!("left_{i}"),
                         role: Role::Axiom,
@@ -61,6 +97,11 @@ impl Task for StrongEquivalenceTask {
         ) {
             problems.push(
                 Problem::default()
+                    .add_theory(transition_axioms, |i, formula| AnnotatedFormula {
+                        name: format!("transition_axiom_{i}"),
+                        role: Role::Axiom,
+                        formula,
+                    })
                     .add_theory(right, |i, formula| AnnotatedFormula {
                         name: format!("right_{i}"),
                         role: Role::Axiom,
