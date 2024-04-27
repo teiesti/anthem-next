@@ -93,7 +93,7 @@ impl Task for StrongEquivalenceTask {
         }
         if matches!(
             self.direction,
-            fol::Direction::Universal | fol::Direction::Forward
+            fol::Direction::Universal | fol::Direction::Backward
         ) {
             problems.push(
                 Problem::default()
