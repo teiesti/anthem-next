@@ -56,15 +56,14 @@ impl StrongEquivalenceTask {
 impl Task for StrongEquivalenceTask {
     type Error = StrongEquivalenceTaskError;
 
-    fn decompose(&self) -> Result<Vec<Problem>, Self::Error> {
+    fn decompose(self) -> Result<Vec<Problem>, Self::Error> {
+        let transition_axioms = self.transition_axioms(); // These are the "forall X (hp(X) -> tp(X))" axioms.
+
         // TODO: Apply simplifications, if requested
         // TODO: Break equivalences, if requested
-        // TODO: Avoid cloning the programs
 
-        let left = gamma(tau_star(self.left.clone()));
-        let right = gamma(tau_star(self.right.clone()));
-
-        let transition_axioms = self.transition_axioms(); // These are the "forall X (hp(X) -> tp(X))" axioms.
+        let left = gamma(tau_star(self.left));
+        let right = gamma(tau_star(self.right));
 
         let mut problems = Vec::new();
         if matches!(

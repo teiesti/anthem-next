@@ -117,7 +117,7 @@ impl ExternalEquivalenceTask {
 impl Task for ExternalEquivalenceTask {
     type Error = ExternalEquivalenceTaskError;
 
-    fn decompose(&self) -> Result<Vec<Problem>, Self::Error> {
+    fn decompose(self) -> Result<Vec<Problem>, Self::Error> {
         self.ensure_input_and_output_predicates_are_disjoint()?;
         self.ensure_program_heads_do_not_contain_input_predicates()?;
         // TODO: Add more error handing
