@@ -5,5 +5,5 @@ use crate::verifying::problem::Problem;
 
 pub trait Task {
     type Error;
-    fn decompose(&self) -> Result<Vec<Problem>, Self::Error>;
+    fn decompose(self) -> Result<Vec<Problem>, Self::Error>;
 }
