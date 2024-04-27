@@ -11,6 +11,7 @@ use {
             task::Task,
         },
     },
+    std::convert::identity,
     thiserror::Error,
 };
 
@@ -59,11 +60,33 @@ impl Task for StrongEquivalenceTask {
     fn decompose(self) -> Result<Vec<Problem>, Self::Error> {
         let transition_axioms = self.transition_axioms(); // These are the "forall X (hp(X) -> tp(X))" axioms.
 
-        // TODO: Apply simplifications, if requested
+        let simplify_ht = if self.simplify {
+            |theory: fol::Theory| fol::Theory {
+                formulas: theory
+                    .formulas
+                    .into_iter()
+                    .map(crate::simplifying::fol::ht::simplify)
+                    .collect(),
+            }
+        } else {
+            identity
+        };
+        let simplify_classic = if self.simplify {
+            |theory: fol::Theory| fol::Theory {
+                formulas: theory
+                    .formulas
+                    .into_iter()
+                    .map(crate::simplifying::fol::classic::simplify)
+                    .collect(),
+            }
+        } else {
+            identity
+        };
+
         // TODO: Break equivalences, if requested
 
-        let left = gamma(tau_star(self.left));
-        let right = gamma(tau_star(self.right));
+        let left = simplify_classic(gamma(simplify_ht(tau_star(self.left))));
+        let right = simplify_classic(gamma(simplify_ht(tau_star(self.right))));
 
         let mut problems = Vec::new();
         if matches!(
