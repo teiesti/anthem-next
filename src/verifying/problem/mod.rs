@@ -1,8 +1,9 @@
 use {
     crate::syntax_tree::fol::{Formula, FunctionConstant, Predicate, Sort, Theory},
+    anyhow::{Context as _, Result},
     indexmap::IndexSet,
     itertools::Itertools,
-    std::{fmt, iter::repeat},
+    std::{fmt, fs::File, io::Write as _, iter::repeat, path::Path},
 };
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash, Default)]
@@ -151,6 +152,13 @@ impl Problem {
                 }
             })
             .collect_vec()
+    }
+
+    pub fn to_file<P: AsRef<Path>>(&self, path: P) -> Result<()> {
+        let path = path.as_ref();
+        let mut file = File::create(path)
+            .with_context(|| format!("could not create file `{}`", path.display()))?;
+        write!(file, "{self}").with_context(|| format!("could not write file `{}`", path.display()))
     }
 }
 
