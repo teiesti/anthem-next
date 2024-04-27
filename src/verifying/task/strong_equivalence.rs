@@ -94,7 +94,7 @@ impl Task for StrongEquivalenceTask {
             fol::Direction::Universal | fol::Direction::Forward
         ) {
             problems.push(
-                Problem::default()
+                Problem::with_name("forward")
                     .add_theory(transition_axioms.clone(), |i, formula| AnnotatedFormula {
                         name: format!("transition_axiom_{i}"),
                         role: Role::Axiom,
@@ -117,7 +117,7 @@ impl Task for StrongEquivalenceTask {
             fol::Direction::Universal | fol::Direction::Backward
         ) {
             problems.push(
-                Problem::default()
+                Problem::with_name("backward")
                     .add_theory(transition_axioms, |i, formula| AnnotatedFormula {
                         name: format!("transition_axiom_{i}"),
                         role: Role::Axiom,

@@ -6,9 +6,8 @@ use {
     std::{fmt, fs::File, io::Write as _, iter::repeat, path::Path},
 };
 
-#[derive(Clone, Debug, Eq, PartialEq, Hash, Default)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub enum Interpretation {
-    #[default]
     Standard,
 }
 
@@ -63,13 +62,22 @@ impl fmt::Display for AnnotatedFormula {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Hash, Default)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Problem {
+    pub name: String,
     pub interpretation: Interpretation,
     pub formulas: Vec<AnnotatedFormula>,
 }
 
 impl Problem {
+    pub fn with_name<S: Into<String>>(name: S) -> Problem {
+        Problem {
+            name: name.into(),
+            interpretation: Interpretation::Standard,
+            formulas: vec![],
+        }
+    }
+
     pub fn add_theory<F>(mut self, theory: Theory, mut annotate: F) -> Self
     where
         F: FnMut(usize, Formula) -> AnnotatedFormula,
@@ -124,10 +132,12 @@ impl Problem {
         let axioms = self.axioms();
         self.conjectures()
             .into_iter()
-            .map(|c| {
+            .enumerate()
+            .map(|(i, c)| {
                 let mut formulas = axioms.clone();
                 formulas.push(c);
                 Problem {
+                    name: format!("{}_{i}", self.name),
                     interpretation: self.interpretation.clone(),
                     formulas,
                 }
@@ -139,7 +149,8 @@ impl Problem {
         let mut formulas = self.axioms();
         self.conjectures()
             .into_iter()
-            .map(|c| {
+            .enumerate()
+            .map(|(i, c)| {
                 if let Some(last) = formulas.last_mut() {
                     last.role = Role::Axiom;
                 }
@@ -147,6 +158,7 @@ impl Problem {
                 formulas.push(c);
 
                 Problem {
+                    name: format!("{}_{i}", self.name),
                     interpretation: self.interpretation.clone(),
                     formulas: formulas.clone(),
                 }
@@ -219,6 +231,7 @@ mod tests {
     #[test]
     fn test_decomposition() {
         let problem = Problem {
+            name: "problem".into(),
             interpretation: Interpretation::Standard,
             formulas: vec![
                 AnnotatedFormula {
@@ -248,6 +261,7 @@ mod tests {
             problem.decompose_independent(),
             vec![
                 Problem {
+                    name: "problem_0".into(),
                     interpretation: Interpretation::Standard,
                     formulas: vec![
                         AnnotatedFormula {
@@ -268,6 +282,7 @@ mod tests {
                     ],
                 },
                 Problem {
+                    name: "problem_1".into(),
                     interpretation: Interpretation::Standard,
                     formulas: vec![
                         AnnotatedFormula {
@@ -294,6 +309,7 @@ mod tests {
             problem.decompose_sequential(),
             vec![
                 Problem {
+                    name: "problem_0".into(),
                     interpretation: Interpretation::Standard,
                     formulas: vec![
                         AnnotatedFormula {
@@ -314,6 +330,7 @@ mod tests {
                     ],
                 },
                 Problem {
+                    name: "problem_1".into(),
                     interpretation: Interpretation::Standard,
                     formulas: vec![
                         AnnotatedFormula {
