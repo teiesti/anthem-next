@@ -115,11 +115,10 @@ impl Task for StrongEquivalenceTask {
 
         Ok(problems
             .into_iter()
-            .map(|p: Problem| match self.decomposition {
+            .flat_map(|p: Problem| match self.decomposition {
                 Decomposition::Independent => p.decompose_independent(),
                 Decomposition::Sequential => p.decompose_sequential(),
             })
-            .flatten()
             .collect())
     }
 }

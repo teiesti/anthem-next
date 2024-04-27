@@ -215,7 +215,6 @@ impl Predicate {
         Formula::AtomicFormula(AtomicFormula::Atom(Atom {
             predicate_symbol: self.symbol,
             terms: (1..=self.arity)
-                .into_iter()
                 .map(|i| GeneralTerm::Variable(format!("X{i}")))
                 .collect(),
         }))
