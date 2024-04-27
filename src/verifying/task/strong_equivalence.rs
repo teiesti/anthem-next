@@ -11,7 +11,6 @@ use {
             task::Task,
         },
     },
-    std::fmt,
     thiserror::Error,
 };
 
@@ -123,11 +122,5 @@ impl Task for StrongEquivalenceTask {
             })
             .flatten()
             .collect())
-    }
-}
-
-impl fmt::Display for StrongEquivalenceTask {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        todo!()
     }
 }
