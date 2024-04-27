@@ -132,9 +132,9 @@ fn main() -> Result<()> {
             };
 
             if let Some(out_dir) = out_dir {
-                for (i, problem) in problems.into_iter().enumerate() {
+                for problem in problems.into_iter() {
                     let mut path = out_dir.clone();
-                    path.push(format!("problem_{i}.p"));
+                    path.push(format!("{}.p", problem.name));
                     problem.to_file(path)?;
                 }
             }
