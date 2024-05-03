@@ -2,15 +2,22 @@ use {
     crate::{
         command_line::Decomposition,
         syntax_tree::{asp, fol},
-        verifying::{problem::{self, Problem}, task::Task},
+        verifying::{
+            problem::{self, Problem},
+            task::Task,
+        },
     },
     either::Either,
     thiserror::Error,
 };
 
-#[derive(Error, Debug)]
-pub enum ExternalEquivalenceTaskError {
+struct ProofOutline {
+    pub forward_basic_lemmas: Vec<fol::AnnotatedFormula>,
+    pub backward_basic_lemmas: Vec<fol::AnnotatedFormula>,
 }
+
+#[derive(Error, Debug)]
+pub enum ExternalEquivalenceTaskError {}
 
 #[derive(Debug)]
 pub struct ExternalEquivalenceTask {
@@ -38,7 +45,8 @@ struct ValidatedExternalEquivalenceTask {
     pub left: Vec<fol::AnnotatedFormula>,
     pub right: Vec<fol::AnnotatedFormula>,
     pub user_guide_assumptions: Vec<fol::AnnotatedFormula>,
-    // pub proof_outline: ProofOutline,
+    pub proof_outline: ProofOutline,
+    pub decomposition: Decomposition,
     pub direction: fol::Direction,
     pub break_equivalences: bool,
 }
@@ -59,7 +67,8 @@ struct AssembledExternalEquivalenceTask {
     pub forward_conclusions: Vec<problem::AnnotatedFormula>,
     pub backward_premises: Vec<problem::AnnotatedFormula>,
     pub backward_conclusions: Vec<problem::AnnotatedFormula>,
-    //  pub proof_outline: ProofOutline,
+    pub proof_outline: ProofOutline,
+    pub decomposition: Decomposition,
     pub direction: fol::Direction,
 }
 
@@ -67,6 +76,43 @@ impl Task for AssembledExternalEquivalenceTask {
     type Error = ExternalEquivalenceTask;
 
     fn decompose(self) -> Result<Vec<Problem>, Self::Error> {
-        todo!()
+        let mut problems = Vec::new();
+        if matches!(
+            self.direction,
+            fol::Direction::Universal | fol::Direction::Forward
+        ) {
+            let mut forward_sequence = Problem::from_components(
+                "forward".to_string(),
+                self.stable_premises.clone(),
+                self.forward_premises,
+                self.forward_conclusions,
+                self.proof_outline.forward_basic_lemmas,
+            );
+            problems.append(&mut forward_sequence);
+        }
+        if matches!(
+            self.direction,
+            fol::Direction::Universal | fol::Direction::Backward
+        ) {
+            let mut backward_sequence = Problem::from_components(
+                "backward".to_string(),
+                self.stable_premises,
+                self.backward_premises,
+                self.backward_conclusions,
+                self.proof_outline.backward_basic_lemmas,
+            );
+            problems.append(&mut backward_sequence);
+        }
+
+        let result: Vec<Problem> = problems
+            .into_iter()
+            .map(|p: Problem| match self.decomposition {
+                Decomposition::Independent => p.decompose_independent(),
+                Decomposition::Sequential => p.decompose_sequential(),
+            })
+            .flatten()
+            .collect();
+
+        Ok(result)
     }
 }
