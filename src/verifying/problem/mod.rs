@@ -70,17 +70,17 @@ impl From<(fol::AnnotatedFormula, Role)> for AnnotatedFormula {
             fol::Role::Lemma => "lemma".to_string(),
         };
         if pair.0.name == String::default() {
-            return AnnotatedFormula {
+            AnnotatedFormula {
                 name,
                 role: pair.1,
                 formula: pair.0.formula,
-            };
+            }
         } else {
-            return AnnotatedFormula {
+            AnnotatedFormula {
                 name: pair.0.name.clone(),
                 role: pair.1,
                 formula: pair.0.formula,
-            };
+            }
         }
     }
 }

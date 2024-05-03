@@ -41,25 +41,25 @@ impl Task for ExternalEquivalenceTask {
     }
 }
 
-struct ValidatedExternalEquivalenceTask {
-    pub left: Vec<fol::AnnotatedFormula>,
-    pub right: Vec<fol::AnnotatedFormula>,
-    pub user_guide_assumptions: Vec<fol::AnnotatedFormula>,
-    pub proof_outline: ProofOutline,
-    pub decomposition: Decomposition,
-    pub direction: fol::Direction,
-    pub break_equivalences: bool,
-}
+// struct ValidatedExternalEquivalenceTask {
+//     pub left: Vec<fol::AnnotatedFormula>,
+//     pub right: Vec<fol::AnnotatedFormula>,
+//     pub user_guide_assumptions: Vec<fol::AnnotatedFormula>,
+//     pub proof_outline: ProofOutline,
+//     pub decomposition: Decomposition,
+//     pub direction: fol::Direction,
+//     pub break_equivalences: bool,
+// }
 
-impl Task for ValidatedExternalEquivalenceTask {
-    type Error = ExternalEquivalenceTaskError;
+// impl Task for ValidatedExternalEquivalenceTask {
+//     type Error = ExternalEquivalenceTaskError;
 
-    fn decompose(self) -> Result<Vec<Problem>, Self::Error> {
-        // let task: AssembledExternalEquivalenceTask = todo!();
-        // task.decompose()
-        todo!()
-    }
-}
+//     fn decompose(self) -> Result<Vec<Problem>, Self::Error> {
+//         // let task: AssembledExternalEquivalenceTask = todo!();
+//         // task.decompose()
+//         todo!()
+//     }
+// }
 
 struct AssembledExternalEquivalenceTask {
     pub stable_premises: Vec<problem::AnnotatedFormula>,
@@ -106,11 +106,10 @@ impl Task for AssembledExternalEquivalenceTask {
 
         let result: Vec<Problem> = problems
             .into_iter()
-            .map(|p: Problem| match self.decomposition {
+            .flat_map(|p: Problem| match self.decomposition {
                 Decomposition::Independent => p.decompose_independent(),
                 Decomposition::Sequential => p.decompose_sequential(),
             })
-            .flatten()
             .collect();
 
         Ok(result)
