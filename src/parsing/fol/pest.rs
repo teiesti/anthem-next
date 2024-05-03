@@ -606,6 +606,7 @@ impl PestParser for RoleParser {
             internal::Rule::assumption => Role::Assumption,
             internal::Rule::spec => Role::Spec,
             internal::Rule::lemma => Role::Lemma,
+            internal::Rule::definition => Role::Definition,
             _ => Self::report_unexpected_pair(pair),
         }
     }
@@ -725,9 +726,9 @@ impl PestParser for UserGuideEntryParser {
             internal::Rule::placeholder_declaration => UserGuideEntry::PlaceholderDeclaration(
                 FunctionConstantParser::translate_pairs(pair.into_inner()),
             ),
-            internal::Rule::annotated_formula => UserGuideEntry::AnnotatedFormula(
-                AnnotatedFormulaParser::translate_pairs(pair.into_inner()),
-            ),
+            internal::Rule::annotated_formula => {
+                UserGuideEntry::AnnotatedFormula(AnnotatedFormulaParser::translate_pair(pair))
+            }
             _ => Self::report_unexpected_pair(pair),
         }
     }
@@ -759,18 +760,20 @@ impl PestParser for UserGuideParser {
 mod tests {
     use {
         super::{
-            AtomParser, AtomicFormulaParser, BinaryConnectiveParser, BinaryOperatorParser,
-            ComparisonParser, FormulaParser, GeneralTermParser, GuardParser, IntegerTermParser,
-            PredicateParser, QuantificationParser, QuantifierParser, RelationParser,
-            SymbolicTermParser, TheoryParser, UnaryConnectiveParser, UnaryOperatorParser,
-            VariableParser,
+            AnnotatedFormulaParser, AtomParser, AtomicFormulaParser, BinaryConnectiveParser,
+            BinaryOperatorParser, ComparisonParser, FormulaParser, GeneralTermParser, GuardParser,
+            IntegerTermParser, PredicateParser, QuantificationParser, QuantifierParser,
+            RelationParser, SpecificationParser, SymbolicTermParser, TheoryParser,
+            UnaryConnectiveParser, UnaryOperatorParser, UserGuideParser, VariableParser,
         },
         crate::{
             parsing::TestedParser,
             syntax_tree::fol::{
-                Atom, AtomicFormula, BinaryConnective, BinaryOperator, Comparison, Formula,
-                GeneralTerm, Guard, IntegerTerm, Predicate, Quantification, Quantifier, Relation,
-                Sort, SymbolicTerm, Theory, UnaryConnective, UnaryOperator, Variable,
+                AnnotatedFormula, Atom, AtomicFormula, BinaryConnective, BinaryOperator,
+                Comparison, Direction, Formula, FunctionConstant, GeneralTerm, Guard, IntegerTerm,
+                Predicate, Quantification, Quantifier, Relation, Role, Sort, Specification,
+                SymbolicTerm, Theory, UnaryConnective, UnaryOperator, UserGuide, UserGuideEntry,
+                Variable,
             },
         },
         std::vec,
@@ -1525,5 +1528,180 @@ mod tests {
                 },
             ),
         ]);
+    }
+
+    #[test]
+    fn parse_annotated_formula() {
+        AnnotatedFormulaParser
+            .should_parse_into([
+                (
+                    "lemma: 2 > 1",
+                    AnnotatedFormula {
+                        role: Role::Lemma,
+                        direction: Direction::Universal,
+                        name: String::default(),
+                        formula: Formula::AtomicFormula(AtomicFormula::Comparison(Comparison {
+                            term: GeneralTerm::IntegerTerm(IntegerTerm::Numeral(2)),
+                            guards: vec![Guard {
+                                relation: Relation::Greater,
+                                term: GeneralTerm::IntegerTerm(IntegerTerm::Numeral(1)),
+                            }],
+                        })),
+                    },
+                ),
+                (
+                    "spec(forward)[about_p_0]: not p(0)",
+                    AnnotatedFormula {
+                        role: Role::Spec,
+                        direction: Direction::Forward,
+                        name: "about_p_0".to_string(),
+                        formula: Formula::UnaryFormula {
+                            connective: UnaryConnective::Negation,
+                            formula: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                                predicate_symbol: "p".into(),
+                                terms: vec![GeneralTerm::IntegerTerm(IntegerTerm::Numeral(0))],
+                            }))
+                            .into(),
+                        },
+                    },
+                ),
+                (
+                    "assumption: p(5)",
+                    AnnotatedFormula {
+                        role: Role::Assumption,
+                        direction: Direction::Universal,
+                        name: String::default(),
+                        formula: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                            predicate_symbol: "p".into(),
+                            terms: vec![GeneralTerm::IntegerTerm(IntegerTerm::Numeral(5))],
+                        })),
+                    },
+                ),
+                (
+                    "lemma(forward): a > 1",
+                    AnnotatedFormula {
+                        role: Role::Lemma,
+                        direction: Direction::Forward,
+                        name: String::default(),
+                        formula: Formula::AtomicFormula(AtomicFormula::Comparison(Comparison {
+                            term: GeneralTerm::SymbolicTerm(SymbolicTerm::Symbol("a".to_string())),
+                            guards: vec![Guard {
+                                relation: Relation::Greater,
+                                term: GeneralTerm::IntegerTerm(IntegerTerm::Numeral(1)),
+                            }],
+                        })),
+                    },
+                ),
+                (
+                    "lemma(backward)[false]: #false",
+                    AnnotatedFormula {
+                        role: Role::Lemma,
+                        name: "false".to_string(),
+                        direction: Direction::Backward,
+                        formula: Formula::AtomicFormula(AtomicFormula::Falsity),
+                    },
+                ),
+                (
+                    "definition[comp_1]: forall X (composite(X) <-> q(X))",
+                    AnnotatedFormula {
+                        role: Role::Definition,
+                        name: "comp_1".to_string(),
+                        direction: Direction::Universal,
+                        formula: Formula::QuantifiedFormula {
+                            quantification: Quantification {
+                                quantifier: Quantifier::Forall,
+                                variables: vec![Variable {
+                                    name: "X".into(),
+                                    sort: Sort::General,
+                                }],
+                            },
+                            formula: Formula::BinaryFormula {
+                                connective: BinaryConnective::Equivalence,
+                                lhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                                    predicate_symbol: "composite".into(),
+                                    terms: vec![GeneralTerm::Variable("X".into())],
+                                }))
+                                .into(),
+                                rhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                                    predicate_symbol: "q".into(),
+                                    terms: vec![GeneralTerm::Variable("X".into())],
+                                }))
+                                .into(),
+                            }
+                            .into(),
+                        },
+                    },
+                ),
+            ])
+            .should_reject(["lemma: X"]);
+    }
+
+    #[test]
+    fn parse_user_guide() {
+        UserGuideParser
+            .should_parse_into([
+                ("", UserGuide { entries: vec![] }),
+                (
+                    "input: n$i.\nassumption: p(5).",
+                    UserGuide {
+                        entries: vec![
+                            UserGuideEntry::PlaceholderDeclaration(FunctionConstant {
+                                name: "n".to_string(),
+                                sort: Sort::Integer,
+                            }),
+                            UserGuideEntry::AnnotatedFormula(AnnotatedFormula {
+                                role: Role::Assumption,
+                                direction: Direction::Universal,
+                                name: String::default(),
+                                formula: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                                    predicate_symbol: "p".into(),
+                                    terms: vec![GeneralTerm::IntegerTerm(IntegerTerm::Numeral(5))],
+                                })),
+                            }),
+                        ],
+                    },
+                ),
+            ])
+            .should_reject(["conjecture: p(5)."]);
+    }
+
+    #[test]
+    fn parse_specification() {
+        SpecificationParser
+            .should_parse_into([
+                ("", Specification { formulas: vec![] }),
+                (
+                    "spec(forward)[about_p_0]: not p(0).\nassumption: p(5).",
+                    Specification {
+                        formulas: vec![
+                            AnnotatedFormula {
+                                role: Role::Spec,
+                                direction: Direction::Forward,
+                                name: "about_p_0".to_string(),
+                                formula: Formula::UnaryFormula {
+                                    connective: UnaryConnective::Negation,
+                                    formula: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                                        predicate_symbol: "p".into(),
+                                        terms: vec![GeneralTerm::IntegerTerm(
+                                            IntegerTerm::Numeral(0),
+                                        )],
+                                    }))
+                                    .into(),
+                                },
+                            },
+                            AnnotatedFormula {
+                                role: Role::Assumption,
+                                direction: Direction::Universal,
+                                name: String::default(),
+                                formula: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                                    predicate_symbol: "p".into(),
+                                    terms: vec![GeneralTerm::IntegerTerm(IntegerTerm::Numeral(5))],
+                                })),
+                            },
+                        ],
+                    },
+                ),
+            ])
+            .should_reject(["spec(forward)p_0: not p(0)."]);
     }
 }
