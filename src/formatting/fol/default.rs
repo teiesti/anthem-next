@@ -356,6 +356,7 @@ impl Display for Format<'_, Role> {
             Role::Assumption => write!(f, "assumption"),
             Role::Spec => write!(f, "spec"),
             Role::Lemma => write!(f, "lemma"),
+            Role::Definition => write!(f, "definition"),
         }
     }
 }
@@ -381,6 +382,8 @@ impl Display for Format<'_, AnnotatedFormula> {
         if !self.0.name.is_empty() {
             write!(f, "[{}]", self.0.name)?;
         }
+
+        write!(f, ": ")?;
 
         Format(&self.0.formula).fmt(f)?;
 
@@ -424,9 +427,9 @@ mod tests {
     use crate::{
         formatting::fol::default::Format,
         syntax_tree::fol::{
-            Atom, AtomicFormula, BinaryConnective, BinaryOperator, Comparison, Formula,
-            GeneralTerm, Guard, IntegerTerm, Quantification, Quantifier, Relation, Sort,
-            SymbolicTerm, UnaryConnective, Variable,
+            AnnotatedFormula, Atom, AtomicFormula, BinaryConnective, BinaryOperator, Comparison,
+            Direction, Formula, GeneralTerm, Guard, IntegerTerm, Quantification, Quantifier,
+            Relation, Role, Sort, Specification, SymbolicTerm, UnaryConnective, Variable,
         },
     };
 
@@ -817,5 +820,38 @@ mod tests {
             .to_string(),
             "p <- (q -> r)"
         );
+    }
+
+    #[test]
+    fn format_specification() {
+        let left = Format(&Specification {
+            formulas: vec![
+                AnnotatedFormula {
+                    role: Role::Spec,
+                    direction: Direction::Forward,
+                    name: "about_p_0".to_string(),
+                    formula: Formula::UnaryFormula {
+                        connective: UnaryConnective::Negation,
+                        formula: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                            predicate_symbol: "p".into(),
+                            terms: vec![GeneralTerm::IntegerTerm(IntegerTerm::Numeral(0))],
+                        }))
+                        .into(),
+                    },
+                },
+                AnnotatedFormula {
+                    role: Role::Assumption,
+                    direction: Direction::Universal,
+                    name: String::default(),
+                    formula: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                        predicate_symbol: "p".into(),
+                        terms: vec![GeneralTerm::IntegerTerm(IntegerTerm::Numeral(5))],
+                    })),
+                },
+            ],
+        })
+        .to_string();
+        let right = "spec(forward)[about_p_0]: not p(0).\nassumption: p(5).\n".to_string();
+        assert_eq!(left, right, "\n{left}!=\n{right}");
     }
 }
