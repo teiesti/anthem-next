@@ -88,6 +88,47 @@ impl Problem {
         self
     }
 
+    pub fn from_components(
+        stable: Vec<AnnotatedFormula>,
+        premises: Vec<AnnotatedFormula>,
+        conclusions: Vec<AnnotatedFormula>,
+        definitions: Vec<fol::AnnotatedFormula>,
+        lemmas: Vec<fol::AnnotatedFormula>,
+    ) -> Vec<Self> {
+        let mut initial_problem = Problem::with_name("todo");
+
+
+        initial_problem.formulas.extend(stable);
+
+
+        for axiom in premises.iter() {
+            initial_problem.formulas.push(axiom.clone());
+        }
+        for axiom in definitions.iter() {
+            initial_problem
+                .formulas
+                .push(AnnotatedFormula::from((axiom.clone(), Role::Axiom)));
+        }
+
+        let mut final_problem = initial_problem.clone();
+
+        for formula in lemmas.iter() {
+            initial_problem
+                .formulas
+                .push(AnnotatedFormula::from((formula.clone(), Role::Conjecture)));
+            final_problem
+                .formulas
+                .push(AnnotatedFormula::from((formula.clone(), Role::Axiom)));
+        }
+        for conjecture in conclusions.iter() {
+            final_problem.formulas.push(conjecture.clone());
+        }
+
+        let mut problem_sequence = initial_problem.decompose_sequential();
+        problem_sequence.push(final_problem);
+        problem_sequence
+    }
+
     pub fn axioms(&self) -> Vec<AnnotatedFormula> {
         self.formulas
             .iter()
