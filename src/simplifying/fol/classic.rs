@@ -1,6 +1,6 @@
-use crate::syntax_tree::fol::Formula;
+use crate::syntax_tree::fol::Theory;
 
-pub fn simplify(formula: Formula) -> Formula {
-    crate::simplifying::fol::ht::simplify(formula)
+pub fn simplify(theory: Theory) -> Theory {
+    crate::simplifying::fol::ht::simplify(theory)
     // TODO: Add classic simplifications
 }
