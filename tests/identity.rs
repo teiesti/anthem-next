@@ -1,11 +1,8 @@
-extern crate anthem;
+use anthem::syntax_tree::{asp, fol};
 
 #[test]
 fn asp_rule_default_parsing_formatting_identity() {
-    for src in [
-        "p(X) :- q(X).",
-        "p :- not q."
-    ] {
+    for src in ["p(X) :- q(X).", "p :- not q."] {
         let rule: asp::Rule = src.parse().unwrap();
         let target = format!("{rule}");
 
