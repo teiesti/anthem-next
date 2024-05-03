@@ -12,7 +12,10 @@ use {
         command_line::{Arguments, Command, Equivalence, Translation},
         syntax_tree::{asp, fol, Node as _},
         translating::{completion::completion, gamma::gamma, tau_star::tau_star},
-        verifying::task::{external_equivalence::ExternalEquivalenceTask, Task},
+        verifying::task::{
+            external_equivalence::ExternalEquivalenceTask,
+            strong_equivalence::StrongEquivalenceTask, Task,
+        },
     },
     anyhow::{Context, Result},
     clap::Parser as _,
@@ -48,75 +51,97 @@ fn main() -> Result<()> {
         }
 
         Command::Verify {
-            equivalence: Equivalence::External,
+            equivalence,
             decomposition,
             direction,
             no_simplify,
             no_eq_break,
             // no_proof_search,
-            // out_dir,
+            out_dir,
             left,
             right,
             aux,
             ..
         } => {
-            let specification: Either<asp::Program, fol::Specification> =
-                match left.extension().map(OsStr::to_str) {
-                    Some(Some("lp")) => Either::Left(asp::Program::from_file(left)?),
-                    Some(Some("spec")) => Either::Right(fol::Specification::from_file(left)?),
-                    Some(Some(_x)) => todo!(),
-                    Some(None) => todo!(),
-                    None => todo!(),
-                };
+            let problems = match equivalence {
+                Equivalence::Strong => StrongEquivalenceTask {
+                    left: asp::Program::from_file(left)?,
+                    right: asp::Program::from_file(right)?,
+                    decomposition,
+                    direction,
+                    simplify: !no_simplify,
+                    break_equivalences: !no_eq_break,
+                }
+                .decompose()?,
 
-            let program: asp::Program = match right.extension().map(|x| x.to_str()) {
-                Some(Some("lp")) => asp::Program::from_file(right)?,
-                Some(Some(_x)) => todo!(),
-                Some(None) => todo!(),
-                None => todo!(),
+                Equivalence::External => {
+                    let specification: Either<asp::Program, fol::Specification> = match left
+                        .extension()
+                        .map(OsStr::to_str)
+                    {
+                        Some(Some("lp")) => Either::Left(asp::Program::from_file(left)?),
+                        Some(Some("spec")) => Either::Right(fol::Specification::from_file(left)?),
+                        Some(Some(_x)) => todo!(),
+                        Some(None) => todo!(),
+                        None => todo!(),
+                    };
+
+                    let program: asp::Program = match right.extension().map(|x| x.to_str()) {
+                        Some(Some("lp")) => asp::Program::from_file(right)?,
+                        Some(Some(_x)) => todo!(),
+                        Some(None) => todo!(),
+                        None => todo!(),
+                    };
+
+                    let user_guide: fol::UserGuide = match aux
+                        .first()
+                        .with_context(|| "no user guide was provided")?
+                        .extension()
+                        .map(OsStr::to_str)
+                    {
+                        Some(Some("ug")) => fol::UserGuide::from_file(aux.first().unwrap())?,
+                        Some(Some(_x)) => todo!(),
+                        Some(None) => todo!(),
+                        None => todo!(),
+                    };
+
+                    let proof_outline = match aux.get(1) {
+                        Some(path) => match path.extension().map(OsStr::to_str) {
+                            Some(Some("spec")) => {
+                                fol::Specification::from_file(aux.first().unwrap())?
+                            }
+                            Some(Some(_x)) => todo!(),
+                            Some(None) => todo!(),
+                            None => todo!(),
+                        },
+                        None => fol::Specification::empty(),
+                    };
+
+                    ExternalEquivalenceTask {
+                        specification,
+                        user_guide,
+                        program,
+                        proof_outline,
+                        decomposition,
+                        direction,
+                        simplify: !no_simplify,
+                        break_equivalences: !no_eq_break,
+                    }
+                    .decompose()?
+                }
             };
 
-            let user_guide: fol::UserGuide = match aux
-                .first()
-                .with_context(|| "no user guide was provided")?
-                .extension()
-                .map(OsStr::to_str)
-            {
-                Some(Some("ug")) => fol::UserGuide::from_file(aux.first().unwrap())?,
-                Some(Some(_x)) => todo!(),
-                Some(None) => todo!(),
-                None => todo!(),
-            };
+            if let Some(out_dir) = out_dir {
+                for problem in problems.into_iter() {
+                    let mut path = out_dir.clone();
+                    path.push(format!("{}.p", problem.name));
+                    problem.to_file(path)?;
+                }
+            }
 
-            let proof_outline = match aux.get(1) {
-                Some(path) => match path.extension().map(OsStr::to_str) {
-                    Some(Some("spec")) => fol::Specification::from_file(aux.first().unwrap())?,
-                    Some(Some(_x)) => todo!(),
-                    Some(None) => todo!(),
-                    None => todo!(),
-                },
-                None => fol::Specification::empty(),
-            };
+            // TODO: Run proof search
 
-            let task = ExternalEquivalenceTask {
-                specification,
-                user_guide,
-                program,
-                proof_outline,
-                decomposition,
-                direction,
-                simplify: !no_simplify,
-                break_equivalences: !no_eq_break,
-            };
-
-            let _problems = task.decompose()?;
-
-            todo!()
+            Ok(())
         }
-
-        Command::Verify {
-            equivalence: Equivalence::Strong,
-            ..
-        } => todo!(),
     }
 }

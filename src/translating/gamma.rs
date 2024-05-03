@@ -68,11 +68,11 @@ pub fn gamma_formula(formula: Formula) -> Formula {
     }
 }
 
-fn here(formula: Formula) -> Formula {
+pub fn here(formula: Formula) -> Formula {
     prepend_predicate(formula, "h")
 }
 
-fn there(formula: Formula) -> Formula {
+pub fn there(formula: Formula) -> Formula {
     prepend_predicate(formula, "t")
 }
 

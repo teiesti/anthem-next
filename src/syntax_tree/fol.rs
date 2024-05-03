@@ -210,6 +210,17 @@ pub struct Predicate {
 
 impl_node!(Predicate, Format, PredicateParser);
 
+impl Predicate {
+    pub fn to_formula(self) -> Formula {
+        Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+            predicate_symbol: self.symbol,
+            terms: (1..=self.arity)
+                .map(|i| GeneralTerm::Variable(format!("X{i}")))
+                .collect(),
+        }))
+    }
+}
+
 impl From<crate::syntax_tree::asp::Predicate> for Predicate {
     fn from(value: crate::syntax_tree::asp::Predicate) -> Self {
         Predicate {

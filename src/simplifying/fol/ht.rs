@@ -3,14 +3,20 @@ use crate::{
         apply::Apply as _,
         unbox::{fol::UnboxedFormula, Unbox as _},
     },
-    syntax_tree::fol::{AtomicFormula, BinaryConnective, Formula},
+    syntax_tree::fol::{AtomicFormula, BinaryConnective, Formula, Theory},
 };
 
-pub fn simplify(formula: Formula) -> Formula {
-    formula.apply(&mut simplify_outer)
+pub fn simplify(theory: Theory) -> Theory {
+    Theory {
+        formulas: theory.formulas.into_iter().map(simplify_formula).collect(),
+    }
 }
 
-pub fn simplify_outer(formula: Formula) -> Formula {
+fn simplify_formula(formula: Formula) -> Formula {
+    formula.apply(&mut simplify_outer_formula)
+}
+
+fn simplify_outer_formula(formula: Formula) -> Formula {
     // TODO: Split simplifications into multiple functions?
 
     match formula.unbox() {
@@ -93,10 +99,10 @@ pub fn simplify_outer(formula: Formula) -> Formula {
 
 #[cfg(test)]
 mod tests {
-    use super::{simplify, simplify_outer};
+    use super::{simplify_formula, simplify_outer_formula};
 
     #[test]
-    fn test_simplify() {
+    fn test_simplify_formula() {
         for (src, target) in [
             ("#true and a", "a"),
             ("a and #true", "a"),
@@ -111,12 +117,15 @@ mod tests {
             ("#true and #true and a", "a"),
             ("#true and (#true and a)", "a"),
         ] {
-            assert_eq!(simplify(src.parse().unwrap()), target.parse().unwrap())
+            assert_eq!(
+                simplify_formula(src.parse().unwrap()),
+                target.parse().unwrap()
+            )
         }
     }
 
     #[test]
-    fn test_simplify_outer() {
+    fn test_simplify_outer_formula() {
         for (src, target) in [
             ("#true and a", "a"),
             ("a and #true", "a"),
@@ -132,7 +141,7 @@ mod tests {
             ("(#true and #true) and a", "(#true and #true) and a"),
         ] {
             assert_eq!(
-                simplify_outer(src.parse().unwrap()),
+                simplify_outer_formula(src.parse().unwrap()),
                 target.parse().unwrap()
             )
         }

@@ -1,9 +1,10 @@
 use {
-    anyhow::{Context, Result},
+    anyhow::{Context as _, Result},
     std::{
         fmt::{Debug, Display},
-        fs::read_to_string,
+        fs::{read_to_string, File},
         hash::Hash,
+        io::Write as _,
         path::Path,
         str::FromStr,
     },
@@ -22,6 +23,13 @@ pub trait Node: Clone + Debug + Eq + PartialEq + FromStr + Display + Hash {
             .with_context(|| format!("could not read file `{}`", path.display()))?
             .parse()
             .with_context(|| format!("could not parse file `{}`", path.display()))
+    }
+
+    fn to_file<P: AsRef<Path>>(&self, path: P) -> Result<()> {
+        let path = path.as_ref();
+        let mut file = File::create(path)
+            .with_context(|| format!("could not create file `{}`", path.display()))?;
+        write!(file, "{self}").with_context(|| format!("could not write file `{}`", path.display()))
     }
 }
 

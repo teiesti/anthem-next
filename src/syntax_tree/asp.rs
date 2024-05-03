@@ -308,6 +308,14 @@ pub struct Body {
 impl_node!(Body, Format, BodyParser);
 
 impl Body {
+    pub fn predicates(&self) -> IndexSet<Predicate> {
+        let mut predicates = IndexSet::new();
+        for formula in self.formulas.iter() {
+            predicates.extend(formula.predicates())
+        }
+        predicates
+    }
+
     pub fn variables(&self) -> IndexSet<Variable> {
         let mut vars = IndexSet::new();
         for formula in self.formulas.iter() {
@@ -334,6 +342,15 @@ pub struct Rule {
 impl_node!(Rule, Format, RuleParser);
 
 impl Rule {
+    pub fn predicates(&self) -> IndexSet<Predicate> {
+        let mut predicates = IndexSet::new();
+        if let Some(predicate) = self.head.predicate() {
+            predicates.insert(predicate);
+        }
+        predicates.extend(self.body.predicates());
+        predicates
+    }
+
     pub fn variables(&self) -> IndexSet<Variable> {
         let mut vars = self.head.variables();
         vars.extend(self.body.variables());
@@ -355,6 +372,14 @@ pub struct Program {
 impl_node!(Program, Format, ProgramParser);
 
 impl Program {
+    pub fn predicates(&self) -> IndexSet<Predicate> {
+        let mut predicates = IndexSet::new();
+        for rule in &self.rules {
+            predicates.extend(rule.predicates())
+        }
+        predicates
+    }
+
     pub fn head_predicates(&self) -> IndexSet<Predicate> {
         let mut result = IndexSet::new();
         for rule in &self.rules {
