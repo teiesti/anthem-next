@@ -15,66 +15,52 @@ impl Formula {
                 formula: f,
             } => match f.unbox() {
                 UnboxedFormula::BinaryFormula {
-                    connective: c,
+                    connective: fol::BinaryConnective::Equivalence,
                     lhs: f1,
                     rhs: f2,
-                } => match c {
-                    fol::BinaryConnective::Equivalence => {
-                        let imp1 = Formula::QuantifiedFormula {
-                            quantification: q.clone(),
-                            formula: Formula::BinaryFormula {
-                                connective: fol::BinaryConnective::Implication,
-                                lhs: f1.clone().into(),
-                                rhs: f2.clone().into(),
-                            }
-                            .into(),
-                        };
-                        let imp2 = fol::Formula::QuantifiedFormula {
-                            quantification: q.clone(),
-                            formula: fol::Formula::BinaryFormula {
-                                connective: fol::BinaryConnective::ReverseImplication,
-                                lhs: f1.into(),
-                                rhs: f2.into(),
-                            }
-                            .into(),
-                        };
-                        return Some(vec![imp1, imp2]);
-                    }
-                    _ => {
-                        return None;
-                    }
-                },
-                _ => {
-                    return None;
+                } => {
+                    let imp1 = Formula::QuantifiedFormula {
+                        quantification: q.clone(),
+                        formula: Formula::BinaryFormula {
+                            connective: fol::BinaryConnective::Implication,
+                            lhs: f1.clone().into(),
+                            rhs: f2.clone().into(),
+                        }
+                        .into(),
+                    };
+                    let imp2 = fol::Formula::QuantifiedFormula {
+                        quantification: q.clone(),
+                        formula: fol::Formula::BinaryFormula {
+                            connective: fol::BinaryConnective::ReverseImplication,
+                            lhs: f1.into(),
+                            rhs: f2.into(),
+                        }
+                        .into(),
+                    };
+                    Some(vec![imp1, imp2])
                 }
+                _ => None,
             },
 
             fol::Formula::BinaryFormula {
-                connective: c,
+                connective: fol::BinaryConnective::Equivalence,
                 lhs: f1,
                 rhs: f2,
-            } => match c {
-                fol::BinaryConnective::Equivalence => {
-                    let imp1 = fol::Formula::BinaryFormula {
-                        connective: fol::BinaryConnective::Implication,
-                        lhs: f1.clone(),
-                        rhs: f2.clone(),
-                    };
-                    let imp2 = fol::Formula::BinaryFormula {
-                        connective: fol::BinaryConnective::ReverseImplication,
-                        lhs: f1.clone(),
-                        rhs: f2.clone(),
-                    };
-                    return Some(vec![imp1, imp2]);
-                }
-                _ => {
-                    return None;
-                }
-            },
-
-            _ => {
-                return None;
+            } => {
+                let imp1 = fol::Formula::BinaryFormula {
+                    connective: fol::BinaryConnective::Implication,
+                    lhs: f1.clone(),
+                    rhs: f2.clone(),
+                };
+                let imp2 = fol::Formula::BinaryFormula {
+                    connective: fol::BinaryConnective::ReverseImplication,
+                    lhs: f1.clone(),
+                    rhs: f2.clone(),
+                };
+                Some(vec![imp1, imp2])
             }
+
+            _ => None,
         }
     }
 }
@@ -90,7 +76,7 @@ impl AnnotatedFormula {
             Some(mut formulas) => {
                 let f2 = AnnotatedFormula {
                     role: self.role.clone(),
-                    direction: self.direction.clone(),
+                    direction: self.direction,
                     name: format!("{}_backward", self.name.clone()),
                     formula: formulas.pop().unwrap(),
                 };

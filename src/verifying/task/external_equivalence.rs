@@ -263,10 +263,7 @@ mod tests {
     use super::{
         AssembledExternalEquivalenceTask, ProofOutline, Task, ValidatedExternalEquivalenceTask,
     };
-    use crate::{
-        syntax_tree::fol,
-        verifying::{problem, proof},
-    };
+    use crate::{syntax_tree::fol, verifying::problem};
 
     #[test]
     fn test_decompose_validated() {
@@ -310,13 +307,11 @@ mod tests {
             role: problem::Role::Axiom,
             formula: "forall X (p(X) <-> q(X))".parse().unwrap(),
         }];
-        let forward_conclusions: Vec<problem::AnnotatedFormula> = vec![
-            problem::AnnotatedFormula {
-                name: "t_or_q".to_string(),
-                role: problem::Role::Conjecture,
-                formula: "t or q".parse().unwrap(),
-            },
-        ];
+        let forward_conclusions: Vec<problem::AnnotatedFormula> = vec![problem::AnnotatedFormula {
+            name: "t_or_q".to_string(),
+            role: problem::Role::Conjecture,
+            formula: "t or q".parse().unwrap(),
+        }];
         let backward_premises: Vec<problem::AnnotatedFormula> = vec![
             problem::AnnotatedFormula {
                 name: "assumption".to_string(),
@@ -329,8 +324,8 @@ mod tests {
                 formula: "t or q".parse().unwrap(),
             },
         ];
-        let backward_conclusions: Vec<problem::AnnotatedFormula> =
-            vec![problem::AnnotatedFormula {
+        let backward_conclusions: Vec<problem::AnnotatedFormula> = vec![
+            problem::AnnotatedFormula {
                 name: "_forward".to_string(),
                 role: problem::Role::Conjecture,
                 formula: "forall X ( p(X) -> q(X) )".parse().unwrap(),
@@ -339,7 +334,7 @@ mod tests {
                 name: "_backward".to_string(),
                 role: problem::Role::Conjecture,
                 formula: "forall X ( p(X) <- q(X) )".parse().unwrap(),
-            }
+            },
         ];
         let proof_outline = ProofOutline {
             forward_basic_lemmas: vec![],
