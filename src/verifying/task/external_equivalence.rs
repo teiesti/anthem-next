@@ -3,7 +3,7 @@ use {
         command_line::Decomposition,
         syntax_tree::{asp, fol},
         verifying::{
-            problem::{self, Problem},
+            problem::{self, AnnotatedFormula, Problem},
             task::Task,
         },
     },
@@ -41,25 +41,113 @@ impl Task for ExternalEquivalenceTask {
     }
 }
 
-// struct ValidatedExternalEquivalenceTask {
-//     pub left: Vec<fol::AnnotatedFormula>,
-//     pub right: Vec<fol::AnnotatedFormula>,
-//     pub user_guide_assumptions: Vec<fol::AnnotatedFormula>,
-//     pub proof_outline: ProofOutline,
-//     pub decomposition: Decomposition,
-//     pub direction: fol::Direction,
-//     pub break_equivalences: bool,
-// }
+struct ValidatedExternalEquivalenceTask {
+    pub left: Vec<fol::AnnotatedFormula>,
+    pub right: Vec<fol::AnnotatedFormula>,
+    pub user_guide_assumptions: Vec<fol::AnnotatedFormula>,
+    pub proof_outline: ProofOutline,
+    pub decomposition: Decomposition,
+    pub direction: fol::Direction,
+    pub break_equivalences: bool,
+}
 
-// impl Task for ValidatedExternalEquivalenceTask {
-//     type Error = ExternalEquivalenceTaskError;
+impl Task for ValidatedExternalEquivalenceTask {
+    type Error = ExternalEquivalenceTaskError;
 
-//     fn decompose(self) -> Result<Vec<Problem>, Self::Error> {
-//         // let task: AssembledExternalEquivalenceTask = todo!();
-//         // task.decompose()
-//         todo!()
-//     }
-// }
+    fn decompose(self) -> Result<Vec<Problem>, Self::Error> {
+        let mut stable_premises: Vec<problem::AnnotatedFormula> = Vec::new();
+        let mut forward_premises: Vec<problem::AnnotatedFormula> = Vec::new();
+        let mut forward_conclusions: Vec<problem::AnnotatedFormula>  = Vec::new();
+        let mut backward_premises: Vec<problem::AnnotatedFormula> = Vec::new();
+        let mut backward_conclusions: Vec<problem::AnnotatedFormula>  = Vec::new();
+
+        for assumption in self.user_guide_assumptions {
+            stable_premises.push(AnnotatedFormula::from((assumption, problem::Role::Axiom)));
+        }
+
+        // S, F |= B
+        for formula in self.left {
+            match formula {
+                fol::AnnotatedFormula {
+                    role: fol::Role::Assumption,
+                    direction,
+                    formula: ref f,
+                    ..
+                } => match direction {
+                    fol::Direction::Universal => stable_premises.push(AnnotatedFormula::from((formula, problem::Role::Axiom))),
+                    fol::Direction::Forward => forward_premises.push(AnnotatedFormula::from((formula, problem::Role::Axiom))),
+                    fol::Direction::Backward => println!("A backward assumption has no effect in this context. Ignoring formula {}", f),
+                },
+
+                fol::AnnotatedFormula {
+                    role: fol::Role::Spec,
+                    direction,
+                    ..
+                } => match direction {
+                    fol::Direction::Universal => {
+                        forward_premises.push(AnnotatedFormula::from((formula.clone(), problem::Role::Axiom)));
+                        backward_conclusions.push(AnnotatedFormula::from((formula, problem::Role::Conjecture)));
+                    },
+                    fol::Direction::Forward => {
+                        forward_premises.push(AnnotatedFormula::from((formula, problem::Role::Axiom)));
+                    },
+                    fol::Direction::Backward => {
+                        backward_conclusions.push(AnnotatedFormula::from((formula, problem::Role::Conjecture)));
+                    },
+                },
+
+                _ => todo!() // error
+            }
+        }
+
+        // S, B |= F
+        for formula in self.right {
+            match formula {
+                fol::AnnotatedFormula {
+                    role: fol::Role::Assumption,
+                    direction,
+                    formula: ref f,
+                    ..
+                } => match direction {
+                    fol::Direction::Universal => stable_premises.push(AnnotatedFormula::from((formula, problem::Role::Axiom))),
+                    fol::Direction::Forward => println!("A forward assumption has no effect in this context. Ignoring formula {}", f),
+                    fol::Direction::Backward => backward_premises.push(AnnotatedFormula::from((formula, problem::Role::Axiom))),
+                },
+
+                fol::AnnotatedFormula {
+                    role: fol::Role::Spec,
+                    direction,
+                    ..
+                } => match direction {
+                    fol::Direction::Universal => {
+                        backward_premises.push(AnnotatedFormula::from((formula.clone(), problem::Role::Axiom)));
+                        forward_conclusions.push(AnnotatedFormula::from((formula, problem::Role::Conjecture)));
+                    },
+                    fol::Direction::Forward => {
+                        backward_premises.push(AnnotatedFormula::from((formula, problem::Role::Axiom)));
+                    },
+                    fol::Direction::Backward => {
+                        forward_conclusions.push(AnnotatedFormula::from((formula, problem::Role::Conjecture)));
+                    },
+                },
+
+                _ => todo!() // error
+            }
+        }
+
+        let task = AssembledExternalEquivalenceTask {
+            stable_premises,
+            forward_premises,
+            forward_conclusions,
+            backward_premises,
+            backward_conclusions,
+            proof_outline: self.proof_outline,
+            decomposition: self.decomposition,
+            direction: self.direction,
+        };
+        task.decompose()
+    }
+}
 
 struct AssembledExternalEquivalenceTask {
     pub stable_premises: Vec<problem::AnnotatedFormula>,
@@ -73,7 +161,7 @@ struct AssembledExternalEquivalenceTask {
 }
 
 impl Task for AssembledExternalEquivalenceTask {
-    type Error = ExternalEquivalenceTask;
+    type Error = ExternalEquivalenceTaskError;
 
     fn decompose(self) -> Result<Vec<Problem>, Self::Error> {
         let mut problems = Vec::new();
