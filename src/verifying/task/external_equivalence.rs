@@ -57,9 +57,9 @@ impl Task for ValidatedExternalEquivalenceTask {
     fn decompose(self) -> Result<Vec<Problem>, Self::Error> {
         let mut stable_premises: Vec<problem::AnnotatedFormula> = Vec::new();
         let mut forward_premises: Vec<problem::AnnotatedFormula> = Vec::new();
-        let mut forward_conclusions: Vec<problem::AnnotatedFormula>  = Vec::new();
+        let mut forward_conclusions: Vec<problem::AnnotatedFormula> = Vec::new();
         let mut backward_premises: Vec<problem::AnnotatedFormula> = Vec::new();
-        let mut backward_conclusions: Vec<problem::AnnotatedFormula>  = Vec::new();
+        let mut backward_conclusions: Vec<problem::AnnotatedFormula> = Vec::new();
 
         for assumption in self.user_guide_assumptions {
             stable_premises.push(AnnotatedFormula::from((assumption, problem::Role::Axiom)));
@@ -74,9 +74,14 @@ impl Task for ValidatedExternalEquivalenceTask {
                     formula: ref f,
                     ..
                 } => match direction {
-                    fol::Direction::Universal => stable_premises.push(AnnotatedFormula::from((formula, problem::Role::Axiom))),
-                    fol::Direction::Forward => forward_premises.push(AnnotatedFormula::from((formula, problem::Role::Axiom))),
-                    fol::Direction::Backward => println!("A backward assumption has no effect in this context. Ignoring formula {}", f),
+                    fol::Direction::Universal => stable_premises
+                        .push(AnnotatedFormula::from((formula, problem::Role::Axiom))),
+                    fol::Direction::Forward => forward_premises
+                        .push(AnnotatedFormula::from((formula, problem::Role::Axiom))),
+                    fol::Direction::Backward => println!(
+                        "A backward assumption has no effect in this context. Ignoring formula {}",
+                        f
+                    ),
                 },
 
                 fol::AnnotatedFormula {
@@ -85,18 +90,24 @@ impl Task for ValidatedExternalEquivalenceTask {
                     ..
                 } => match direction {
                     fol::Direction::Universal => {
-                        forward_premises.push(AnnotatedFormula::from((formula.clone(), problem::Role::Axiom)));
-                        backward_conclusions.push(AnnotatedFormula::from((formula, problem::Role::Conjecture)));
-                    },
+                        forward_premises.push(AnnotatedFormula::from((
+                            formula.clone(),
+                            problem::Role::Axiom,
+                        )));
+                        backward_conclusions
+                            .push(AnnotatedFormula::from((formula, problem::Role::Conjecture)));
+                    }
                     fol::Direction::Forward => {
-                        forward_premises.push(AnnotatedFormula::from((formula, problem::Role::Axiom)));
-                    },
+                        forward_premises
+                            .push(AnnotatedFormula::from((formula, problem::Role::Axiom)));
+                    }
                     fol::Direction::Backward => {
-                        backward_conclusions.push(AnnotatedFormula::from((formula, problem::Role::Conjecture)));
-                    },
+                        backward_conclusions
+                            .push(AnnotatedFormula::from((formula, problem::Role::Conjecture)));
+                    }
                 },
 
-                _ => todo!() // error
+                _ => todo!(), // error
             }
         }
 
@@ -109,9 +120,14 @@ impl Task for ValidatedExternalEquivalenceTask {
                     formula: ref f,
                     ..
                 } => match direction {
-                    fol::Direction::Universal => stable_premises.push(AnnotatedFormula::from((formula, problem::Role::Axiom))),
-                    fol::Direction::Forward => println!("A forward assumption has no effect in this context. Ignoring formula {}", f),
-                    fol::Direction::Backward => backward_premises.push(AnnotatedFormula::from((formula, problem::Role::Axiom))),
+                    fol::Direction::Universal => stable_premises
+                        .push(AnnotatedFormula::from((formula, problem::Role::Axiom))),
+                    fol::Direction::Forward => println!(
+                        "A forward assumption has no effect in this context. Ignoring formula {}",
+                        f
+                    ),
+                    fol::Direction::Backward => backward_premises
+                        .push(AnnotatedFormula::from((formula, problem::Role::Axiom))),
                 },
 
                 fol::AnnotatedFormula {
@@ -120,18 +136,24 @@ impl Task for ValidatedExternalEquivalenceTask {
                     ..
                 } => match direction {
                     fol::Direction::Universal => {
-                        backward_premises.push(AnnotatedFormula::from((formula.clone(), problem::Role::Axiom)));
-                        forward_conclusions.push(AnnotatedFormula::from((formula, problem::Role::Conjecture)));
-                    },
+                        backward_premises.push(AnnotatedFormula::from((
+                            formula.clone(),
+                            problem::Role::Axiom,
+                        )));
+                        forward_conclusions
+                            .push(AnnotatedFormula::from((formula, problem::Role::Conjecture)));
+                    }
                     fol::Direction::Forward => {
-                        backward_premises.push(AnnotatedFormula::from((formula, problem::Role::Axiom)));
-                    },
+                        backward_premises
+                            .push(AnnotatedFormula::from((formula, problem::Role::Axiom)));
+                    }
                     fol::Direction::Backward => {
-                        forward_conclusions.push(AnnotatedFormula::from((formula, problem::Role::Conjecture)));
-                    },
+                        forward_conclusions
+                            .push(AnnotatedFormula::from((formula, problem::Role::Conjecture)));
+                    }
                 },
 
-                _ => todo!() // error
+                _ => todo!(), // error
             }
         }
 
