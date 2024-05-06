@@ -94,16 +94,32 @@ impl Task for ValidatedExternalEquivalenceTask {
                             formula.clone(),
                             problem::Role::Axiom,
                         )));
-                        backward_conclusions
-                            .push(AnnotatedFormula::from((formula, problem::Role::Conjecture)));
+                        if self.break_equivalences {
+                            let conjectures = formula.break_equivalences();
+                            for c in conjectures {
+                                backward_conclusions
+                                    .push(AnnotatedFormula::from((c, problem::Role::Conjecture)));
+                            }
+                        } else {
+                            backward_conclusions
+                                .push(AnnotatedFormula::from((formula, problem::Role::Conjecture)));
+                        }
                     }
                     fol::Direction::Forward => {
                         forward_premises
                             .push(AnnotatedFormula::from((formula, problem::Role::Axiom)));
                     }
                     fol::Direction::Backward => {
-                        backward_conclusions
-                            .push(AnnotatedFormula::from((formula, problem::Role::Conjecture)));
+                        if self.break_equivalences {
+                            let conjectures = formula.break_equivalences();
+                            for c in conjectures {
+                                backward_conclusions
+                                    .push(AnnotatedFormula::from((c, problem::Role::Conjecture)));
+                            }
+                        } else {
+                            backward_conclusions
+                                .push(AnnotatedFormula::from((formula, problem::Role::Conjecture)));
+                        }
                     }
                 },
 
@@ -140,16 +156,32 @@ impl Task for ValidatedExternalEquivalenceTask {
                             formula.clone(),
                             problem::Role::Axiom,
                         )));
-                        forward_conclusions
-                            .push(AnnotatedFormula::from((formula, problem::Role::Conjecture)));
+                        if self.break_equivalences {
+                            let conjectures = formula.break_equivalences();
+                            for c in conjectures {
+                                forward_conclusions
+                                    .push(AnnotatedFormula::from((c, problem::Role::Conjecture)));
+                            }
+                        } else {
+                            forward_conclusions
+                                .push(AnnotatedFormula::from((formula, problem::Role::Conjecture)));
+                        }
                     }
                     fol::Direction::Forward => {
                         backward_premises
                             .push(AnnotatedFormula::from((formula, problem::Role::Axiom)));
                     }
                     fol::Direction::Backward => {
-                        forward_conclusions
-                            .push(AnnotatedFormula::from((formula, problem::Role::Conjecture)));
+                        if self.break_equivalences {
+                            let conjectures = formula.break_equivalences();
+                            for c in conjectures {
+                                forward_conclusions
+                                    .push(AnnotatedFormula::from((c, problem::Role::Conjecture)));
+                            }
+                        } else {
+                            forward_conclusions
+                                .push(AnnotatedFormula::from((formula, problem::Role::Conjecture)));
+                        }
                     }
                 },
 
