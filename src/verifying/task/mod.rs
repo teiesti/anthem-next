@@ -33,7 +33,7 @@ pub enum ProofOutlineError {
     Basic(fol::Formula),
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct ProofOutline {
     pub forward_definitions: Vec<fol::AnnotatedFormula>,
     pub forward_basic_lemmas: Vec<fol::AnnotatedFormula>,
@@ -156,7 +156,7 @@ impl CheckDefinition for fol::Formula {
                         // check RHS has no predicates other than taken predicates
                         // this should ensure no recursion through definition sequence
                         if let Some(predicate) =
-                            rhs.predicates().difference(&taken_predicates).next()
+                            rhs.predicates().difference(taken_predicates).next()
                         {
                             return Err(ProofOutlineError::UndefinedRhsPredicate {
                                 definition: original,
@@ -164,7 +164,7 @@ impl CheckDefinition for fol::Formula {
                             });
                         }
 
-                        return Ok(predicate);
+                        Ok(predicate)
                     }
                     _ => Err(ProofOutlineError::Basic(original)),
                 }
@@ -177,7 +177,7 @@ impl CheckDefinition for fol::Formula {
 #[cfg(test)]
 mod tests {
     use {
-        super::ProofOutlineError,
+        super::{ProofOutline, ProofOutlineError},
         crate::{syntax_tree::fol, verifying::task::CheckDefinition},
         frame_support::assert_err,
         indexmap::IndexSet,
@@ -199,13 +199,13 @@ mod tests {
                     symbol: "pred".to_string(),
                     arity: 2,
                 },
-            )
+            ),
         ] {
             let taken_predicates: IndexSet<fol::Predicate> =
-            IndexSet::from_iter(vec![fol::Predicate {
-                symbol: "t".to_string(),
-                arity: 1,
-            }]);
+                IndexSet::from_iter(vec![fol::Predicate {
+                    symbol: "t".to_string(),
+                    arity: 1,
+                }]);
             let formula: fol::Formula = src.parse().unwrap();
             assert_eq!(formula.definition(&taken_predicates).unwrap(), target)
         }
@@ -256,5 +256,34 @@ mod tests {
             let formula: fol::Formula = src.parse().unwrap();
             assert_err!(formula.definition(&taken_predicates), target)
         }
+    }
+
+    #[test]
+    fn test_proof_outline_constructor() {
+        let f1: fol::AnnotatedFormula =
+            "definition[p]: forall X (p(X) <-> exists Y$i (X = Y$i and 0 <= Y$i <= 10))"
+                .parse()
+                .unwrap();
+        let f2: fol::AnnotatedFormula = "lemma(backward)[l1]: exists X (X = n$i)".parse().unwrap();
+        let f3: fol::AnnotatedFormula = "definition(forward)[q]: forall X (q(X) <-> p(X) or t(X))"
+            .parse()
+            .unwrap();
+        let f4: fol::AnnotatedFormula = "lemma[l2]: n$i > 0".parse().unwrap();
+        let spec = fol::Specification {
+            formulas: vec![f1.clone(), f2.clone(), f3.clone(), f4.clone()],
+        };
+        let taken_predicates: IndexSet<fol::Predicate> =
+            IndexSet::from_iter(vec![fol::Predicate {
+                symbol: "t".to_string(),
+                arity: 1,
+            }]);
+        let proof_outline = ProofOutline::construct(spec, taken_predicates).unwrap();
+        let target = ProofOutline {
+            forward_definitions: vec![f1.clone(), f3],
+            forward_basic_lemmas: vec![f4.clone()],
+            backward_definitions: vec![f1],
+            backward_basic_lemmas: vec![f2, f4],
+        };
+        assert_eq!(proof_outline, target)
     }
 }
