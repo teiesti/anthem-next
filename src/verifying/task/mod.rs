@@ -91,6 +91,7 @@ impl ProofOutline {
                 fol::Role::Assumption | fol::Role::Spec => {
                     return Err(ProofOutlineError::Basic(anf.formula.clone()));
                 }
+                _ => todo!(),
             }
         }
         Ok(ProofOutline {

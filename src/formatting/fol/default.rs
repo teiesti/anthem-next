@@ -357,6 +357,7 @@ impl Display for Format<'_, Role> {
             Role::Spec => write!(f, "spec"),
             Role::Lemma => write!(f, "lemma"),
             Role::Definition => write!(f, "definition"),
+            Role::InductiveLemma => write!(f, "inductive-lemma"),
         }
     }
 }
@@ -848,10 +849,47 @@ mod tests {
                         terms: vec![GeneralTerm::IntegerTerm(IntegerTerm::Numeral(5))],
                     })),
                 },
+                AnnotatedFormula {
+                    role: Role::InductiveLemma,
+                    direction: Direction::Backward,
+                    name: "il1".to_string(),
+                    formula: Formula::QuantifiedFormula {
+                        quantification: Quantification {
+                            quantifier: Quantifier::Forall,
+                            variables: vec![Variable {
+                                name: "X".into(),
+                                sort: Sort::General,
+                            }],
+                        },
+                        formula: Formula::BinaryFormula {
+                            connective: BinaryConnective::Equivalence,
+                            lhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                                predicate_symbol: "p".into(),
+                                terms: vec![GeneralTerm::Variable("X".into())],
+                            }))
+                            .into(),
+                            rhs: Formula::BinaryFormula {
+                                connective: BinaryConnective::Disjunction,
+                                lhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                                    predicate_symbol: "q".into(),
+                                    terms: vec![GeneralTerm::Variable("X".into())],
+                                }))
+                                .into(),
+                                rhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                                    predicate_symbol: "t".into(),
+                                    terms: vec![],
+                                }))
+                                .into(),
+                            }
+                            .into(),
+                        }
+                        .into(),
+                    },
+                },
             ],
         })
         .to_string();
-        let right = "spec(forward)[about_p_0]: not p(0).\nassumption: p(5).\n".to_string();
+        let right = "spec(forward)[about_p_0]: not p(0).\nassumption: p(5).\ninductive-lemma(backward)[il1]: forall X (p(X) <-> q(X) or t).\n".to_string();
         assert_eq!(left, right, "\n{left}!=\n{right}");
     }
 }
