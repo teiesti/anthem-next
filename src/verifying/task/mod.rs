@@ -112,7 +112,11 @@ impl ProofOutline {
                         name: format!("{}_inductive_step", anf.name),
                         formula: step,
                     };
-                    let inductive_lemma = InductiveLemma { original: anf.clone(), base: base_annotated, step: step_annotated };
+                    let inductive_lemma = InductiveLemma {
+                        original: anf.clone(),
+                        base: base_annotated,
+                        step: step_annotated,
+                    };
                     match anf.direction {
                         fol::Direction::Forward => {
                             forward_inductive_lemmas.push(inductive_lemma.clone());
@@ -125,10 +129,10 @@ impl ProofOutline {
                             backward_inductive_lemmas.push(inductive_lemma);
                         }
                     }
-                },
+                }
                 fol::Role::Assumption | fol::Role::Spec => {
                     return Err(ProofOutlineError::Basic(anf.formula.clone()));
-                },
+                }
             }
         }
         Ok(ProofOutline {
@@ -317,7 +321,7 @@ impl CheckInternal for fol::Formula {
 #[cfg(test)]
 mod tests {
     use {
-        super::{ProofOutline, ProofOutlineError, InductiveLemma},
+        super::{InductiveLemma, ProofOutline, ProofOutlineError},
         crate::{syntax_tree::fol, verifying::task::CheckInternal},
         frame_support::assert_err,
         indexmap::IndexSet,
@@ -442,7 +446,9 @@ mod tests {
             (
                 "forall X$i Y$i ( X$i >= 0 -> p(X$i, Y$i) )",
                 ProofOutlineError::MalformedInductiveLemma(
-                    "forall X$i Y$i ( X$i >= 0 -> p(X$i, Y$i) )".parse().unwrap(),
+                    "forall X$i Y$i ( X$i >= 0 -> p(X$i, Y$i) )"
+                        .parse()
+                        .unwrap(),
                 ),
             ),
         ] {
@@ -450,7 +456,6 @@ mod tests {
             assert_err!(formula.inductive_lemma(), target)
         }
     }
-
 
     #[test]
     fn test_proof_outline_constructor() {
@@ -463,15 +468,20 @@ mod tests {
             .parse()
             .unwrap();
         let f4: fol::AnnotatedFormula = "lemma[l2]: n$i > 0".parse().unwrap();
-        let f5: fol::AnnotatedFormula = "inductive-lemma[il1]: forall N$i ( N$i >= 0 -> square(N$i) )".parse().unwrap();
+        let f5: fol::AnnotatedFormula =
+            "inductive-lemma[il1]: forall N$i ( N$i >= 0 -> square(N$i) )"
+                .parse()
+                .unwrap();
         let f6: fol::AnnotatedFormula = "lemma[il1_base_case]: square(0)".parse().unwrap();
-        let f7: fol::AnnotatedFormula = "lemma[il1_inductive_step]: forall N$i ( N$i >= 0 and square(N$i) -> square(N$i+1) )".parse().unwrap();
+        let f7: fol::AnnotatedFormula =
+            "lemma[il1_inductive_step]: forall N$i ( N$i >= 0 and square(N$i) -> square(N$i+1) )"
+                .parse()
+                .unwrap();
         let il1 = InductiveLemma {
             original: f5.clone(),
             base: f6,
             step: f7,
         };
-
 
         let spec = fol::Specification {
             formulas: vec![f1.clone(), f2.clone(), f3.clone(), f4.clone(), f5],
