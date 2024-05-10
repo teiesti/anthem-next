@@ -1,4 +1,5 @@
 use {
+    super::task::GeneralLemma,
     crate::syntax_tree::fol::{self, Formula, FunctionConstant, Predicate, Sort, Theory},
     anyhow::{Context as _, Result},
     indexmap::IndexSet,
@@ -117,7 +118,7 @@ impl Problem {
         stable: Vec<AnnotatedFormula>,
         premises: Vec<AnnotatedFormula>,
         conclusions: Vec<AnnotatedFormula>,
-        lemmas: Vec<fol::AnnotatedFormula>,
+        lemmas: Vec<GeneralLemma>,
     ) -> Vec<Self> {
         let mut initial_problem = Problem::with_name(name);
 
@@ -128,20 +129,26 @@ impl Problem {
         let mut final_problem = initial_problem.clone();
         initial_problem.name = format!("{}_outline", initial_problem.name).to_string();
 
-        // Add lemmas as conjectures of initial_problem
-        for formula in lemmas.iter() {
+        // Create a problem sequence from the proof outline
+        let mut problem_sequence: Vec<Problem> = vec![];
+        for general_lemma in lemmas {
+            let mut lemma_sequence: Vec<Problem> = vec![];
+            for conjecture in general_lemma.conjectures {
+                let mut extended_problem = initial_problem.clone();
+                extended_problem.formulas.push(conjecture);
+                lemma_sequence.push(extended_problem);
+            }
             initial_problem
                 .formulas
-                .push(AnnotatedFormula::from((formula.clone(), Role::Conjecture)));
-            final_problem
-                .formulas
-                .push(AnnotatedFormula::from((formula.clone(), Role::Axiom)));
+                .extend(general_lemma.consequences.clone());
+            lemma_sequence.push(initial_problem.clone());
+            problem_sequence.extend(lemma_sequence);
+
+            final_problem.formulas.extend(general_lemma.consequences);
         }
 
         // Add conclusions as conjectures of final_problem
         final_problem.formulas.extend(conclusions);
-
-        let mut problem_sequence = initial_problem.decompose_sequential();
         problem_sequence.push(final_problem);
         problem_sequence
     }
