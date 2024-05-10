@@ -607,6 +607,7 @@ impl PestParser for RoleParser {
             internal::Rule::spec => Role::Spec,
             internal::Rule::lemma => Role::Lemma,
             internal::Rule::definition => Role::Definition,
+            internal::Rule::inductive_lemma => Role::InductiveLemma,
             _ => Self::report_unexpected_pair(pair),
         }
     }
@@ -1605,6 +1606,37 @@ mod tests {
                     "definition[comp_1]: forall X (composite(X) <-> q(X))",
                     AnnotatedFormula {
                         role: Role::Definition,
+                        name: "comp_1".to_string(),
+                        direction: Direction::Universal,
+                        formula: Formula::QuantifiedFormula {
+                            quantification: Quantification {
+                                quantifier: Quantifier::Forall,
+                                variables: vec![Variable {
+                                    name: "X".into(),
+                                    sort: Sort::General,
+                                }],
+                            },
+                            formula: Formula::BinaryFormula {
+                                connective: BinaryConnective::Equivalence,
+                                lhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                                    predicate_symbol: "composite".into(),
+                                    terms: vec![GeneralTerm::Variable("X".into())],
+                                }))
+                                .into(),
+                                rhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                                    predicate_symbol: "q".into(),
+                                    terms: vec![GeneralTerm::Variable("X".into())],
+                                }))
+                                .into(),
+                            }
+                            .into(),
+                        },
+                    },
+                ),
+                (
+                    "inductive-lemma[comp_1]: forall X (composite(X) <-> q(X))",
+                    AnnotatedFormula {
+                        role: Role::InductiveLemma,
                         name: "comp_1".to_string(),
                         direction: Direction::Universal,
                         formula: Formula::QuantifiedFormula {
