@@ -676,6 +676,8 @@ pub enum Role {
     Assumption,
     Spec,
     Lemma,
+    Definition,
+    InductiveLemma,
 }
 
 impl_node!(Role, Format, RoleParser);
