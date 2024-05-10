@@ -4,7 +4,7 @@ use {
         syntax_tree::{asp, fol},
         verifying::{
             problem::{self, AnnotatedFormula, Problem},
-            task::Task,
+            task::{Task, ProofOutline},
         },
     },
     either::Either,
@@ -278,8 +278,12 @@ mod tests {
         ];
         let assumption_1: fol::AnnotatedFormula = "assumption: t -> q".parse().unwrap();
         let proof_outline = ProofOutline {
+            forward_definitions: vec![],
             forward_basic_lemmas: vec![],
+            forward_inductive_lemmas: vec![],
+            backward_definitions: vec![],
             backward_basic_lemmas: vec![],
+            backward_inductive_lemmas: vec![],
         };
         let validated = ValidatedExternalEquivalenceTask {
             left,
@@ -338,8 +342,12 @@ mod tests {
             },
         ];
         let proof_outline = ProofOutline {
+            forward_definitions: vec![],
             forward_basic_lemmas: vec![],
+            forward_inductive_lemmas: vec![],
+            backward_definitions: vec![],
             backward_basic_lemmas: vec![],
+            backward_inductive_lemmas: vec![],
         };
 
         let assembled = AssembledExternalEquivalenceTask {
