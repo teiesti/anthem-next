@@ -68,6 +68,7 @@ impl From<(fol::AnnotatedFormula, Role)> for AnnotatedFormula {
             fol::Role::Spec => "spec".to_string(),
             fol::Role::Assumption => "assumption".to_string(),
             fol::Role::Lemma => "lemma".to_string(),
+            _ => "unknown_role".to_string(),
         };
         if pair.0.name == String::default() {
             AnnotatedFormula {

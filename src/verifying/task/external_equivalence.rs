@@ -11,10 +11,6 @@ use {
     thiserror::Error,
 };
 
-struct ProofOutline {
-    pub forward_basic_lemmas: Vec<fol::AnnotatedFormula>,
-    pub backward_basic_lemmas: Vec<fol::AnnotatedFormula>,
-}
 
 #[derive(Error, Debug)]
 pub enum ExternalEquivalenceTaskError {}
@@ -35,8 +31,13 @@ impl Task for ExternalEquivalenceTask {
     type Error = ExternalEquivalenceTaskError;
 
     fn decompose(self) -> Result<Vec<Problem>, Self::Error> {
-        // let task: ValidatedExternalEquivalenceTask = todo!();
-        // task.decompose()
+        //self.ensure_input_and_output_predicates_are_disjoint()?;
+        //self.ensure_program_heads_do_not_contain_input_predicates()?;
+
+        let taken_predicates = self.user_guide.input_predicates();
+        //let _proof_outline = ProofOutline::construct(self.proof_outline, taken_predicates);
+        // TODO: Add more error handing
+
         todo!()
     }
 }
