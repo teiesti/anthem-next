@@ -11,7 +11,6 @@ use {
     thiserror::Error,
 };
 
-
 #[derive(Error, Debug)]
 pub enum ExternalEquivalenceTaskError {}
 
@@ -35,7 +34,7 @@ impl Task for ExternalEquivalenceTask {
         //self.ensure_program_heads_do_not_contain_input_predicates()?;
 
         let taken_predicates = self.user_guide.input_predicates();
-        //let _proof_outline = ProofOutline::construct(self.proof_outline, taken_predicates);
+        let _proof_outline = ProofOutline::construct(self.proof_outline, taken_predicates);
         // TODO: Add more error handing
 
         todo!()
@@ -229,7 +228,7 @@ impl Task for AssembledExternalEquivalenceTask {
                 self.stable_premises.clone(),
                 self.forward_premises,
                 self.forward_conclusions,
-                self.proof_outline.forward_basic_lemmas,
+                self.proof_outline.forward_lemmas,
             );
             problems.append(&mut forward_sequence);
         }
@@ -242,7 +241,7 @@ impl Task for AssembledExternalEquivalenceTask {
                 self.stable_premises,
                 self.backward_premises,
                 self.backward_conclusions,
-                self.proof_outline.backward_basic_lemmas,
+                self.proof_outline.backward_lemmas,
             );
             problems.append(&mut backward_sequence);
         }
@@ -279,11 +278,9 @@ mod tests {
         let assumption_1: fol::AnnotatedFormula = "assumption: t -> q".parse().unwrap();
         let proof_outline = ProofOutline {
             forward_definitions: vec![],
-            forward_basic_lemmas: vec![],
-            forward_inductive_lemmas: vec![],
             backward_definitions: vec![],
-            backward_basic_lemmas: vec![],
-            backward_inductive_lemmas: vec![],
+            forward_lemmas: vec![],
+            backward_lemmas: vec![],
         };
         let validated = ValidatedExternalEquivalenceTask {
             left,
@@ -343,11 +340,9 @@ mod tests {
         ];
         let proof_outline = ProofOutline {
             forward_definitions: vec![],
-            forward_basic_lemmas: vec![],
-            forward_inductive_lemmas: vec![],
             backward_definitions: vec![],
-            backward_basic_lemmas: vec![],
-            backward_inductive_lemmas: vec![],
+            forward_lemmas: vec![],
+            backward_lemmas: vec![],
         };
 
         let assembled = AssembledExternalEquivalenceTask {
