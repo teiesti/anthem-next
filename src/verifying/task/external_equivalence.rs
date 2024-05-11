@@ -2,10 +2,7 @@ use {
     crate::{
         command_line::Decomposition,
         convenience::apply::Apply,
-        syntax_tree::{
-            asp,
-            fol,
-        },
+        syntax_tree::{asp, fol},
         translating::{completion::completion, tau_star::tau_star},
         verifying::{
             problem::{self, AnnotatedFormula, Problem},
@@ -193,14 +190,14 @@ impl Task for ExternalEquivalenceTask {
                     Some(p) => {
                         if !public_predicates.contains(&p) {
                             control_formulas.push(fol::AnnotatedFormula {
-                                name: format!("completed_definition_of_{p}"),
+                                name: format!("completed_definition_of_{}_{}", p.symbol, p.arity),
                                 role: fol::Role::Assumption,
                                 direction: fol::Direction::Universal,
                                 formula: formula.clone(),
                             });
                         } else {
                             control_formulas.push(fol::AnnotatedFormula {
-                                name: format!("completed_definition_of_{p}"),
+                                name: format!("completed_definition_of_{}_{}", p.symbol, p.arity),
                                 role: fol::Role::Spec,
                                 direction: fol::Direction::Universal,
                                 formula: formula.clone(),
@@ -248,10 +245,25 @@ impl Task for ExternalEquivalenceTask {
 
         // TODO: Add more error handing
 
+        // TODO: Private predicate renaming
+
+        // TODO: apply simplifications
+
+        let mut user_guide_assumptions = vec![];
+        for formula in self.user_guide.formulas() {
+            match formula.role {
+                fol::Role::Assumption => user_guide_assumptions.push(formula),
+                fol::Role::Spec => todo!(),  // TODO Report user error,
+                fol::Role::Lemma => todo!(), // TODO Report user error
+                fol::Role::Definition => todo!(), // TODO Report user error
+                fol::Role::InductiveLemma => todo!(), // TODO Report user error
+            }
+        }
+
         let validated = ValidatedExternalEquivalenceTask {
             left,
             right,
-            user_guide_assumptions: vec![],
+            user_guide_assumptions,
             proof_outline,
             decomposition: self.decomposition,
             direction: self.direction,
@@ -481,9 +493,65 @@ impl Task for AssembledExternalEquivalenceTask {
 #[cfg(test)]
 mod tests {
     use super::{
-        AssembledExternalEquivalenceTask, ProofOutline, Task, ValidatedExternalEquivalenceTask,
+        AssembledExternalEquivalenceTask, Either, ExternalEquivalenceTask, ProofOutline, Task,
+        ValidatedExternalEquivalenceTask,
     };
-    use crate::{syntax_tree::fol, verifying::problem};
+    use crate::{
+        command_line::Decomposition,
+        syntax_tree::{asp, fol},
+        verifying::problem,
+    };
+
+    #[test]
+    fn test_decompose_external() {
+        let program: asp::Program = "p :- t. p :- n < 5. r :- p.".parse().unwrap();
+        let spec: asp::Program = "p :- n = 0, not t. r :- p.".parse().unwrap();
+        let user_guide: fol::UserGuide =
+            "input: t/0. input: n$i. output: r/0. assumption: n$i = 3."
+                .parse()
+                .unwrap();
+        let proof_outline: fol::Specification = "".parse().unwrap();
+        let external = ExternalEquivalenceTask {
+            specification: Either::Left(spec),
+            program,
+            user_guide,
+            proof_outline,
+            decomposition: Decomposition::Independent,
+            direction: fol::Direction::Universal,
+            simplify: true,
+            break_equivalences: false,
+        };
+
+        let f1: fol::AnnotatedFormula = "assumption[completed_definition_of_p_0]: p <-> exists Z Z1 (Z = n$i and Z1 = 0 and Z = Z1) and not t".parse().unwrap();
+        let f2: fol::AnnotatedFormula = "spec[completed_definition_of_r_0]: r <-> p".parse().unwrap();
+        let f3: fol::AnnotatedFormula = "assumption[completed_definition_of_p_0]: p <-> t or exists Z Z1 (Z = n$i and Z1 = 5 and Z < Z1)".parse().unwrap();
+        let f4: fol::AnnotatedFormula = "spec[completed_definition_of_r_0]: r <-> p".parse().unwrap();
+        let user_guide_assumptions: Vec<fol::AnnotatedFormula> =
+            vec!["assumption: n$i = 3".parse().unwrap()];
+        let proof_outline = ProofOutline {
+            forward_definitions: vec![],
+            forward_lemmas: vec![],
+            backward_definitions: vec![],
+            backward_lemmas: vec![],
+        };
+        let validated = ValidatedExternalEquivalenceTask {
+            left: vec![f1, f2],
+            right: vec![f3, f4],
+            user_guide_assumptions,
+            proof_outline,
+            decomposition: Decomposition::Independent,
+            direction: fol::Direction::Universal,
+            break_equivalences: false,
+        };
+
+        let src = external.decompose().unwrap();
+        let target = validated.decompose().unwrap();
+        for i in 0..src.len() {
+            let p1 = src[i].clone();
+            let p2 = target[i].clone();
+            assert_eq!(src, target, "{p1} != {p2}")
+        }
+    }
 
     #[test]
     fn test_decompose_validated() {
