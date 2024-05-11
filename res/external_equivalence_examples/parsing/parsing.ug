@@ -1,0 +1,6 @@
+input: n$i.
+input: edge/2.
+input: t/0.
+output: reachable/2.
+assumption[about_n]: 0 <= n$i <= 100.
+assumption(forward): forall X (t -> edge(t,X)).
