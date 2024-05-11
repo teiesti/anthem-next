@@ -113,6 +113,17 @@ impl Problem {
         self
     }
 
+    pub fn summarize(&self) {
+        println!("\n#### Premises ####");
+        for f in self.axioms() {
+            println!("\t{}", f.formula);
+        }
+        println!("\n#### Conclusions ####");
+        for f in self.conjectures() {
+            println!("\t{}", f.formula);
+        }
+    }
+
     pub fn from_components(
         name: String,
         stable: Vec<AnnotatedFormula>,
