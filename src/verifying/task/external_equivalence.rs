@@ -461,6 +461,7 @@ impl Task for AssembledExternalEquivalenceTask {
                 self.forward_premises,
                 self.forward_conclusions,
                 self.proof_outline.forward_lemmas,
+                self.proof_outline.forward_definitions,
             );
             problems.append(&mut forward_sequence);
         }
@@ -474,6 +475,7 @@ impl Task for AssembledExternalEquivalenceTask {
                 self.backward_premises,
                 self.backward_conclusions,
                 self.proof_outline.backward_lemmas,
+                self.proof_outline.backward_definitions,
             );
             problems.append(&mut backward_sequence);
         }
