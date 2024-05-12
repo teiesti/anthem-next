@@ -1,3 +1,2 @@
-edge(X,Y) :- X < 5, Y < n.
-aux(X) :- edge(X,Y), not t.
+aux(X) :- edge(X,n), not t.
 reachable(Z,V) :- edge(Z,Var), edge(Var, V), aux(Var).
