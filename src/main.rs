@@ -9,14 +9,14 @@ pub mod verifying;
 
 use {
     crate::{
-        command_line::{Arguments, Command, Equivalence, Translation, Simplification},
+        command_line::{Arguments, Command, Equivalence, Simplification, Translation},
+        simplifying::fol::ht::simplify_nested_quantifiers,
         syntax_tree::{asp, fol, Node as _},
         translating::{completion::completion, gamma::gamma, tau_star::tau_star},
         verifying::task::{
             external_equivalence::ExternalEquivalenceTask,
             strong_equivalence::StrongEquivalenceTask, Task,
         },
-        simplifying::fol::ht::simplify_nested_quantifiers,
     },
     anyhow::{Context, Result},
     clap::Parser as _,

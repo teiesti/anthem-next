@@ -2,13 +2,13 @@ use {
     crate::{
         command_line::Decomposition,
         convenience::apply::Apply,
+        simplifying::fol::ht::{simplify, simplify_theory},
         syntax_tree::{asp, fol},
         translating::{completion::completion, tau_star::tau_star},
         verifying::{
             problem::{self, AnnotatedFormula, Problem},
             task::{ProofOutline, Task},
         },
-        simplifying::fol::ht::{simplify_theory, simplify}
     },
     either::Either,
     indexmap::{IndexMap, IndexSet},
@@ -305,7 +305,9 @@ impl Task for ExternalEquivalenceTask {
         let program = completion(tau_star(self.program.clone()).replace_placeholders(&placeholder))
             .expect("tau_star did not create a completable theory");
         let right = match self.simplify {
-            true => control_translate(simplify_theory(program, true).rename_predicates(&program_renaming_map)),
+            true => control_translate(
+                simplify_theory(program, true).rename_predicates(&program_renaming_map),
+            ),
             false => control_translate(program.rename_predicates(&program_renaming_map)),
         };
 
@@ -315,8 +317,13 @@ impl Task for ExternalEquivalenceTask {
                     completion(tau_star(specification).replace_placeholders(&placeholder))
                         .expect("tau_star did not create a completable theory");
                 match self.simplify {
-                    true => control_translate(simplify_theory(specification, true).rename_predicates(&specification_renaming_map)),
-                    false => control_translate(specification.rename_predicates(&specification_renaming_map)),
+                    true => control_translate(
+                        simplify_theory(specification, true)
+                            .rename_predicates(&specification_renaming_map),
+                    ),
+                    false => control_translate(
+                        specification.rename_predicates(&specification_renaming_map),
+                    ),
                 }
             }
             Either::Right(specification) => match self.simplify {
@@ -331,9 +338,9 @@ impl Task for ExternalEquivalenceTask {
                         });
                     }
                     simplified
-                },
+                }
                 false => specification.formulas,
-            }
+            },
         };
 
         let mut taken_predicates = self.user_guide.input_predicates();
