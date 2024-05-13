@@ -320,6 +320,16 @@ impl Comparison {
 
         Comparison { term: lhs, guards }
     }
+
+    pub fn equality_comparison(&self) -> bool {
+        let guards = &self.guards;
+        let first = &guards[0];
+        if guards.len() == 1 && first.relation == Relation::Equal {
+            return true;
+        } else {
+            return false;
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
@@ -516,6 +526,24 @@ impl Formula {
             .unwrap_or_else(|| Formula::AtomicFormula(AtomicFormula::Truth))
     }
 
+    // Inverse function to conjoin
+    pub fn conjoin_invert(formula: Formula) -> Vec<Formula> {
+        match formula {
+            Formula::BinaryFormula {
+                connective: BinaryConnective::Conjunction,
+                lhs,
+                rhs,
+            } => {
+                let mut formulas = Self::conjoin_invert(*lhs);
+                formulas.append(&mut Self::conjoin_invert(*rhs));
+                return formulas;
+            }
+            _ => {
+                return vec![formula];
+            }
+        }
+    }
+
     /// Recursively turn a list of formulas into a tree of disjunctions
     pub fn disjoin(formulas: impl IntoIterator<Item = Formula>) -> Formula {
         /*
@@ -659,6 +687,27 @@ impl Formula {
                     variables,
                 },
                 formula: Box::new(self),
+            }
+        }
+    }
+
+    // Replacing var with term within self is unsafe if self contains a subformula
+    // of the form QxF, where var is free in F and a variable in term occurs in x
+    pub fn unsafe_substitution(self, var: &Variable, term: &GeneralTerm) -> bool {
+        match self {
+            Formula::AtomicFormula(_) => false,
+            Formula::UnaryFormula { formula, .. } => formula.unsafe_substitution(var, term),
+            Formula::BinaryFormula { lhs, rhs, .. } => {
+                lhs.unsafe_substitution(var, term) || rhs.unsafe_substitution(var, term)
+            }
+            Formula::QuantifiedFormula {
+                quantification,
+                formula,
+            } => {
+                let tvars = term.variables();
+                let qvars: IndexSet<Variable> = IndexSet::from_iter(quantification.variables);
+                let overlap: IndexSet<&Variable> = tvars.intersection(&qvars).collect();
+                formula.free_variables().contains(var) && !overlap.is_empty()
             }
         }
     }

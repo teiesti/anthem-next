@@ -8,6 +8,7 @@ use {
             problem::{self, AnnotatedFormula, Problem},
             task::{ProofOutline, Task},
         },
+        simplifying::fol::ht::{simplify_theory, simplify}
     },
     either::Either,
     indexmap::{IndexMap, IndexSet},
@@ -303,16 +304,36 @@ impl Task for ExternalEquivalenceTask {
 
         let program = completion(tau_star(self.program.clone()).replace_placeholders(&placeholder))
             .expect("tau_star did not create a completable theory");
-        let right = control_translate(program.rename_predicates(&program_renaming_map));
+        let right = match self.simplify {
+            true => control_translate(simplify_theory(program, true).rename_predicates(&program_renaming_map)),
+            false => control_translate(program.rename_predicates(&program_renaming_map)),
+        };
 
         let left = match self.specification.clone() {
             Either::Left(specification) => {
                 let specification =
                     completion(tau_star(specification).replace_placeholders(&placeholder))
                         .expect("tau_star did not create a completable theory");
-                control_translate(specification.rename_predicates(&specification_renaming_map))
+                match self.simplify {
+                    true => control_translate(simplify_theory(specification, true).rename_predicates(&specification_renaming_map)),
+                    false => control_translate(specification.rename_predicates(&specification_renaming_map)),
+                }
             }
-            Either::Right(specification) => specification.formulas,
+            Either::Right(specification) => match self.simplify {
+                true => {
+                    let mut simplified = Vec::new();
+                    for anf in specification.formulas {
+                        simplified.push(fol::AnnotatedFormula {
+                            role: anf.role,
+                            direction: anf.direction,
+                            name: anf.name,
+                            formula: simplify(anf.formula, true),
+                        });
+                    }
+                    simplified
+                },
+                false => specification.formulas,
+            }
         };
 
         let mut taken_predicates = self.user_guide.input_predicates();

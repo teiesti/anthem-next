@@ -9,13 +9,14 @@ pub mod verifying;
 
 use {
     crate::{
-        command_line::{Arguments, Command, Equivalence, Translation},
+        command_line::{Arguments, Command, Equivalence, Translation, Simplification},
         syntax_tree::{asp, fol, Node as _},
         translating::{completion::completion, gamma::gamma, tau_star::tau_star},
         verifying::task::{
             external_equivalence::ExternalEquivalenceTask,
             strong_equivalence::StrongEquivalenceTask, Task,
         },
+        simplifying::fol::ht::simplify_nested_quantifiers,
     },
     anyhow::{Context, Result},
     clap::Parser as _,
@@ -44,6 +45,22 @@ fn main() -> Result<()> {
                     let program = asp::Program::from_file(input)?;
                     let theory = tau_star(program);
                     print!("{theory}")
+                }
+            }
+
+            Ok(())
+        }
+
+        Command::Simplify { with, input } => {
+            match with {
+                Simplification::CompleteHT => {
+                    let theory = fol::Theory::from_file(input)?;
+                    let mut formulas: Vec<fol::Formula> = Vec::new();
+                    for form in theory.formulas {
+                        formulas.push(simplify_nested_quantifiers(form));
+                    }
+                    let simplified_theory = fol::Theory { formulas };
+                    println!("{simplified_theory}");
                 }
             }
 

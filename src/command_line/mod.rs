@@ -22,6 +22,15 @@ pub enum Command {
         input: PathBuf,
     },
 
+    Simplify {
+        /// The translation to use
+        #[arg(long, value_enum)]
+        with: Simplification,
+
+        /// The file to translate
+        input: PathBuf,
+    },
+
     /// Create and optionally verify a set of problem files from a claim about answer set programs or first-order theories
     Verify {
         /// The equivalence theory used to proof the claim
@@ -68,6 +77,11 @@ pub enum Translation {
     Completion,
     Gamma,
     TauStar,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
+pub enum Simplification {
+    CompleteHT,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
