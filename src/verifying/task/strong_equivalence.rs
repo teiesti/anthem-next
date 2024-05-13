@@ -63,16 +63,16 @@ impl Task for StrongEquivalenceTask {
         let mut right = tau_star(self.right);
 
         if self.simplify {
-            left = crate::simplifying::fol::ht::simplify(left);
-            right = crate::simplifying::fol::ht::simplify(right);
+            left = crate::simplifying::fol::ht::simplify_theory(left, true);
+            right = crate::simplifying::fol::ht::simplify_theory(right, true);
         }
 
         left = gamma(left);
         right = gamma(right);
 
         if self.simplify {
-            left = crate::simplifying::fol::classic::simplify(left);
-            right = crate::simplifying::fol::classic::simplify(right);
+            left = crate::simplifying::fol::classic::simplify(left, true);
+            right = crate::simplifying::fol::classic::simplify(right, true);
         }
 
         // TODO: Break equivalences, if requested
