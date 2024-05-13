@@ -575,10 +575,8 @@ pub fn transitive_equality(
                 if rhs1 == rhs2 {
                     if subsort(&v1, &v2) {
                         result = Some((v1, v2, c2));
-                    } else {
-                        if subsort(&v2, &v1) {
-                            result = Some((v2, v1, c1));
-                        }
+                    } else if subsort(&v2, &v1) {
+                        result = Some((v2, v1, c1));
                     }
                 }
             }
@@ -588,10 +586,8 @@ pub fn transitive_equality(
                     if rhs1 == lhs2 {
                         if subsort(&v1, &v2) {
                             result = Some((v1, v2, c2));
-                        } else {
-                            if subsort(&v2, &v1) {
-                                result = Some((v2, v1, c1));
-                            }
+                        } else if subsort(&v2, &v1) {
+                            result = Some((v2, v1, c1));
                         }
                     }
                 }
@@ -607,10 +603,8 @@ pub fn transitive_equality(
                         if lhs1 == rhs2 {
                             if subsort(&v1, &v2) {
                                 result = Some((v1, v2, c2));
-                            } else {
-                                if subsort(&v2, &v1) {
-                                    result = Some((v2, v1, c1));
-                                }
+                            } else if subsort(&v2, &v1) {
+                                result = Some((v2, v1, c1));
                             }
                         }
                     }
@@ -620,10 +614,8 @@ pub fn transitive_equality(
                             if lhs1 == lhs2 {
                                 if subsort(&v1, &v2) {
                                     result = Some((v1, v2, c2));
-                                } else {
-                                    if subsort(&v2, &v1) {
-                                        result = Some((v2, v1, c1));
-                                    }
+                                } else if subsort(&v2, &v1) {
+                                    result = Some((v2, v1, c1));
                                 }
                             }
                         }
@@ -1056,16 +1048,13 @@ pub fn restrict_quantifiers_outer(formula: Formula) -> Formula {
                         if comp.equality_comparison() {
                             for ovar in outer_vars.iter() {
                                 for ivar in inner_vars.iter() {
-                                    if ovar.sort == Sort::General && ivar.sort == Sort::Integer
-                                    {
-                                        if !rhs.free_variables().contains(ovar) {
-                                            let replacement_result =
-                                                replacement_helper(ivar, ovar, comp, &formula);
-                                            if replacement_result.1 {
-                                                simplified_formula = replacement_result.0;
-                                                replaced = true;
-                                                break;
-                                            }
+                                    if ovar.sort == Sort::General && ivar.sort == Sort::Integer && !rhs.free_variables().contains(ovar) {
+                                        let replacement_result =
+                                            replacement_helper(ivar, ovar, comp, &formula);
+                                        if replacement_result.1 {
+                                            simplified_formula = replacement_result.0;
+                                            replaced = true;
+                                            break;
                                         }
                                     }
                                     if replaced {
