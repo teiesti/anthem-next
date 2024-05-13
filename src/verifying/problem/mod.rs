@@ -114,6 +114,7 @@ impl Problem {
     }
 
     pub fn summarize(&self) {
+        println!("\n---- Problem: {} ----", self.name);
         println!("\n#### Premises ####");
         for f in self.axioms() {
             println!("\t{}", f.formula);
@@ -138,7 +139,9 @@ impl Problem {
         initial_problem.formulas.extend(stable);
         initial_problem.formulas.extend(premises);
         for definition in definitions {
-            initial_problem.formulas.push(AnnotatedFormula::from((definition, Role::Axiom)));
+            initial_problem
+                .formulas
+                .push(AnnotatedFormula::from((definition, Role::Axiom)));
         }
 
         let mut final_problem = initial_problem.clone();

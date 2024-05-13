@@ -131,8 +131,7 @@ fn main() -> Result<()> {
                 }
             };
 
-            for (i, problem) in problems.clone().into_iter().enumerate() {
-                println!("\n############## problem {i} ##############");
+            for problem in problems.iter() {
                 problem.summarize();
             }
 

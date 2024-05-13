@@ -10,7 +10,7 @@ use {
         },
     },
     either::Either,
-    indexmap::IndexMap,
+    indexmap::{IndexMap, IndexSet},
     thiserror::Error,
 };
 
@@ -114,6 +114,54 @@ impl ReplacePlaceholders for fol::GeneralTerm {
     }
 }
 
+trait RenamePredicates {
+    fn rename_predicates(self, mapping: &IndexMap<fol::Predicate, String>) -> Self;
+}
+
+impl RenamePredicates for fol::Theory {
+    fn rename_predicates(self, mapping: &IndexMap<fol::Predicate, String>) -> Self {
+        fol::Theory {
+            formulas: self
+                .formulas
+                .into_iter()
+                .map(|f| f.rename_predicates(mapping))
+                .collect(),
+        }
+    }
+}
+
+impl RenamePredicates for fol::Formula {
+    fn rename_predicates(self, mapping: &IndexMap<fol::Predicate, String>) -> Self {
+        self.apply(&mut |formula| match formula {
+            fol::Formula::AtomicFormula(a) => {
+                fol::Formula::AtomicFormula(a.rename_predicates(mapping))
+            }
+            x => x,
+        })
+    }
+}
+
+impl RenamePredicates for fol::AtomicFormula {
+    fn rename_predicates(self, mapping: &IndexMap<fol::Predicate, String>) -> Self {
+        match self {
+            fol::AtomicFormula::Atom(a) => fol::AtomicFormula::Atom(a.rename_predicates(mapping)),
+            x => x,
+        }
+    }
+}
+
+impl RenamePredicates for fol::Atom {
+    fn rename_predicates(self, mapping: &IndexMap<fol::Predicate, String>) -> Self {
+        match mapping.get(&self.predicate()) {
+            Some(name_extension) => fol::Atom {
+                predicate_symbol: format!("{}_{}", self.predicate_symbol, name_extension),
+                terms: self.terms,
+            },
+            None => self,
+        }
+    }
+}
+
 #[derive(Error, Debug)]
 pub enum ExternalEquivalenceTaskError {
     #[error("could not parse the proof outline: {0}")]
@@ -149,9 +197,46 @@ impl Task for ExternalEquivalenceTask {
 
         let public_predicates = self.user_guide.public_predicates();
 
+        let mut program_private_predicates: IndexSet<fol::Predicate> = IndexSet::new();
+        for predicate in self.program.predicates() {
+            let candidate = fol::Predicate {
+                symbol: predicate.symbol,
+                arity: predicate.arity,
+            };
+            if !public_predicates.contains(&candidate) {
+                program_private_predicates.insert(candidate);
+            }
+        }
+
+        let mut specification_private_predicates: IndexSet<fol::Predicate> = IndexSet::new();
+        match self.specification.clone() {
+            Either::Left(lp) => {
+                for predicate in lp.predicates() {
+                    let candidate = fol::Predicate {
+                        symbol: predicate.symbol,
+                        arity: predicate.arity,
+                    };
+                    if !public_predicates.contains(&candidate) {
+                        specification_private_predicates.insert(candidate);
+                    }
+                }
+            }
+            Either::Right(_) => (),
+        }
+
+        let conflicting_predicates: IndexSet<fol::Predicate> = program_private_predicates
+            .intersection(&specification_private_predicates)
+            .cloned()
+            .collect();
+
+        let mut program_renaming_map = IndexMap::new();
+        let mut specification_renaming_map = IndexMap::new();
+        for predicate in conflicting_predicates {
+            specification_renaming_map.insert(predicate.clone(), "1".to_string());
+            program_renaming_map.insert(predicate, "2".to_string());
+        }
+
         // // TODO: Apply simplifications
-        // // TODO: Apply equivalence breaking
-        // // TODO: Rename private predicates
 
         let head_predicate = |formula: fol::Formula| {
             let head_formula = *match formula {
@@ -218,14 +303,14 @@ impl Task for ExternalEquivalenceTask {
 
         let program = completion(tau_star(self.program.clone()).replace_placeholders(&placeholder))
             .expect("tau_star did not create a completable theory");
-        let right = control_translate(program);
+        let right = control_translate(program.rename_predicates(&program_renaming_map));
 
         let left = match self.specification.clone() {
             Either::Left(specification) => {
                 let specification =
                     completion(tau_star(specification).replace_placeholders(&placeholder))
                         .expect("tau_star did not create a completable theory");
-                control_translate(specification)
+                control_translate(specification.rename_predicates(&specification_renaming_map))
             }
             Either::Right(specification) => specification.formulas,
         };
@@ -244,8 +329,6 @@ impl Task for ExternalEquivalenceTask {
         }?;
 
         // TODO: Add more error handing
-
-        // TODO: Private predicate renaming
 
         // TODO: apply simplifications
 
@@ -494,15 +577,33 @@ impl Task for AssembledExternalEquivalenceTask {
 
 #[cfg(test)]
 mod tests {
+    use indexmap::IndexMap;
+
     use super::{
-        AssembledExternalEquivalenceTask, Either, ExternalEquivalenceTask, ProofOutline, Task,
-        ValidatedExternalEquivalenceTask,
+        AssembledExternalEquivalenceTask, Either, ExternalEquivalenceTask, ProofOutline,
+        RenamePredicates, Task, ValidatedExternalEquivalenceTask,
     };
     use crate::{
         command_line::Decomposition,
         syntax_tree::{asp, fol},
         verifying::problem,
     };
+
+    #[test]
+    fn test_rename_predicates() {
+        let mut rename_map = IndexMap::new();
+        rename_map.insert(
+            fol::Predicate {
+                symbol: "p".to_string(),
+                arity: 0,
+            },
+            "2".to_string(),
+        );
+        let theory: fol::Theory = "p <-> q or t. 1 < 5 or t and not p.".parse().unwrap();
+        let renamed_theory = theory.rename_predicates(&rename_map);
+        let target: fol::Theory = "p_2 <-> q or t. 1 < 5 or t and not p_2.".parse().unwrap();
+        assert_eq!(renamed_theory, target)
+    }
 
     #[test]
     fn test_decompose_external() {
@@ -524,10 +625,14 @@ mod tests {
             break_equivalences: false,
         };
 
-        let f1: fol::AnnotatedFormula = "assumption[completed_definition_of_p_0]: p <-> exists Z Z1 (Z = n$i and Z1 = 0 and Z = Z1) and not t".parse().unwrap();
-        let f2: fol::AnnotatedFormula = "spec[completed_definition_of_r_0]: r <-> p".parse().unwrap();
-        let f3: fol::AnnotatedFormula = "assumption[completed_definition_of_p_0]: p <-> t or exists Z Z1 (Z = n$i and Z1 = 5 and Z < Z1)".parse().unwrap();
-        let f4: fol::AnnotatedFormula = "spec[completed_definition_of_r_0]: r <-> p".parse().unwrap();
+        let f1: fol::AnnotatedFormula = "assumption[completed_definition_of_p_1_0]: p_1 <-> exists Z Z1 (Z = n$i and Z1 = 0 and Z = Z1) and not t".parse().unwrap();
+        let f2: fol::AnnotatedFormula = "spec[completed_definition_of_r_0]: r <-> p_1"
+            .parse()
+            .unwrap();
+        let f3: fol::AnnotatedFormula = "assumption[completed_definition_of_p_2_0]: p_2 <-> t or exists Z Z1 (Z = n$i and Z1 = 5 and Z < Z1)".parse().unwrap();
+        let f4: fol::AnnotatedFormula = "spec[completed_definition_of_r_0]: r <-> p_2"
+            .parse()
+            .unwrap();
         let user_guide_assumptions: Vec<fol::AnnotatedFormula> =
             vec!["assumption: n$i = 3".parse().unwrap()];
         let proof_outline = ProofOutline {
