@@ -13,10 +13,9 @@ use crate::{
 //use {evalexpr::*, log::debug};
 
 pub fn simplify_theory(theory: Theory, full: bool) -> Theory {
-    //todo
-    let mut formulas = theory.formulas;
-    for i in 0..formulas.len() {
-        formulas[i] = simplify(formulas[i].clone(), full);
+    let mut formulas = Vec::new();
+    for formula in theory.formulas {
+        formulas.push(simplify(formula, full));
     }
     Theory { formulas }
 }
@@ -465,9 +464,14 @@ fn simplify_conjunction_tree_with_equality(
                 let mut safety = true; // Simplify var = term or term = var but not both
                                        // Don't restructure the conjunction tree unless simplification occurs
                 let mut restructured = vec![]; // Make the equality formula the top rhs leaf of a new conjunction tree
-                for i in 0..conjunctive_terms.len() {
-                    if conjunctive_terms[i] != *ct {
-                        restructured.push(conjunctive_terms[i].clone());
+                // for i in 0..conjunctive_terms.len() {
+                //     if conjunctive_terms[i] != *ct {
+                //         restructured.push(conjunctive_terms[i].clone());
+                //     }
+                // }
+                for alt_ct in conjunctive_terms.clone() {
+                    if alt_ct != *ct {
+                        restructured.push(alt_ct);
                     }
                 }
                 restructured.push(ct.clone());
@@ -994,11 +998,11 @@ pub fn restrict_quantifiers_outer(formula: Formula) -> Formula {
                             if comp.equality_comparison() {
                                 for ovar in outer_vars.iter() {
                                     for ivar in inner_vars.iter() {
-                                        if &ovar.sort == &Sort::General
-                                            && &ivar.sort == &Sort::Integer
+                                        if ovar.sort == Sort::General
+                                            && ivar.sort == Sort::Integer
                                         {
                                             let replacement_result =
-                                                replacement_helper(&ivar, &ovar, &comp, &formula);
+                                                replacement_helper(ivar, ovar, comp, &formula);
 
                                             if replacement_result.1 {
                                                 simplified_formula = replacement_result.0;
@@ -1052,11 +1056,11 @@ pub fn restrict_quantifiers_outer(formula: Formula) -> Formula {
                         if comp.equality_comparison() {
                             for ovar in outer_vars.iter() {
                                 for ivar in inner_vars.iter() {
-                                    if &ovar.sort == &Sort::General && &ivar.sort == &Sort::Integer
+                                    if ovar.sort == Sort::General && ivar.sort == Sort::Integer
                                     {
                                         if !rhs.free_variables().contains(ovar) {
                                             let replacement_result =
-                                                replacement_helper(&ivar, &ovar, &comp, &formula);
+                                                replacement_helper(ivar, ovar, comp, &formula);
                                             if replacement_result.1 {
                                                 simplified_formula = replacement_result.0;
                                                 replaced = true;

@@ -324,11 +324,7 @@ impl Comparison {
     pub fn equality_comparison(&self) -> bool {
         let guards = &self.guards;
         let first = &guards[0];
-        if guards.len() == 1 && first.relation == Relation::Equal {
-            return true;
-        } else {
-            return false;
-        }
+        guards.len() == 1 && first.relation == Relation::Equal
     }
 }
 
@@ -536,10 +532,10 @@ impl Formula {
             } => {
                 let mut formulas = Self::conjoin_invert(*lhs);
                 formulas.append(&mut Self::conjoin_invert(*rhs));
-                return formulas;
+                formulas
             }
             _ => {
-                return vec![formula];
+                vec![formula]
             }
         }
     }

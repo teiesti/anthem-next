@@ -649,7 +649,7 @@ mod tests {
             proof_outline,
             decomposition: Decomposition::Independent,
             direction: fol::Direction::Universal,
-            simplify: true,
+            simplify: false,
             break_equivalences: false,
         };
 
