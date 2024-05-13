@@ -113,18 +113,36 @@ impl Problem {
         self
     }
 
+    pub fn summarize(&self) {
+        println!("\n---- Problem: {} ----", self.name);
+        println!("\n#### Premises ####");
+        for f in self.axioms() {
+            println!("\t{}", f.formula);
+        }
+        println!("\n#### Conclusions ####");
+        for f in self.conjectures() {
+            println!("\t{}", f.formula);
+        }
+    }
+
     pub fn from_components(
         name: String,
         stable: Vec<AnnotatedFormula>,
         premises: Vec<AnnotatedFormula>,
         conclusions: Vec<AnnotatedFormula>,
         lemmas: Vec<GeneralLemma>,
+        definitions: Vec<fol::AnnotatedFormula>,
     ) -> Vec<Self> {
         let mut initial_problem = Problem::with_name(name);
 
         // Add axioms
         initial_problem.formulas.extend(stable);
         initial_problem.formulas.extend(premises);
+        for definition in definitions {
+            initial_problem
+                .formulas
+                .push(AnnotatedFormula::from((definition, Role::Axiom)));
+        }
 
         let mut final_problem = initial_problem.clone();
         initial_problem.name = format!("{}_outline", initial_problem.name).to_string();
