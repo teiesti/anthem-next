@@ -46,8 +46,8 @@ impl Display for Format<'_, IntegerTerm> {
 
                 Ok(())
             }
-            IntegerTerm::Variable(v) => write!(f, "{v}$i"),
-            IntegerTerm::FunctionConstant(c) => write!(f, "{c}$i"),
+            IntegerTerm::Variable(v) => write!(f, "{v}i"),
+            IntegerTerm::FunctionConstant(c) => write!(f, "{c}i"),
             IntegerTerm::UnaryOperation { op, arg } => {
                 let op = Format(op);
                 let arg = Format(arg.as_ref());
@@ -67,8 +67,8 @@ impl Display for Format<'_, SymbolicTerm> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self.0 {
             SymbolicTerm::Symbol(s) => write!(f, "{s}"),
-            SymbolicTerm::FunctionConstant(c) => write!(f, "{c}$s"),
-            SymbolicTerm::Variable(v) => write!(f, "{v}$s"),
+            SymbolicTerm::FunctionConstant(c) => write!(f, "{c}s"),
+            SymbolicTerm::Variable(v) => write!(f, "{v}s"),
         }
     }
 }
@@ -78,9 +78,9 @@ impl Display for Format<'_, GeneralTerm> {
         match self.0 {
             GeneralTerm::Infimum => write!(f, "c__infimum__"),
             GeneralTerm::Supremum => write!(f, "c__supremum__"),
-            GeneralTerm::FunctionConstant(c) => write!(f, "{c}$g"),
-            GeneralTerm::Variable(v) => write!(f, "{v}"),
-            GeneralTerm::IntegerTerm(t) => write!(f, "f__integer__({})", Format(t)),
+            GeneralTerm::FunctionConstant(c) => write!(f, "{c}g"),
+            GeneralTerm::Variable(v) => write!(f, "{v}g"),
+            GeneralTerm::IntegerTerm(t) => Format(t).fmt(f),
             GeneralTerm::SymbolicTerm(t) => write!(f, "f__symbolic__({})", Format(t)),
         }
     }
@@ -94,13 +94,45 @@ impl Display for Format<'_, Atom> {
         write!(f, "{predicate}")?;
 
         if !terms.is_empty() {
-            let mut iter = terms.iter().map(Format);
-            write!(f, "({}", iter.next().unwrap())?;
-            for term in iter {
-                write!(f, ", {term}")?;
+            write!(f, "(")?;
+            let mut iter = terms.iter();
+            let t = iter.next().unwrap();
+            match t {
+                GeneralTerm::Infimum | GeneralTerm::Supremum | GeneralTerm::SymbolicTerm(_) => {
+                    write!(f, "{}", Format(t))?;
+                }
+                GeneralTerm::Variable(_) => {
+                    write!(f, "{}", Format(t))?;
+                }
+                GeneralTerm::FunctionConstant(_) => {
+                    write!(f, "{}", Format(t))?;
+                }
+                GeneralTerm::IntegerTerm(_) => {
+                    write!(f, "f__integer__({})", Format(t))?;
+                }
+            }
+            for t in iter {
+                match t {
+                    GeneralTerm::Infimum | GeneralTerm::Supremum => {
+                        write!(f, ", {}", Format(t))?;
+                    }
+                    GeneralTerm::SymbolicTerm(_) => {
+                        write!(f, ", {}", Format(t))?;
+                    }
+                    GeneralTerm::Variable(_) => {
+                        write!(f, ", {}", Format(t))?;
+                    }
+                    GeneralTerm::IntegerTerm(_) => {
+                        write!(f, ", f__integer__({})", Format(t))?;
+                    }
+                    GeneralTerm::FunctionConstant(_) => {
+                        write!(f, ", {}", Format(t))?;
+                    },
+                }
             }
             write!(f, ")")?;
         }
+
 
         Ok(())
     }
@@ -129,20 +161,114 @@ impl Display for Format<'_, Comparison> {
                 write!(f, " & ")?;
             }
             match g.relation {
-                Relation::Equal | Relation::NotEqual => write!(
-                    f,
-                    "{} {} {}",
-                    Format(previous_term),
-                    Format(&g.relation),
-                    Format(&g.term)
-                ),
-                _ => write!(
-                    f,
-                    "{}({}, {})",
-                    Format(&g.relation),
-                    Format(previous_term),
-                    Format(&g.term)
-                ),
+                Relation::Equal | Relation::NotEqual => {
+                    match previous_term {
+                        GeneralTerm::IntegerTerm(_) => {
+                            match g.term {
+                                GeneralTerm::IntegerTerm(_) => {
+                                    write!(
+                                        f,
+                                        "{} {} {}",
+                                        Format(previous_term),
+                                        Format(&g.relation),
+                                        Format(&g.term)
+                                    )
+                                }
+                                _ => {
+                                    // previous term needs to be typecast to an object type for comparison with g.term
+                                    write!(
+                                        f,
+                                        "f__integer__({}) {} {}",
+                                        Format(previous_term),
+                                        Format(&g.relation),
+                                        Format(&g.term)
+                                    )
+                                }
+                            }
+                        }
+                        _ => {
+                            match g.term {
+                                GeneralTerm::IntegerTerm(_) => {
+                                    // g.term needs to be typecast to an object type for comparison with previous term
+                                    write!(
+                                        f,
+                                        "{} {} f__integer__({})",
+                                        Format(previous_term),
+                                        Format(&g.relation),
+                                        Format(&g.term)
+                                    )
+                                }
+                                _ => {
+                                    write!(
+                                        f,
+                                        "{} {} {}",
+                                        Format(previous_term),
+                                        Format(&g.relation),
+                                        Format(&g.term)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+                _ => {
+                    let integer_relation = match &g.relation {
+                        // Custom object-to-object relation needed
+                        Relation::GreaterEqual => "$greatereq",
+                        Relation::LessEqual => "$lesseq",
+                        Relation::Greater => "$greater",
+                        Relation::Less => "$less",
+                        _ => panic!(),
+                    };
+                    match previous_term {
+                        GeneralTerm::IntegerTerm(_) => {
+                            match g.term {
+                                GeneralTerm::IntegerTerm(_) => {
+                                    write!(
+                                        f,
+                                        "{}({}, {})",
+                                        integer_relation,
+                                        Format(previous_term),
+                                        Format(&g.term)
+                                    )
+                                }
+                                _ => {
+                                    // previous term needs to be typecast to an object type for comparison with g.term
+                                    write!(
+                                        f,
+                                        "{}(f__integer__({}), {})",
+                                        Format(&g.relation),
+                                        Format(previous_term),
+                                        Format(&g.term)
+                                    )
+                                }
+                            }
+                        }
+                        _ => {
+                            match g.term {
+                                GeneralTerm::IntegerTerm(_) => {
+                                    // g.term needs to be typecast to an object type for comparison with previous term
+                                    write!(
+                                        f,
+                                        "{}({}, f__integer__({}))",
+                                        Format(&g.relation),
+                                        Format(previous_term),
+                                        Format(&g.term)
+                                    )
+                                }
+                                _ => {
+                                    write!(
+                                        f,
+                                        "{}({}, {})",
+                                        Format(&g.relation),
+                                        Format(previous_term),
+                                        Format(&g.term)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
             }?;
             previous_term = &g.term;
         }
@@ -150,6 +276,7 @@ impl Display for Format<'_, Comparison> {
         Ok(())
     }
 }
+
 
 impl Display for Format<'_, AtomicFormula> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
@@ -177,9 +304,9 @@ impl Display for Format<'_, FunctionConstant> {
         let sort = &self.0.sort;
 
         match sort {
-            Sort::General => write!(f, "{name}$g"),
-            Sort::Integer => write!(f, "{name}$i"),
-            Sort::Symbol => write!(f, "{name}$s"),
+            Sort::General => write!(f, "{name}g"),
+            Sort::Integer => write!(f, "{name}i"),
+            Sort::Symbol => write!(f, "{name}s"),
         }
     }
 }
@@ -190,9 +317,9 @@ impl Display for Format<'_, Variable> {
         let sort = &self.0.sort;
 
         match sort {
-            Sort::General => write!(f, "{name}"),
-            Sort::Integer => write!(f, "{name}$i"),
-            Sort::Symbol => write!(f, "{name}$s"),
+            Sort::General => write!(f, "{name}g"),
+            Sort::Integer => write!(f, "{name}i"),
+            Sort::Symbol => write!(f, "{name}s"),
         }
     }
 }
@@ -308,7 +435,7 @@ mod tests {
         );
         assert_eq!(
             Format(&IntegerTerm::Variable("A".into())).to_string(),
-            "A$i"
+            "Ai"
         );
         assert_eq!(
             Format(&IntegerTerm::BinaryOperation {
@@ -326,7 +453,7 @@ mod tests {
                 rhs: IntegerTerm::Variable("N".into()).into(),
             })
             .to_string(),
-            "$sum(10, N$i)"
+            "$sum(10, Ni)"
         );
         assert_eq!(
             Format(&IntegerTerm::BinaryOperation {
@@ -339,7 +466,7 @@ mod tests {
                 .into(),
             })
             .to_string(),
-            "$difference($uminus(195), $uminus(N$i))"
+            "$difference($uminus(195), $uminus(Ni))"
         );
     }
 
@@ -348,7 +475,7 @@ mod tests {
         assert_eq!(Format(&SymbolicTerm::Symbol("p".into())).to_string(), "p");
         assert_eq!(
             Format(&SymbolicTerm::Variable("X".into())).to_string(),
-            "X$s"
+            "Xs"
         )
     }
 
@@ -358,7 +485,7 @@ mod tests {
         assert_eq!(Format(&GeneralTerm::Supremum).to_string(), "c__supremum__");
         assert_eq!(
             Format(&GeneralTerm::Variable("N1".into())).to_string(),
-            "N1"
+            "N1g"
         );
         assert_eq!(
             Format(&GeneralTerm::SymbolicTerm(SymbolicTerm::Symbol("p".into()))).to_string(),
@@ -366,7 +493,7 @@ mod tests {
         );
         assert_eq!(
             Format(&GeneralTerm::IntegerTerm(IntegerTerm::Numeral(1))).to_string(),
-            "f__integer__(1)"
+            "1"
         )
     }
 
@@ -385,7 +512,7 @@ mod tests {
                 ]
             })
             .to_string(),
-            "prime(f__integer__($sum(N1$i, 3)), f__integer__(5))"
+            "prime(f__integer__($sum(N1i, 3)), f__integer__(5))"
         )
     }
 
@@ -400,7 +527,7 @@ mod tests {
                 }]
             })
             .to_string(),
-            "f__integer__(5) = f__integer__(3)"
+            "5 = 3"
         );
         assert_eq!(
             Format(&Comparison {
@@ -411,7 +538,29 @@ mod tests {
                 }]
             })
             .to_string(),
-            "f__integer__(5) != f__integer__(3)"
+            "5 != 3"
+        );
+        assert_eq!(
+            Format(&Comparison {
+                term: GeneralTerm::IntegerTerm(IntegerTerm::Numeral(5)),
+                guards: vec![Guard {
+                    relation: Relation::NotEqual,
+                    term: GeneralTerm::Variable("N".into()),
+                }]
+            })
+            .to_string(),
+            "f__integer__(5) != Ng"
+        );
+        assert_eq!(
+            Format(&Comparison {
+                term: GeneralTerm::IntegerTerm(IntegerTerm::Numeral(5)),
+                guards: vec![Guard {
+                    relation: Relation::Less,
+                    term: GeneralTerm::Variable("N".into()),
+                }]
+            })
+            .to_string(),
+            "p__less__(f__integer__(5), Ng)"
         );
         assert_eq!(
             Format(&Comparison {
@@ -422,7 +571,7 @@ mod tests {
                 }]
             })
             .to_string(),
-            "p__less_equal__(f__integer__(5), f__integer__(3))"
+            "$lesseq(5, 3)"
         );
         assert_eq!(
             Format(&Comparison {
@@ -439,7 +588,7 @@ mod tests {
                 ]
             })
             .to_string(),
-            "p__less_equal__(f__integer__(5), f__integer__(3)) & f__integer__(3) = f__integer__(4)"
+            "$lesseq(5, 3) & 3 = 4"
         );
         assert_eq!(
             Format(&Comparison {
@@ -460,7 +609,7 @@ mod tests {
                 ]
             })
             .to_string(),
-            "p__less_equal__(f__integer__(5), f__integer__(3)) & p__less__(f__integer__(3), f__integer__(6)) & f__integer__(6) != f__integer__(5)"
+            "$lesseq(5, 3) & $less(3, 6) & 6 != 5"
         );
     }
 
@@ -481,7 +630,7 @@ mod tests {
                 ]
             })
             .to_string(),
-            "![X1$i: $int, N2: general]"
+            "![X1i: $int, N2g: general]"
         );
         assert_eq!(
             Format(&Quantification {
@@ -492,7 +641,7 @@ mod tests {
                 },]
             })
             .to_string(),
-            "?[X1$s: symbol]"
+            "?[X1s: symbol]"
         );
     }
 
@@ -563,7 +712,7 @@ mod tests {
                 .into()
             })
             .to_string(),
-            "![X$i: $int, Y1: general]: (p & q)"
+            "![Xi: $int, Y1g: general]: (p & q)"
         );
     }
 }
