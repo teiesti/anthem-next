@@ -70,6 +70,40 @@ pub enum Command {
         /// Additional knowledge used to construct the claim (e.g., user guide, proof outline)
         aux: Vec<PathBuf>,
     },
+
+    /// Short-cut for verify that specifies a single directory containing relevant files
+    VerifyAlt {
+        /// The equivalence theory used to proof the claim
+        #[arg(long, value_enum, default_value_t = Equivalence::External)]
+        equivalence: Equivalence,
+
+        /// The decomposition strategy to use
+        #[arg(long, value_enum, default_value_t = Decomposition::Sequential)]
+        decomposition: Decomposition,
+
+        /// The direction of the proof
+        #[arg(long, value_enum, default_value_t = Direction::Universal)]
+        direction: Direction,
+
+        /// Omit simplifications
+        #[arg(long, action)]
+        no_simplify: bool,
+
+        /// Omit breaking equivalences
+        #[arg(long, action)]
+        no_eq_break: bool,
+
+        /// Omit proof search and just create problem files
+        #[arg(long, action)]
+        no_proof_search: bool,
+
+        /// The destination directory for the problem files
+        #[arg(long)]
+        out_dir: Option<PathBuf>,
+
+        /// The directory containing the user guide, logic program, etc.
+        problem_dir: PathBuf,
+    },
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]

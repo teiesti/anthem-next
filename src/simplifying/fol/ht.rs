@@ -10,7 +10,7 @@ use crate::{
     },
 };
 
-use {log::debug};
+use log::debug;
 
 pub fn simplify_theory(theory: Theory, full: bool) -> Theory {
     let mut formulas = Vec::new();

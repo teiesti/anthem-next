@@ -21,9 +21,29 @@ use {
     anyhow::{Context, Result},
     clap::Parser as _,
     either::Either,
+    lazy_static::lazy_static,
     log::info,
-    std::{ffi::OsStr, time::Instant},
+    regex::Regex,
+    std::{ffi::OsStr, fs::read_dir, io, path::PathBuf, time::Instant},
 };
+
+lazy_static! {
+    static ref HELP: Regex = Regex::new(r"\.help\.spec$").unwrap();
+}
+
+fn collect_files(dir: PathBuf) -> io::Result<Vec<PathBuf>> {
+    let mut files = vec![];
+    if dir.is_dir() {
+        for entry in read_dir(dir)? {
+            let entry = entry?;
+            let meta = entry.metadata()?;
+            if meta.is_file() {
+                files.push(entry.path());
+            }
+        }
+    }
+    core::result::Result::Ok(files)
+}
 
 fn main() -> Result<()> {
     env_logger::init();
@@ -168,6 +188,151 @@ fn main() -> Result<()> {
             }
 
             // TODO: Run proof search
+
+            info!("System runtime: {} milliseconds", now.elapsed().as_millis());
+
+            Ok(())
+        }
+
+        Command::VerifyAlt {
+            equivalence,
+            decomposition,
+            direction,
+            no_simplify,
+            no_eq_break,
+            no_proof_search,
+            out_dir,
+            problem_dir,
+        } => {
+            let mut programs: Vec<&PathBuf> = vec![];
+            let mut specs: Vec<&PathBuf> = vec![];
+            let mut user_guides: Vec<&PathBuf> = vec![];
+            let mut lemmas: Vec<&PathBuf> = vec![];
+
+            // TODO - unpack and handle errors in files result
+            let files = match collect_files(problem_dir) {
+                core::result::Result::Ok(f) => f,
+                Err(e) => {
+                    println!("Error! {e}");
+                    vec![]
+                }
+            };
+            for f in files.iter() {
+                match f.extension() {
+                    Some(extension) => match extension.to_str().unwrap() {
+                        "lp" => {
+                            if programs.is_empty() {
+                                programs.push(f);
+                            } else {
+                                specs.push(programs.pop().unwrap());
+                                programs.push(f);
+                            }
+                        }
+                        "spec" => {
+                            if HELP.is_match(&f.clone().into_os_string().into_string().unwrap()) {
+                                lemmas.push(f);
+                            } else {
+                                specs.push(f);
+                            }
+                        }
+                        "ug" => {
+                            user_guides.push(f);
+                        }
+                        _ => {
+                            println!("Unexpected file! Ignoring {:?}", f);
+                        }
+                    },
+                    None => {
+                        println!("Encountered a file with an unexpected extension: {:?}", f);
+                    }
+                }
+            }
+
+            assert!(programs.len() == 1);
+            assert!(specs.len() == 1);
+            assert!(user_guides.len() == 1);
+            assert!(lemmas.len() < 2);
+
+            info!("Treating {:?} as the specification...", specs[0]);
+            info!("Treating {:?} as the program...", programs[0]);
+            info!("Treating {:?} as the user guide...", user_guides[0]);
+            if lemmas.len() > 0 {
+                info!("Treating {:?} as the lemmas...", lemmas[0]);
+            }
+
+            let left = specs[0];
+            let right = programs[0];
+            let ug = user_guides[0];
+
+            let problems = match equivalence {
+                Equivalence::Strong => todo!(),
+
+                Equivalence::External => {
+                    let specification: Either<asp::Program, fol::Specification> = match left
+                        .extension()
+                        .map(OsStr::to_str)
+                    {
+                        Some(Some("lp")) => Either::Left(asp::Program::from_file(left)?),
+                        Some(Some("spec")) => Either::Right(fol::Specification::from_file(left)?),
+                        Some(Some(_x)) => todo!(),
+                        Some(None) => todo!(),
+                        None => todo!(),
+                    };
+
+                    let program: asp::Program = match right.extension().map(|x| x.to_str()) {
+                        Some(Some("lp")) => asp::Program::from_file(right)?,
+                        Some(Some(_x)) => todo!(),
+                        Some(None) => todo!(),
+                        None => todo!(),
+                    };
+
+                    let user_guide: fol::UserGuide = match ug.extension().map(OsStr::to_str) {
+                        Some(Some("ug")) => fol::UserGuide::from_file(ug)?,
+                        Some(Some(_x)) => todo!(),
+                        Some(None) => todo!(),
+                        None => todo!(),
+                    };
+
+                    let proof_outline = match lemmas.first() {
+                        Some(path) => match path.extension().map(OsStr::to_str) {
+                            Some(Some("spec")) => {
+                                fol::Specification::from_file(lemmas.first().unwrap())?
+                            }
+                            Some(Some(_x)) => todo!(),
+                            Some(None) => todo!(),
+                            None => todo!(),
+                        },
+                        None => fol::Specification::empty(),
+                    };
+
+                    ExternalEquivalenceTask {
+                        specification,
+                        user_guide,
+                        program,
+                        proof_outline,
+                        decomposition,
+                        direction,
+                        simplify: !no_simplify,
+                        break_equivalences: !no_eq_break,
+                    }
+                    .decompose()?
+                }
+            };
+
+            for problem in problems.iter() {
+                problem.summarize();
+            }
+
+            if let Some(out_dir) = out_dir {
+                for problem in problems.into_iter() {
+                    let mut path = out_dir.clone();
+                    path.push(format!("{}.p", problem.name));
+                    problem.to_file(path)?;
+                }
+            }
+
+            // TODO: Run proof search
+            let _temp = no_proof_search;
 
             info!("System runtime: {} milliseconds", now.elapsed().as_millis());
 
