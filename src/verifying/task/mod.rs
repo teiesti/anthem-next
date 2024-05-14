@@ -324,7 +324,7 @@ impl CheckInternal for fol::Formula {
 #[cfg(test)]
 mod tests {
     use {
-        super::{GeneralLemma, ProofOutline, ProofOutlineError},
+        super::ProofOutlineError,
         crate::{syntax_tree::fol, verifying::task::CheckInternal},
         frame_support::assert_err,
         indexmap::IndexSet,
