@@ -21,10 +21,15 @@ use {
     anyhow::{Context, Result},
     clap::Parser as _,
     either::Either,
-    std::ffi::OsStr,
+    log::info,
+    std::{ffi::OsStr, time::Instant},
 };
 
 fn main() -> Result<()> {
+    env_logger::init();
+
+    let now = Instant::now();
+
     match Arguments::parse().command {
         Command::Translate { with, input } => {
             match with {
@@ -47,6 +52,7 @@ fn main() -> Result<()> {
                     print!("{theory}")
                 }
             }
+            info!("System runtime: {} milliseconds", now.elapsed().as_millis());
 
             Ok(())
         }
@@ -63,6 +69,7 @@ fn main() -> Result<()> {
                     println!("{simplified_theory}");
                 }
             }
+            info!("System runtime: {} milliseconds", now.elapsed().as_millis());
 
             Ok(())
         }
@@ -161,6 +168,8 @@ fn main() -> Result<()> {
             }
 
             // TODO: Run proof search
+
+            info!("System runtime: {} milliseconds", now.elapsed().as_millis());
 
             Ok(())
         }

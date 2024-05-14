@@ -464,11 +464,11 @@ fn simplify_conjunction_tree_with_equality(
                 let mut safety = true; // Simplify var = term or term = var but not both
                                        // Don't restructure the conjunction tree unless simplification occurs
                 let mut restructured = vec![]; // Make the equality formula the top rhs leaf of a new conjunction tree
-                // for i in 0..conjunctive_terms.len() {
-                //     if conjunctive_terms[i] != *ct {
-                //         restructured.push(conjunctive_terms[i].clone());
-                //     }
-                // }
+                                               // for i in 0..conjunctive_terms.len() {
+                                               //     if conjunctive_terms[i] != *ct {
+                                               //         restructured.push(conjunctive_terms[i].clone());
+                                               //     }
+                                               // }
                 for alt_ct in conjunctive_terms.clone() {
                     if alt_ct != *ct {
                         restructured.push(alt_ct);
@@ -990,8 +990,7 @@ pub fn restrict_quantifiers_outer(formula: Formula) -> Formula {
                             if comp.equality_comparison() {
                                 for ovar in outer_vars.iter() {
                                     for ivar in inner_vars.iter() {
-                                        if ovar.sort == Sort::General
-                                            && ivar.sort == Sort::Integer
+                                        if ovar.sort == Sort::General && ivar.sort == Sort::Integer
                                         {
                                             let replacement_result =
                                                 replacement_helper(ivar, ovar, comp, &formula);
@@ -1048,7 +1047,10 @@ pub fn restrict_quantifiers_outer(formula: Formula) -> Formula {
                         if comp.equality_comparison() {
                             for ovar in outer_vars.iter() {
                                 for ivar in inner_vars.iter() {
-                                    if ovar.sort == Sort::General && ivar.sort == Sort::Integer && !rhs.free_variables().contains(ovar) {
+                                    if ovar.sort == Sort::General
+                                        && ivar.sort == Sort::Integer
+                                        && !rhs.free_variables().contains(ovar)
+                                    {
                                         let replacement_result =
                                             replacement_helper(ivar, ovar, comp, &formula);
                                         if replacement_result.1 {
