@@ -129,9 +129,9 @@ where
         return Ok(ProblemStatus::Theorem);
     }
 
-    return Err(anyhow!("Unknown failure\n%%%%%% Vampire stdout %%%%%%\n{}\n%%%%%% Vampire stderr %%%%%%\n{}%%%%%%\n",
+    Err(anyhow!("Unknown failure\n%%%%%% Vampire stdout %%%%%%\n{}\n%%%%%% Vampire stderr %%%%%%\n{}%%%%%%\n",
             stdout.to_string(), stderr.to_string()
-        ));
+        ))
 
     // TODO: support disproven result
 }

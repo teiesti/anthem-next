@@ -259,7 +259,7 @@ fn main() -> Result<()> {
             info!("Treating {:?} as the specification...", specs[0]);
             info!("Treating {:?} as the program...", programs[0]);
             info!("Treating {:?} as the user guide...", user_guides[0]);
-            if lemmas.len() > 0 {
+            if !lemmas.is_empty() {
                 info!("Treating {:?} as the lemmas...", lemmas[0]);
             }
 
