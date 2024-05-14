@@ -78,7 +78,7 @@ pub enum Command {
         equivalence: Equivalence,
 
         /// The decomposition strategy to use
-        #[arg(long, value_enum, default_value_t = Decomposition::Sequential)]
+        #[arg(long, value_enum, default_value_t = Decomposition::Independent)]
         decomposition: Decomposition,
 
         /// The direction of the proof
