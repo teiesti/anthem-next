@@ -13,9 +13,12 @@ use {
         simplifying::fol::ht::simplify_nested_quantifiers,
         syntax_tree::{asp, fol, Node as _},
         translating::{completion::completion, gamma::gamma, tau_star::tau_star},
-        verifying::task::{
-            external_equivalence::ExternalEquivalenceTask,
-            strong_equivalence::StrongEquivalenceTask, Task,
+        verifying::{
+            proof::vampire::verify,
+            task::{
+                external_equivalence::ExternalEquivalenceTask,
+                strong_equivalence::StrongEquivalenceTask, Task,
+            },
         },
     },
     anyhow::{Context, Result},
@@ -175,19 +178,19 @@ fn main() -> Result<()> {
                 }
             };
 
-            for problem in problems.iter() {
+            for problem in problems.clone().iter() {
                 problem.summarize();
             }
 
             if let Some(out_dir) = out_dir {
-                for problem in problems.into_iter() {
+                for problem in problems.clone().into_iter() {
                     let mut path = out_dir.clone();
                     path.push(format!("{}.p", problem.name));
                     problem.to_file(path)?;
                 }
             }
 
-            // TODO: Run proof search
+            verify(problems, 4);
 
             info!("System runtime: {} milliseconds", now.elapsed().as_millis());
 
@@ -319,12 +322,12 @@ fn main() -> Result<()> {
                 }
             };
 
-            for problem in problems.iter() {
+            for problem in problems.clone().iter() {
                 problem.summarize();
             }
 
             if let Some(out_dir) = out_dir {
-                for problem in problems.into_iter() {
+                for problem in problems.clone().into_iter() {
                     let mut path = out_dir.clone();
                     path.push(format!("{}.p", problem.name));
                     problem.to_file(path)?;
@@ -332,7 +335,9 @@ fn main() -> Result<()> {
             }
 
             // TODO: Run proof search
-            let _temp = no_proof_search;
+            if !no_proof_search {
+                verify(problems, 4);
+            }
 
             info!("System runtime: {} milliseconds", now.elapsed().as_millis());
 

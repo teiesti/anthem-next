@@ -1,13 +1,10 @@
 use {
-    crate::{
-        command_line::Direction,
-        syntax_tree::{asp, fol},
-    },
+    crate::verifying::problem::Problem,
     anyhow::anyhow,
     lazy_static::lazy_static,
     log::info,
     regex::Regex,
-    std::{process, thread, time::Instant},
+    std::{process, time::Instant},
 };
 
 lazy_static! {
@@ -39,7 +36,7 @@ pub fn verify(problems: Vec<Problem>, cores: u16) {
         let now = Instant::now();
         problem.summarize();
         let result = run_vampire(
-            &p.display(true),
+            format!("{}", problem).as_str(),
             Some(&[
                 "--proof",
                 "off",
