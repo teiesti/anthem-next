@@ -10,7 +10,7 @@ use crate::{
     },
 };
 
-//use {evalexpr::*, log::debug};
+use {log::debug};
 
 pub fn simplify_theory(theory: Theory, full: bool) -> Theory {
     let mut formulas = Vec::new();
@@ -27,33 +27,33 @@ pub fn simplify_theory(theory: Theory, full: bool) -> Theory {
 pub fn simplify(formula: Formula, full: bool) -> Formula {
     let mut f1 = formula;
     let mut f2;
-    //debug!("Formula prior to simplification: \n{f1}\n");
+    debug!("Formula prior to simplification: \n{f1}\n");
     loop {
         f2 = basic_simplify(f1.clone());
         //f2 = relation_simplify(f2);
         f2 = simplify_empty_quantifiers(simplify_variable_lists(f2));
-        //debug!("Formula after basic simplification: \n{f2}\n");
+        debug!("Formula after basic simplification: \n{f2}\n");
 
         f2 = simplify_redundant_quantifiers(f2);
         f2 = simplify_empty_quantifiers(simplify_variable_lists(f2));
-        //debug!("Formula after redundant quantifier elimination: \n{f2}\n");
+        debug!("Formula after redundant quantifier elimination: \n{f2}\n");
 
         f2 = extend_quantifier_scope(f2);
         f2 = simplify_empty_quantifiers(simplify_variable_lists(f2));
-        //debug!("Formula after extending quantifier scope: \n{f2}\n");
+        debug!("Formula after extending quantifier scope: \n{f2}\n");
 
         f2 = simplify_nested_quantifiers(f2);
         f2 = simplify_empty_quantifiers(simplify_variable_lists(f2));
-        //debug!("Formula after nested quantifier joining: \n{f2}\n");
+        debug!("Formula after nested quantifier joining: \n{f2}\n");
 
         f2 = simplify_transitive_equality(f2);
         f2 = simplify_empty_quantifiers(simplify_variable_lists(f2));
-        //debug!("Formula after simplifying transitive equalities: \n{f2}\n");
+        debug!("Formula after simplifying transitive equalities: \n{f2}\n");
 
         if full {
             f2 = restrict_quantifiers(f2);
             f2 = simplify_empty_quantifiers(simplify_variable_lists(f2));
-            //debug!("Formula after quantifier scope restriction: \n{f2}\n");
+            debug!("Formula after quantifier scope restriction: \n{f2}\n");
         }
 
         if f1 == f2 {
