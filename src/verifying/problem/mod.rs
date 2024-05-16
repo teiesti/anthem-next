@@ -114,7 +114,7 @@ impl Problem {
     }
 
     pub fn summarize(&self) {
-        println!("\n---- Problem: {} ----", self.name);
+        println!("\n------------ Problem: {} ------------", self.name);
         println!("\n#### Premises ####");
         for f in self.axioms() {
             println!("\t{}", f.formula);
