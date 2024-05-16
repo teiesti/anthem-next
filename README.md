@@ -88,6 +88,22 @@ inductive-lemma: forall N$i (N$i >= 0 -> p(N$i)).
 
 Providing `anthem` with a proof outline instructs the system to attempt to prove the sequence of basic/inductive lemmas in the proof outline sequentially. That is, each newly proven lemma will be added as an axiom to the set of premises used to derive the next lemma in the sequence. After every step in the proof outline is verified in this way, the lemmas and definitions will be treated as additional premises (axioms) during the remainder of the verification process (regardless of decomposition strategy).
 
+## Writing User Guides and Specifications
+This version of `anthem` uses an updated control/specification language. Roles for annotated formulas are "assumption", "spec", "lemma", "definition", or "inductive-lemma". User guides should only contain assumptions and input/output statements, e.g.
+```sh
+input: q/2.
+output: p/0.
+```
+Specifications should only contain assumptions and specs. Proof outlines should only contain definitions and basic/inductive lemmas. The notation for placeholders is the largest change. Similarly to variables, placeholders are now explicitly sorted. For example,
+```sh
+input: n$i.
+```
+denotes that the placeholder "n" is of sort "integer". Under this user guide, any occurrence of symbolic constant "n" within a logic program will be replaced by the integer valued function constant "n$i" within the corresponding first-order/ht translation. Any control/specification language formulas referencing this placeholder should format it appropriately! For example, the following definitions are different:
+```sh
+definition: forall X (p(X) <-> q(n,X)).
+definition: forall X (p(X) <-> q(n$i,X)).
+```
+The first references a symbolic constant "n", the second references the integer placeholder "n$i". Be sure to use "n$i"!
 
 ## Extra Information
 Prefacing a command with `RUST_LOG=INFO` will provide additional information like system runtimes. For example, running
