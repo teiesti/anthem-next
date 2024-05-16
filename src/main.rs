@@ -20,14 +20,7 @@ use {
                 strong_equivalence::StrongEquivalenceTask, Task,
             },
         },
-    },
-    anyhow::{Context, Result},
-    clap::Parser as _,
-    either::Either,
-    lazy_static::lazy_static,
-    log::info,
-    regex::Regex,
-    std::{ffi::OsStr, fs::read_dir, io, path::PathBuf, time::Instant},
+    }, anyhow::{Context, Result}, clap::Parser as _, either::Either, lazy_static::lazy_static, log::info, regex::Regex, std::{ffi::OsStr, fs::read_dir, io, path::PathBuf, time::Instant}
 };
 
 lazy_static! {
@@ -103,12 +96,12 @@ fn main() -> Result<()> {
             direction,
             no_simplify,
             no_eq_break,
-            // no_proof_search,
+            no_proof_search,
             out_dir,
             left,
             right,
             aux,
-            ..
+            time_limit,
         } => {
             let problems = match equivalence {
                 Equivalence::Strong => StrongEquivalenceTask {
@@ -178,10 +171,6 @@ fn main() -> Result<()> {
                 }
             };
 
-            for problem in problems.clone().iter() {
-                problem.summarize();
-            }
-
             if let Some(out_dir) = out_dir {
                 for problem in problems.clone().into_iter() {
                     let mut path = out_dir.clone();
@@ -190,7 +179,9 @@ fn main() -> Result<()> {
                 }
             }
 
-            verify(problems, 4);
+            if !no_proof_search {
+                verify(problems, time_limit);
+            }
 
             info!("System runtime: {} milliseconds", now.elapsed().as_millis());
 
@@ -206,6 +197,7 @@ fn main() -> Result<()> {
             no_proof_search,
             out_dir,
             problem_dir,
+            time_limit,
         } => {
             let mut programs: Vec<&PathBuf> = vec![];
             let mut specs: Vec<&PathBuf> = vec![];
@@ -322,10 +314,6 @@ fn main() -> Result<()> {
                 }
             };
 
-            for problem in problems.clone().iter() {
-                problem.summarize();
-            }
-
             if let Some(out_dir) = out_dir {
                 for problem in problems.clone().into_iter() {
                     let mut path = out_dir.clone();
@@ -336,7 +324,7 @@ fn main() -> Result<()> {
 
             // TODO: Run proof search
             if !no_proof_search {
-                verify(problems, 4);
+                verify(problems, time_limit);
             }
 
             info!("System runtime: {} milliseconds", now.elapsed().as_millis());
