@@ -7,7 +7,6 @@ These are usage instructions for the version deployed on anya (May 16th, 2024).
 Translating a logic program into a first-order theory:
 ```sh
 $ ./anthem translate <path>.lp --with tau-star
-$ ./anthem translate <path>.lp --with completion
 $ ./anthem translate <path>.lp --with gamma 
 ```
 
