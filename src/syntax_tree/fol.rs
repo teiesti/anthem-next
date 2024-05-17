@@ -138,6 +138,15 @@ impl SymbolicTerm {
             SymbolicTerm::Symbol(_) | SymbolicTerm::Variable(_) => IndexSet::new(),
         }
     }
+
+    pub fn substitute(self, var: Variable, term: SymbolicTerm) -> Self {
+        match self {
+            SymbolicTerm::Variable(s) if var.name == s && var.sort == Sort::Symbol => term,
+            SymbolicTerm::Symbol(_)
+            | SymbolicTerm::FunctionConstant(_)
+            | SymbolicTerm::Variable(_) => self,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
@@ -197,6 +206,14 @@ impl GeneralTerm {
                     "cannot substitute general term `{term}` for the integer variable `{var}`"
                 ),
             },
+            GeneralTerm::SymbolicTerm(t) if var.sort == Sort::Symbol => match term {
+                GeneralTerm::SymbolicTerm(term) => {
+                    GeneralTerm::SymbolicTerm(t.substitute(var, term))
+                }
+                _ => panic!(
+                    "cannot substitute general term `{term}` for the symbolic variable `{var}`"
+                ),
+            },
             t => t,
         }
     }
@@ -236,6 +253,8 @@ pub struct Atom {
     pub terms: Vec<GeneralTerm>,
 }
 
+impl_node!(Atom, Format, AtomParser);
+
 impl Atom {
     pub fn predicate(&self) -> Predicate {
         Predicate {
@@ -243,11 +262,7 @@ impl Atom {
             arity: self.terms.len(),
         }
     }
-}
 
-impl_node!(Atom, Format, AtomParser);
-
-impl Atom {
     pub fn substitute(self, var: Variable, term: GeneralTerm) -> Self {
         let predicate_symbol = self.predicate_symbol;
 
@@ -640,6 +655,7 @@ impl Formula {
     }
 
     // Replace all free occurences of var with term within the formula
+    // if sort(term) is subsorteq to sort(var)
     pub fn substitute(self, var: Variable, term: GeneralTerm) -> Self {
         match self {
             Formula::AtomicFormula(f) => Formula::AtomicFormula(f.substitute(var, term)),
@@ -827,7 +843,7 @@ impl UserGuide {
 
 #[cfg(test)]
 mod tests {
-    use {super::Formula, indexmap::IndexSet};
+    use {super::Formula, frame_support::assert_ok, indexmap::IndexSet};
 
     #[test]
     fn test_formula_conjoin() {
@@ -907,6 +923,18 @@ mod tests {
                 "I",
                 "exists J$i (J$i = N$i and I = Z1)",
             ),
+            (
+                "exists J$i (J$i = N$i and Z = Z1)",
+                "N$i",
+                "5",
+                "exists J$i (J$i = 5 and Z = Z1)",
+            ),
+            (
+                "exists J$i (X$s = J$i -> q(X$s))",
+                "X$s",
+                "m",
+                "exists J$i (m = J$i -> q(m))",
+            ),
         ] {
             assert_eq!(
                 src.parse::<Formula>()
@@ -914,6 +942,21 @@ mod tests {
                     .substitute(var.parse().unwrap(), term.parse().unwrap()),
                 target.parse().unwrap()
             )
+        }
+    }
+
+    #[test]
+    #[should_panic]     // TODO - this test will succeed if any fail, which isn't quite right
+    fn test_formula_substitute_symbol_failure() {
+        for (src, var, term) in [
+            ("exists J$i (X$s = J$i -> q(X$s))", "X$s", "3"),
+            ("exists J$i (X$i = J$i -> q(X$i))", "X$i", "m"),
+            ("exists J$i (X$i = J$i -> q(X$i))", "X$i", "X$g"),
+        ] {
+            let _formula = src
+                .parse::<Formula>()
+                .unwrap()
+                .substitute(var.parse().unwrap(), term.parse().unwrap());
         }
     }
 }
