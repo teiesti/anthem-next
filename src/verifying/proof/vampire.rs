@@ -1,5 +1,10 @@
 use {
-    crate::verifying::problem::Problem, anyhow::anyhow, lazy_static::lazy_static, log::info, regex::Regex, std::{process, time::Instant}
+    crate::verifying::problem::Problem,
+    anyhow::anyhow,
+    lazy_static::lazy_static,
+    log::info,
+    regex::Regex,
+    std::{process, time::Instant},
 };
 
 lazy_static! {
@@ -26,7 +31,7 @@ pub enum ProblemStatus {
 // The interactivity could be handled similarly to a web session - instead of forcing the user to remain
 // in an interaction e.g. via a while loop, each verification call is like a web request, and intermediate results are stored like cookies
 pub fn verify(problems: Vec<Problem>, time_limit: u16) {
-    let cores = 4;  // TODO: as argument
+    let cores = 4; // TODO: as argument
     let mut claim_status = ProblemStatus::Theorem;
     for problem in problems {
         let now = Instant::now();

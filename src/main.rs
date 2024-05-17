@@ -20,7 +20,14 @@ use {
                 strong_equivalence::StrongEquivalenceTask, Task,
             },
         },
-    }, anyhow::{Context, Result}, clap::Parser as _, either::Either, lazy_static::lazy_static, log::info, regex::Regex, std::{ffi::OsStr, fs::read_dir, io, path::PathBuf, time::Instant}
+    },
+    anyhow::{Context, Result},
+    clap::Parser as _,
+    either::Either,
+    lazy_static::lazy_static,
+    log::info,
+    regex::Regex,
+    std::{ffi::OsStr, fs::read_dir, io, path::PathBuf, time::Instant},
 };
 
 lazy_static! {

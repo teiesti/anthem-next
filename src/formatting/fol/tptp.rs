@@ -127,12 +127,11 @@ impl Display for Format<'_, Atom> {
                     }
                     GeneralTerm::FunctionConstant(_) => {
                         write!(f, ", {}", Format(t))?;
-                    },
+                    }
                 }
             }
             write!(f, ")")?;
         }
-
 
         Ok(())
     }
@@ -276,7 +275,6 @@ impl Display for Format<'_, Comparison> {
         Ok(())
     }
 }
-
 
 impl Display for Format<'_, AtomicFormula> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
@@ -433,10 +431,7 @@ mod tests {
             Format(&IntegerTerm::Numeral(-42)).to_string(),
             "$uminus(42)"
         );
-        assert_eq!(
-            Format(&IntegerTerm::Variable("A".into())).to_string(),
-            "Ai"
-        );
+        assert_eq!(Format(&IntegerTerm::Variable("A".into())).to_string(), "Ai");
         assert_eq!(
             Format(&IntegerTerm::BinaryOperation {
                 op: BinaryOperator::Multiply,
