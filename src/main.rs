@@ -351,6 +351,7 @@ fn main() -> Result<()> {
 
             if let Some(out_dir) = out_dir {
                 for problem in problems.clone().into_iter() {
+                    problem.summarize();
                     let mut path = out_dir.clone();
                     path.push(format!("{}.p", problem.name));
                     problem.to_file(path)?;

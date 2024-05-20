@@ -184,7 +184,7 @@ impl Problem {
             initial_problem
                 .formulas
                 .extend(general_lemma.consequences.clone());
-            lemma_sequence.push(initial_problem.clone());
+            lemma_sequence.push(initial_problem.clone());                   // TODO - WHY DO WE NEED THIS LINE
             problem_sequence.extend(lemma_sequence);
 
             final_problem.formulas.extend(general_lemma.consequences);
