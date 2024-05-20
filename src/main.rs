@@ -75,7 +75,7 @@ fn main() -> Result<()> {
                     print!("{theory}")
                 }
             }
-            info!("System runtime: {} milliseconds", now.elapsed().as_millis());
+            println!("System runtime: {} milliseconds", now.elapsed().as_millis());
 
             Ok(())
         }
@@ -92,7 +92,7 @@ fn main() -> Result<()> {
                     println!("{simplified_theory}");
                 }
             }
-            info!("System runtime: {} milliseconds", now.elapsed().as_millis());
+            println!("System runtime: {} milliseconds", now.elapsed().as_millis());
 
             Ok(())
         }
@@ -190,7 +190,7 @@ fn main() -> Result<()> {
                 verify(problems, time_limit);
             }
 
-            info!("System runtime: {} milliseconds", now.elapsed().as_millis());
+            println!("System runtime: {} milliseconds", now.elapsed().as_millis());
 
             Ok(())
         }
@@ -334,7 +334,7 @@ fn main() -> Result<()> {
                 verify(problems, time_limit);
             }
 
-            info!("System runtime: {} milliseconds", now.elapsed().as_millis());
+            println!("System runtime: {} milliseconds", now.elapsed().as_millis());
 
             Ok(())
         }

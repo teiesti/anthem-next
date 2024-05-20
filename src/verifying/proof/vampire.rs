@@ -2,7 +2,6 @@ use {
     crate::verifying::problem::Problem,
     anyhow::anyhow,
     lazy_static::lazy_static,
-    log::info,
     regex::Regex,
     std::{process, time::Instant},
 };
@@ -53,12 +52,12 @@ pub fn verify(problems: Vec<Problem>, time_limit: u16) {
             Ok(status) => match status {
                 ProblemStatus::Theorem => {
                     println!("\t| Status: Proven");
-                    info!("Proven in {} milliseconds", now.elapsed().as_millis());
+                    println!("Proven in {} milliseconds", now.elapsed().as_millis());
                 }
                 _ => {
                     claim_status = ProblemStatus::Timeout; // TODO - Differentiate between different vampire errors/non-theorem results
                     println!("\t| Status: Not Proven");
-                    info!("Not proven in {} milliseconds", now.elapsed().as_millis());
+                    println!("Not proven in {} milliseconds", now.elapsed().as_millis());
                     break;
                 }
             },
