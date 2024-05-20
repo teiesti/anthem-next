@@ -125,6 +125,31 @@ impl Problem {
         }
     }
 
+    pub fn from_derivation_components(
+        name: String,
+        assumptions: Vec<AnnotatedFormula>,
+        lemmas: Vec<GeneralLemma>,
+    ) -> Vec<Self> {
+        let mut initial_problem = Problem::with_name(name);
+        initial_problem.formulas.extend(assumptions);
+
+        let mut problem_sequence: Vec<Problem> = vec![];
+        for general_lemma in lemmas {
+            let mut lemma_sequence: Vec<Problem> = vec![];
+            for conjecture in general_lemma.conjectures {
+                let mut extended_problem = initial_problem.clone();
+                extended_problem.formulas.push(conjecture);
+                lemma_sequence.push(extended_problem);
+            }
+            initial_problem
+                .formulas
+                .extend(general_lemma.consequences.clone());
+            problem_sequence.extend(lemma_sequence);
+        }
+
+        problem_sequence
+    }
+
     pub fn from_components(
         name: String,
         stable: Vec<AnnotatedFormula>,
@@ -167,7 +192,9 @@ impl Problem {
 
         // Add conclusions as conjectures of final_problem
         final_problem.formulas.extend(conclusions);
-        problem_sequence.push(final_problem);
+        if !final_problem.conjectures().is_empty() {
+            problem_sequence.push(final_problem);
+        }
         problem_sequence
     }
 

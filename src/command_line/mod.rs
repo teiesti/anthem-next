@@ -31,6 +31,32 @@ pub enum Command {
         input: PathBuf,
     },
 
+    /// Sequentially derive a series of lemmas from a set of assumptions
+    Derive {
+        /// The file (at least one lemma and optional assumptions)
+        input: PathBuf,
+
+        /// Omit simplifications
+        #[arg(long, action)]
+        no_simplify: bool,
+
+        /// Omit breaking equivalences
+        #[arg(long, action)]
+        no_eq_break: bool,
+
+        /// The time limit in seconds to prove each conjecture passed to Vampire
+        #[arg(long, short, default_value_t = 30)]
+        time_limit: u16,
+
+        /// Omit proof search and just create problem files
+        #[arg(long, action)]
+        no_proof_search: bool,
+
+        /// The destination directory for the problem files
+        #[arg(long)]
+        out_dir: Option<PathBuf>,
+    },
+
     /// Create and optionally verify a set of problem files from a claim about answer set programs or first-order theories
     Verify {
         /// The equivalence theory used to proof the claim

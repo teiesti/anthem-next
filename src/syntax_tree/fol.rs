@@ -843,7 +843,7 @@ impl UserGuide {
 
 #[cfg(test)]
 mod tests {
-    use {super::Formula, frame_support::assert_ok, indexmap::IndexSet};
+    use {super::Formula, indexmap::IndexSet};
 
     #[test]
     fn test_formula_conjoin() {

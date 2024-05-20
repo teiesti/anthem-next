@@ -4,6 +4,7 @@ use {
     lazy_static::lazy_static,
     regex::Regex,
     std::{process, time::Instant},
+    log::info,
 };
 
 lazy_static! {
@@ -52,12 +53,12 @@ pub fn verify(problems: Vec<Problem>, time_limit: u16) {
             Ok(status) => match status {
                 ProblemStatus::Theorem => {
                     println!("\t| Status: Proven");
-                    println!("Proven in {} milliseconds", now.elapsed().as_millis());
+                    info!("Proven in {} milliseconds", now.elapsed().as_millis());
                 }
                 _ => {
                     claim_status = ProblemStatus::Timeout; // TODO - Differentiate between different vampire errors/non-theorem results
                     println!("\t| Status: Not Proven");
-                    println!("Not proven in {} milliseconds", now.elapsed().as_millis());
+                    info!("Not proven in {} milliseconds", now.elapsed().as_millis());
                     break;
                 }
             },

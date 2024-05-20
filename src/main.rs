@@ -16,6 +16,7 @@ use {
         verifying::{
             proof::vampire::verify,
             task::{
+                derivation::DerivationTask,
                 external_equivalence::ExternalEquivalenceTask,
                 strong_equivalence::StrongEquivalenceTask, Task,
             },
@@ -75,7 +76,7 @@ fn main() -> Result<()> {
                     print!("{theory}")
                 }
             }
-            println!("System runtime: {} milliseconds", now.elapsed().as_millis());
+            info!("System runtime: {} milliseconds", now.elapsed().as_millis());
 
             Ok(())
         }
@@ -92,7 +93,34 @@ fn main() -> Result<()> {
                     println!("{simplified_theory}");
                 }
             }
-            println!("System runtime: {} milliseconds", now.elapsed().as_millis());
+            info!("System runtime: {} milliseconds", now.elapsed().as_millis());
+
+            Ok(())
+        }
+
+        Command::Derive { input, no_simplify, no_eq_break, time_limit, no_proof_search, out_dir } => {
+            let specification = fol::Specification::from_file(input)?;
+
+            let problems = DerivationTask {
+                specification,
+                simplify: !no_simplify,
+                break_equivalences: !no_eq_break,
+            }.decompose()?;
+
+            if let Some(out_dir) = out_dir {
+                for problem in problems.clone().into_iter() {
+                    problem.summarize();
+                    let mut path = out_dir.clone();
+                    path.push(format!("{}.p", problem.name));
+                    problem.to_file(path)?;
+                }
+            }
+
+            if !no_proof_search {
+                verify(problems, time_limit);
+            }
+
+            info!("System runtime: {} milliseconds", now.elapsed().as_millis());
 
             Ok(())
         }
@@ -190,7 +218,7 @@ fn main() -> Result<()> {
                 verify(problems, time_limit);
             }
 
-            println!("System runtime: {} milliseconds", now.elapsed().as_millis());
+            info!("System runtime: {} milliseconds", now.elapsed().as_millis());
 
             Ok(())
         }
@@ -334,7 +362,7 @@ fn main() -> Result<()> {
                 verify(problems, time_limit);
             }
 
-            println!("System runtime: {} milliseconds", now.elapsed().as_millis());
+            info!("System runtime: {} milliseconds", now.elapsed().as_millis());
 
             Ok(())
         }
