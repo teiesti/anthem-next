@@ -33,7 +33,12 @@ pub fn completion(theory: fol::Theory) -> Option<fol::Theory> {
         .quantify(fol::Quantifier::Forall, v.into_iter().collect())
     });
 
-    let mut formulas: Vec<_> = constraints;
+    let mut formulas = vec![];
+    // Re-quantify constraints (the split function strips the outermost quantifier)
+    for constraint in constraints {
+        let free_vars = Vec::from_iter(constraint.free_variables());
+        formulas.push(constraint.quantify(fol::Quantifier::Forall, free_vars));
+    }
     formulas.extend(completed_definitions);
 
     Some(fol::Theory { formulas })
@@ -177,7 +182,8 @@ mod tests {
             ("composite(I*J) :- I>1, J>1. prime(I) :- I = 2..n, not composite(I).", "forall V1 (composite(V1) <-> exists I J (exists I1$i J1$i (V1 = I1$i * J1$i and I1$i = I and J1$i = J) and (exists Z Z1 (Z = I and Z1 = 1 and Z > Z1) and exists Z Z1 (Z = J and Z1 = 1 and Z > Z1)))). forall V1 (prime(V1) <-> exists I (V1 = I and (exists Z Z1 (Z = I and exists I$i J$i K$i (I$i = 2 and J$i = n and Z1 = K$i and I$i <= K$i <= J$i) and Z = Z1) and exists Z (Z = I and not composite(Z)))))."),
             ("p :- q, not t. p :- r. r :- t.", "p <-> (q and not t) or (r). r <-> t."),
             ("p. p(a). :- q.", "q -> #false. p <-> #true. forall V1 (p(V1) <-> V1 = a and #true)."),
-            ("p(X) :- q(X, Y).", "forall V1 (p(V1) <-> exists X Y (V1 = X and exists Z Z1 (Z = X and Z1 = Y and q(Z, Z1)))).")
+            ("p(X) :- q(X, Y).", "forall V1 (p(V1) <-> exists X Y (V1 = X and exists Z Z1 (Z = X and Z1 = Y and q(Z, Z1))))."),
+            (":- s(X, I), not covered(X).", "forall X I (exists Z Z1 (Z = X and Z1 = I and s(Z, Z1)) and exists Z (Z = X and not covered(Z)) -> #false)."),
         ] {
             let left = completion(tau_star(src.parse().unwrap())).unwrap();
             let right = target.parse().unwrap();
