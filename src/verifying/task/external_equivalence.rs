@@ -444,7 +444,7 @@ impl Task for ExternalEquivalenceTask {
             match formula.role {
                 fol::Role::Assumption => {
                     let intersection: Vec<_> = formula.formula.predicates()
-                    .intersection(&public_predicates)
+                    .intersection(&self.user_guide.output_predicates())
                     .cloned()
                     .collect();
 
