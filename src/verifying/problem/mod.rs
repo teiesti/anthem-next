@@ -56,7 +56,12 @@ impl AnnotatedFormula {
 
 impl fmt::Display for AnnotatedFormula {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let name = &self.name;
+        let name;
+        if self.name.starts_with("_") {
+            name = format!("f{}", &self.name);
+        } else {
+            name = self.name.clone();
+        }
         let role = &self.role;
         let formula = crate::formatting::fol::tptp::Format(&self.formula);
         writeln!(f, "tff({name}, {role}, {formula}).")
