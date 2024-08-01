@@ -1,5 +1,8 @@
 use {
-    crate::syntax_tree::fol::{Formula, FunctionConstant, Predicate, Sort, Theory},
+    crate::{
+        command_line::Decomposition,
+        syntax_tree::fol::{Formula, FunctionConstant, Predicate, Sort, Theory},
+    },
     anyhow::{Context as _, Result},
     indexmap::IndexSet,
     itertools::Itertools,
@@ -78,6 +81,14 @@ impl Problem {
         }
     }
 
+    pub fn add_annotated_formulas(
+        mut self,
+        annotated_formulas: impl IntoIterator<Item = AnnotatedFormula>,
+    ) -> Self {
+        self.formulas.extend(annotated_formulas.into_iter());
+        self
+    }
+
     pub fn add_theory<F>(mut self, theory: Theory, mut annotate: F) -> Self
     where
         F: FnMut(usize, Formula) -> AnnotatedFormula,
@@ -126,6 +137,13 @@ impl Problem {
             result.extend(formula.function_constants())
         }
         result
+    }
+
+    pub fn decompose(&self, strategy: Decomposition) -> Vec<Self> {
+        match strategy {
+            Decomposition::Independent => self.decompose_independent(),
+            Decomposition::Sequential => self.decompose_sequential(),
+        }
     }
 
     pub fn decompose_independent(&self) -> Vec<Self> {
