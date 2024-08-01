@@ -23,9 +23,64 @@ struct GeneralLemma {
     pub consequences: Vec<problem::AnnotatedFormula>,
 }
 
+impl TryFrom<fol::AnnotatedFormula> for GeneralLemma {
+    type Error = fol::AnnotatedFormula;
+
+    fn try_from(annotated_formula: fol::AnnotatedFormula) -> Result<Self, Self::Error> {
+        match annotated_formula.role {
+            fol::Role::Lemma => Ok(GeneralLemma {
+                conjectures: vec![annotated_formula
+                    .clone()
+                    .into_problem_formula(problem::Role::Conjecture)],
+                consequences: vec![annotated_formula.into_problem_formula(problem::Role::Axiom)],
+            }),
+            // TODO: Add inductive lemmas!
+            fol::Role::Assumption | fol::Role::Spec | fol::Role::Definition => {
+                Err(annotated_formula)
+            }
+        }
+    }
+}
+
+#[derive(Error, Debug)]
+enum ProofOutlineError {
+    #[error("the following annotated formula has a role that is forbidden in proof outlines: {0}")]
+    AnnotatedFormulaWithInvalidRole(fol::AnnotatedFormula),
+}
+
 struct ProofOutline {
     pub forward_lemmas: Vec<GeneralLemma>,
     pub backward_lemmas: Vec<GeneralLemma>,
+}
+
+impl ProofOutline {
+    fn from_specification(specification: fol::Specification) -> Result<Self, ProofOutlineError> {
+        let mut forward_lemmas = Vec::new();
+        let mut backward_lemmas = Vec::new();
+
+        for anf in specification.formulas {
+            match anf.role {
+                fol::Role::Lemma => match anf.direction {
+                    // TODO: Revisit the unwraps when implementing inductive lemmas
+                    fol::Direction::Universal => {
+                        forward_lemmas.push(anf.clone().try_into().unwrap());
+                        backward_lemmas.push(anf.try_into().unwrap());
+                    }
+                    fol::Direction::Forward => forward_lemmas.push(anf.try_into().unwrap()),
+                    fol::Direction::Backward => backward_lemmas.push(anf.try_into().unwrap()),
+                },
+                fol::Role::Definition => todo!(),
+                fol::Role::Assumption | fol::Role::Spec => {
+                    return Err(ProofOutlineError::AnnotatedFormulaWithInvalidRole(anf))
+                }
+            }
+        }
+
+        Ok(ProofOutline {
+            forward_lemmas,
+            backward_lemmas,
+        })
+    }
 }
 
 #[derive(Error, Debug)]
