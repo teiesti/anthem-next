@@ -2,13 +2,31 @@ use {
     crate::{
         command_line::Decomposition,
         syntax_tree::{asp, fol},
-        verifying::{problem::Problem, task::Task},
+        verifying::{
+            problem::{self, Problem},
+            task::Task,
+        },
     },
     either::Either,
     indexmap::IndexSet,
     std::fmt::Display,
     thiserror::Error,
 };
+
+// If all the conjectures are proven,
+// then all consequences can be added as axioms to the next proof step
+// A basic lemma F has conjectures [F] and consequences [F]
+// An inductive lemma F has conjectures [Base, Step] and axioms [F]
+#[derive(Clone, Debug, PartialEq)]
+pub struct GeneralLemma {
+    pub conjectures: Vec<problem::AnnotatedFormula>,
+    pub consequences: Vec<problem::AnnotatedFormula>,
+}
+
+struct ProofOutline {
+    pub forward_lemmas: Vec<GeneralLemma>,
+    pub backward_lemmas: Vec<GeneralLemma>,
+}
 
 #[derive(Error, Debug)]
 pub enum ExternalEquivalenceTaskError {
@@ -122,6 +140,43 @@ impl Task for ExternalEquivalenceTask {
         self.ensure_program_heads_do_not_contain_input_predicates()?;
         // TODO: Add more error handing
 
+        todo!()
+    }
+}
+
+struct ValidatedExternalEquivalenceTask {
+    pub left: Vec<fol::AnnotatedFormula>,
+    pub right: Vec<fol::AnnotatedFormula>,
+    pub user_guide_assumptions: Vec<fol::AnnotatedFormula>,
+    pub proof_outline: ProofOutline,
+    pub decomposition: Decomposition,
+    pub direction: fol::Direction,
+    pub break_equivalences: bool,
+}
+
+impl Task for ValidatedExternalEquivalenceTask {
+    type Error = ExternalEquivalenceTaskError;
+
+    fn decompose(self) -> Result<Vec<Problem>, Self::Error> {
+        todo!()
+    }
+}
+
+struct AssembledExternalEquivalenceTask {
+    pub stable_premises: Vec<problem::AnnotatedFormula>,
+    pub forward_premises: Vec<problem::AnnotatedFormula>,
+    pub forward_conclusions: Vec<problem::AnnotatedFormula>,
+    pub backward_premises: Vec<problem::AnnotatedFormula>,
+    pub backward_conclusions: Vec<problem::AnnotatedFormula>,
+    pub proof_outline: ProofOutline,
+    pub decomposition: Decomposition,
+    pub direction: fol::Direction,
+}
+
+impl Task for AssembledExternalEquivalenceTask {
+    type Error = ExternalEquivalenceTaskError;
+
+    fn decompose(self) -> Result<Vec<Problem>, Self::Error> {
         todo!()
     }
 }
