@@ -10,6 +10,7 @@ use {
             UnaryOperatorParser, UserGuideEntryParser, UserGuideParser, VariableParser,
         },
         syntax_tree::{impl_node, Node},
+        verifying::problem,
     },
     clap::ValueEnum,
     indexmap::IndexSet,
@@ -705,6 +706,21 @@ pub struct AnnotatedFormula {
 }
 
 impl_node!(AnnotatedFormula, Format, AnnotatedFormulaParser);
+
+impl AnnotatedFormula {
+    pub fn into_problem_formula(self, role: problem::Role) -> problem::AnnotatedFormula {
+        problem::AnnotatedFormula {
+            name: if self.name.is_empty() {
+                // TODO: Revisit default naming scheme!
+                self.role.to_string()
+            } else {
+                self.name
+            },
+            role,
+            formula: self.formula,
+        }
+    }
+}
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Specification {
