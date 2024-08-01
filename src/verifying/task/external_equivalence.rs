@@ -10,18 +10,6 @@ use {
     thiserror::Error,
 };
 
-#[derive(Debug)]
-pub struct ExternalEquivalenceTask {
-    pub specification: Either<asp::Program, fol::Specification>,
-    pub program: asp::Program,
-    pub user_guide: fol::UserGuide,
-    pub proof_outline: fol::Specification,
-    pub decomposition: Decomposition,
-    pub direction: fol::Direction,
-    pub simplify: bool,
-    pub break_equivalences: bool,
-}
-
 #[derive(Error, Debug)]
 pub enum ExternalEquivalenceTaskError {
     InputOutputPredicatesOverlap(Vec<fol::Predicate>),
@@ -65,6 +53,18 @@ impl Display for ExternalEquivalenceTaskError {
             }
         }
     }
+}
+
+#[derive(Debug)]
+pub struct ExternalEquivalenceTask {
+    pub specification: Either<asp::Program, fol::Specification>,
+    pub program: asp::Program,
+    pub user_guide: fol::UserGuide,
+    pub proof_outline: fol::Specification,
+    pub decomposition: Decomposition,
+    pub direction: fol::Direction,
+    pub simplify: bool,
+    pub break_equivalences: bool,
 }
 
 impl ExternalEquivalenceTask {
