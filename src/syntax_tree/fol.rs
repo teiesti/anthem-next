@@ -667,7 +667,6 @@ impl Formula {
         let variables = self.free_variables().into_iter().collect();
         self.quantify(Quantifier::Forall, variables)
     }
-
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]

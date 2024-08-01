@@ -18,7 +18,7 @@ use {
 // A basic lemma F has conjectures [F] and consequences [F]
 // An inductive lemma F has conjectures [Base, Step] and axioms [F]
 #[derive(Clone, Debug, PartialEq)]
-pub struct GeneralLemma {
+struct GeneralLemma {
     pub conjectures: Vec<problem::AnnotatedFormula>,
     pub consequences: Vec<problem::AnnotatedFormula>,
 }
