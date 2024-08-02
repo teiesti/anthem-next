@@ -1,6 +1,7 @@
 use {
     crate::{
         command_line::Decomposition,
+        convenience::with_warnings::{Result, WithWarnings},
         syntax_tree::{asp, fol},
         verifying::{
             problem::{self, Problem},
@@ -26,7 +27,9 @@ struct GeneralLemma {
 impl TryFrom<fol::AnnotatedFormula> for GeneralLemma {
     type Error = fol::AnnotatedFormula;
 
-    fn try_from(annotated_formula: fol::AnnotatedFormula) -> Result<Self, Self::Error> {
+    fn try_from(
+        annotated_formula: fol::AnnotatedFormula,
+    ) -> std::result::Result<Self, Self::Error> {
         match annotated_formula.role {
             fol::Role::Lemma => Ok(GeneralLemma {
                 conjectures: vec![annotated_formula
@@ -54,7 +57,9 @@ struct ProofOutline {
 }
 
 impl ProofOutline {
-    fn from_specification(specification: fol::Specification) -> Result<Self, ProofOutlineError> {
+    fn from_specification(
+        specification: fol::Specification,
+    ) -> std::result::Result<Self, ProofOutlineError> {
         let mut forward_lemmas = Vec::new();
         let mut backward_lemmas = Vec::new();
 
@@ -84,6 +89,9 @@ impl ProofOutline {
 }
 
 #[derive(Error, Debug)]
+pub enum ExternalEquivalenceTaskWarning {}
+
+#[derive(Error, Debug)]
 pub enum ExternalEquivalenceTaskError {
     InputOutputPredicatesOverlap(Vec<fol::Predicate>),
     InputPredicateInRuleHead(Vec<fol::Predicate>),
@@ -109,10 +117,7 @@ impl Display for ExternalEquivalenceTaskError {
                 writeln!(f)
             }
             ExternalEquivalenceTaskError::InputPredicateInRuleHead(predicates) => {
-                write!(
-                    f,
-                    "the following input predicates occur in rule heads: "
-                )?;
+                write!(f, "the following input predicates occur in rule heads: ")?;
 
                 let mut iter = predicates.iter().peekable();
                 for predicate in predicates {
@@ -143,7 +148,7 @@ pub struct ExternalEquivalenceTask {
 impl ExternalEquivalenceTask {
     fn ensure_input_and_output_predicates_are_disjoint(
         &self,
-    ) -> Result<(), ExternalEquivalenceTaskError> {
+    ) -> Result<(), ExternalEquivalenceTaskWarning, ExternalEquivalenceTaskError> {
         let input_predicates = self.user_guide.input_predicates();
         let output_predicates = self.user_guide.output_predicates();
 
@@ -153,7 +158,7 @@ impl ExternalEquivalenceTask {
             .collect();
 
         if intersection.is_empty() {
-            Ok(())
+            Ok(WithWarnings::flawless(()))
         } else {
             Err(ExternalEquivalenceTaskError::InputOutputPredicatesOverlap(
                 intersection,
@@ -163,7 +168,7 @@ impl ExternalEquivalenceTask {
 
     fn ensure_program_heads_do_not_contain_input_predicates(
         &self,
-    ) -> Result<(), ExternalEquivalenceTaskError> {
+    ) -> Result<(), ExternalEquivalenceTaskWarning, ExternalEquivalenceTaskError> {
         let input_predicates = self.user_guide.input_predicates();
         let head_predicates: IndexSet<_> = self
             .program
@@ -178,7 +183,7 @@ impl ExternalEquivalenceTask {
             .collect();
 
         if intersection.is_empty() {
-            Ok(())
+            Ok(WithWarnings::flawless(()))
         } else {
             Err(ExternalEquivalenceTaskError::InputPredicateInRuleHead(
                 intersection,
@@ -189,8 +194,9 @@ impl ExternalEquivalenceTask {
 
 impl Task for ExternalEquivalenceTask {
     type Error = ExternalEquivalenceTaskError;
+    type Warning = ExternalEquivalenceTaskWarning;
 
-    fn decompose(self) -> Result<Vec<Problem>, Self::Error> {
+    fn decompose(self) -> Result<Vec<Problem>, Self::Warning, Self::Error> {
         self.ensure_input_and_output_predicates_are_disjoint()?;
         self.ensure_program_heads_do_not_contain_input_predicates()?;
         // TODO: Add more error handing
@@ -211,8 +217,9 @@ struct ValidatedExternalEquivalenceTask {
 
 impl Task for ValidatedExternalEquivalenceTask {
     type Error = ExternalEquivalenceTaskError;
+    type Warning = ExternalEquivalenceTaskWarning;
 
-    fn decompose(self) -> Result<Vec<Problem>, Self::Error> {
+    fn decompose(self) -> Result<Vec<Problem>, Self::Warning, Self::Error> {
         todo!()
     }
 }
@@ -230,8 +237,9 @@ struct AssembledExternalEquivalenceTask {
 
 impl Task for AssembledExternalEquivalenceTask {
     type Error = ExternalEquivalenceTaskError;
+    type Warning = ExternalEquivalenceTaskWarning;
 
-    fn decompose(self) -> Result<Vec<Problem>, Self::Error> {
+    fn decompose(self) -> Result<Vec<Problem>, Self::Warning, Self::Error> {
         let mut problems = Vec::new();
 
         if matches!(
@@ -300,6 +308,6 @@ impl Task for AssembledExternalEquivalenceTask {
             );
         }
 
-        Ok(problems)
+        Ok(WithWarnings::flawless(problems))
     }
 }
