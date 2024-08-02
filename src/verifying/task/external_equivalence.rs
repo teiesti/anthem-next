@@ -111,7 +111,7 @@ impl Display for ExternalEquivalenceTaskError {
             ExternalEquivalenceTaskError::InputPredicateInRuleHead(predicates) => {
                 write!(
                     f,
-                    "the following predicates are declared as input and output predicates: "
+                    "the following input predicates occur in rule heads: "
                 )?;
 
                 let mut iter = predicates.iter().peekable();
