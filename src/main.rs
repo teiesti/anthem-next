@@ -64,15 +64,18 @@ fn main() -> Result<()> {
             ..
         } => {
             let problems = match equivalence {
-                Equivalence::Strong => StrongEquivalenceTask {
-                    left: asp::Program::from_file(left)?,
-                    right: asp::Program::from_file(right)?,
-                    decomposition,
-                    direction,
-                    simplify: !no_simplify,
-                    break_equivalences: !no_eq_break,
+                Equivalence::Strong => {
+                    StrongEquivalenceTask {
+                        left: asp::Program::from_file(left)?,
+                        right: asp::Program::from_file(right)?,
+                        decomposition,
+                        direction,
+                        simplify: !no_simplify,
+                        break_equivalences: !no_eq_break,
+                    }
+                    .decompose()?
+                    .data // TODO: Add some kind of unwrap to WithWarnings and use it here
                 }
-                .decompose()?,
 
                 Equivalence::External => {
                     let specification: Either<asp::Program, fol::Specification> = match left
@@ -128,6 +131,7 @@ fn main() -> Result<()> {
                         break_equivalences: !no_eq_break,
                     }
                     .decompose()?
+                    .data // TODO: Handle warnings
                 }
             };
 

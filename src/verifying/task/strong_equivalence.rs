@@ -1,6 +1,7 @@
 use {
     crate::{
         command_line::Decomposition,
+        convenience::with_warnings::{Result, WithWarnings},
         syntax_tree::{asp, fol},
         translating::{
             gamma::{self, gamma},
@@ -11,6 +12,7 @@ use {
             task::Task,
         },
     },
+    std::convert::Infallible,
     thiserror::Error,
 };
 
@@ -55,8 +57,9 @@ impl StrongEquivalenceTask {
 
 impl Task for StrongEquivalenceTask {
     type Error = StrongEquivalenceTaskError;
+    type Warning = Infallible;
 
-    fn decompose(self) -> Result<Vec<Problem>, Self::Error> {
+    fn decompose(self) -> Result<Vec<Problem>, Self::Warning, Self::Error> {
         let transition_axioms = self.transition_axioms(); // These are the "forall X (hp(X) -> tp(X))" axioms.
 
         let mut left = tau_star(self.left);
@@ -125,12 +128,14 @@ impl Task for StrongEquivalenceTask {
             );
         }
 
-        Ok(problems
-            .into_iter()
-            .flat_map(|p: Problem| match self.decomposition {
-                Decomposition::Independent => p.decompose_independent(),
-                Decomposition::Sequential => p.decompose_sequential(),
-            })
-            .collect())
+        Ok(WithWarnings::flawless(
+            problems
+                .into_iter()
+                .flat_map(|p: Problem| match self.decomposition {
+                    Decomposition::Independent => p.decompose_independent(),
+                    Decomposition::Sequential => p.decompose_sequential(),
+                })
+                .collect(),
+        ))
     }
 }
