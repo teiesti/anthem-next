@@ -15,6 +15,12 @@ impl<D, W> WithWarnings<D, W> {
         self.warnings.push(warning);
         self
     }
+
+    pub fn preface_warnings(mut self, mut warnings: Vec<W>) -> Self {
+        warnings.append(&mut self.warnings);
+        self.warnings = warnings;
+        self
+    }
 }
 
 pub type Result<D, W, E> = std::result::Result<WithWarnings<D, W>, E>;

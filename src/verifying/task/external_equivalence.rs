@@ -89,7 +89,28 @@ impl ProofOutline {
 }
 
 #[derive(Error, Debug)]
-pub enum ExternalEquivalenceTaskWarning {}
+pub enum ExternalEquivalenceTaskWarning {
+    InconsistentDirectionAnnotation(fol::AnnotatedFormula),
+}
+
+impl Display for ExternalEquivalenceTaskWarning {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ExternalEquivalenceTaskWarning::InconsistentDirectionAnnotation(formula) => {
+                let proof_direction = match formula.direction {
+                    fol::Direction::Forward => fol::Direction::Backward,
+                    fol::Direction::Backward => fol::Direction::Forward,
+                    fol::Direction::Universal => unreachable!(),
+                };
+
+                writeln!(
+                    f,
+                    "the following assumption is ignored in the {proof_direction} direction of the proof due its annotated direction: {formula}"
+                )
+            }
+        }
+    }
+}
 
 #[derive(Error, Debug)]
 pub enum ExternalEquivalenceTaskError {
@@ -236,12 +257,16 @@ impl Task for ValidatedExternalEquivalenceTask {
         let mut backward_premises = Vec::new();
         let mut backward_conclusions = Vec::new();
 
+        let mut warnings = Vec::new();
+
         for formula in self.left {
             match formula.role {
                 Assumption => match formula.direction {
                     Universal => stable_premises.push(formula.into_problem_formula(Axiom)),
                     Forward => forward_premises.push(formula.into_problem_formula(Axiom)),
-                    Backward => todo!(), // TODO: Warning
+                    Backward => warnings.push(
+                        ExternalEquivalenceTaskWarning::InconsistentDirectionAnnotation(formula),
+                    ),
                 },
                 Spec => {
                     if matches!(formula.direction, Universal | Forward) {
@@ -260,7 +285,9 @@ impl Task for ValidatedExternalEquivalenceTask {
             match formula.role {
                 Assumption => match formula.direction {
                     Universal => stable_premises.push(formula.into_problem_formula(Axiom)),
-                    Forward => todo!(), // TODO: Warning
+                    Forward => warnings.push(
+                        ExternalEquivalenceTaskWarning::InconsistentDirectionAnnotation(formula),
+                    ),
                     Backward => backward_premises.push(formula.into_problem_formula(Axiom)),
                 },
                 Spec => {
@@ -276,7 +303,7 @@ impl Task for ValidatedExternalEquivalenceTask {
             }
         }
 
-        AssembledExternalEquivalenceTask {
+        Ok(AssembledExternalEquivalenceTask {
             stable_premises,
             forward_premises,
             forward_conclusions,
@@ -286,7 +313,8 @@ impl Task for ValidatedExternalEquivalenceTask {
             decomposition: self.decomposition,
             direction: self.direction,
         }
-        .decompose()
+        .decompose()?
+        .preface_warnings(warnings))
     }
 }
 
