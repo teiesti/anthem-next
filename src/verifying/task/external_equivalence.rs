@@ -220,7 +220,73 @@ impl Task for ValidatedExternalEquivalenceTask {
     type Warning = ExternalEquivalenceTaskWarning;
 
     fn decompose(self) -> Result<Vec<Problem>, Self::Warning, Self::Error> {
-        todo!()
+        use crate::{
+            syntax_tree::fol::{Direction::*, Role::*},
+            verifying::problem::Role::*,
+        };
+
+        let mut stable_premises: Vec<_> = self
+            .user_guide_assumptions
+            .into_iter()
+            .map(|a| a.into_problem_formula(problem::Role::Axiom))
+            .collect();
+
+        let mut forward_premises = Vec::new();
+        let mut forward_conclusions = Vec::new();
+        let mut backward_premises = Vec::new();
+        let mut backward_conclusions = Vec::new();
+
+        for formula in self.left {
+            match formula.role {
+                Assumption => match formula.direction {
+                    Universal => stable_premises.push(formula.into_problem_formula(Axiom)),
+                    Forward => forward_premises.push(formula.into_problem_formula(Axiom)),
+                    Backward => todo!(), // TODO: Warning
+                },
+                Spec => {
+                    if matches!(formula.direction, Universal | Forward) {
+                        forward_premises.push(formula.clone().into_problem_formula(Axiom))
+                    }
+                    if matches!(formula.direction, Universal | Backward) {
+                        // TODO: Apply symmetry breaking
+                        backward_conclusions.push(formula.into_problem_formula(Conjecture))
+                    }
+                }
+                Lemma | Definition => unreachable!(),
+            }
+        }
+
+        for formula in self.right {
+            match formula.role {
+                Assumption => match formula.direction {
+                    Universal => stable_premises.push(formula.into_problem_formula(Axiom)),
+                    Forward => todo!(), // TODO: Warning
+                    Backward => backward_premises.push(formula.into_problem_formula(Axiom)),
+                },
+                Spec => {
+                    if matches!(formula.direction, Universal | Backward) {
+                        backward_premises.push(formula.clone().into_problem_formula(Axiom))
+                    }
+                    if matches!(formula.direction, Universal | Forward) {
+                        // TODO: Apply symmetry breaking
+                        forward_conclusions.push(formula.into_problem_formula(Conjecture))
+                    }
+                }
+                Lemma | Definition => unreachable!(),
+            }
+        }
+
+        AssembledExternalEquivalenceTask {
+            stable_premises,
+            forward_premises,
+            forward_conclusions,
+            backward_premises,
+            backward_conclusions,
+            proof_outline: self.proof_outline,
+            decomposition: self.decomposition,
+            direction: self.direction,
+        }
+        .decompose()
     }
 }
 

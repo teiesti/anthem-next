@@ -677,7 +677,7 @@ pub struct Theory {
 
 impl_node!(Theory, Format, TheoryParser);
 
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 pub enum Role {
     Assumption,
     Spec,
