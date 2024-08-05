@@ -5,10 +5,7 @@ use {
             apply::Apply as _,
             with_warnings::{Result, WithWarnings},
         },
-        syntax_tree::{
-            asp,
-            fol::{self, BinaryConnective, Quantification},
-        },
+        syntax_tree::{asp, fol},
         translating::{completion::completion, tau_star::tau_star},
         verifying::{
             problem::{self, Problem},
@@ -17,7 +14,7 @@ use {
     },
     either::Either,
     indexmap::{IndexMap, IndexSet},
-    std::fmt::{format, Display},
+    std::fmt::Display,
     thiserror::Error,
 };
 
@@ -265,6 +262,7 @@ impl ProofOutline {
 #[derive(Error, Debug)]
 pub enum ExternalEquivalenceTaskWarning {
     InconsistentDirectionAnnotation(fol::AnnotatedFormula),
+    InvalidRoleWithinUserGuide(fol::AnnotatedFormula),
 }
 
 impl Display for ExternalEquivalenceTaskWarning {
@@ -281,7 +279,10 @@ impl Display for ExternalEquivalenceTaskWarning {
                     f,
                     "the following assumption is ignored in the {proof_direction} direction of the proof due its annotated direction: {formula}"
                 )
-            }
+            },
+            ExternalEquivalenceTaskWarning::InvalidRoleWithinUserGuide(formula) => writeln!(
+                f, "the following formula is ignored because user guides only permit assumptions: {formula}"
+            ),
         }
     }
 }
@@ -290,6 +291,7 @@ impl Display for ExternalEquivalenceTaskWarning {
 pub enum ExternalEquivalenceTaskError {
     InputOutputPredicatesOverlap(Vec<fol::Predicate>),
     InputPredicateInRuleHead(Vec<fol::Predicate>),
+    OutputPredicateInAssumption(Vec<fol::Predicate>),
 }
 
 impl Display for ExternalEquivalenceTaskError {
@@ -313,6 +315,22 @@ impl Display for ExternalEquivalenceTaskError {
             }
             ExternalEquivalenceTaskError::InputPredicateInRuleHead(predicates) => {
                 write!(f, "the following input predicates occur in rule heads: ")?;
+
+                let mut iter = predicates.iter().peekable();
+                for predicate in predicates {
+                    write!(f, "{predicate}")?;
+                    if iter.peek().is_some() {
+                        write!(f, ", ")?;
+                    }
+                }
+
+                writeln!(f)
+            }
+            ExternalEquivalenceTaskError::OutputPredicateInAssumption(predicates) => {
+                write!(
+                    f,
+                    "the following output predicates occur in user guide assumptions: "
+                )?;
 
                 let mut iter = predicates.iter().peekable();
                 for predicate in predicates {
@@ -394,6 +412,8 @@ impl Task for ExternalEquivalenceTask {
     fn decompose(self) -> Result<Vec<Problem>, Self::Warning, Self::Error> {
         self.ensure_input_and_output_predicates_are_disjoint()?;
         self.ensure_program_heads_do_not_contain_input_predicates()?;
+        // TODO: Check specification assumptions for output predicates
+        // TODO: Ensure program heads do not contain input predicates
         // TODO: Add more error handing
 
         let mut warnings = Vec::new();
@@ -497,12 +517,33 @@ impl Task for ExternalEquivalenceTask {
         )
         .formulas;
 
-        // TODO: user_guide_assumptions and proof_outline
+        let mut user_guide_assumptions = Vec::new();
+        for formula in self.user_guide.formulas() {
+            match formula.role {
+                fol::Role::Assumption => {
+                    let overlap: Vec<_> = formula
+                        .predicates()
+                        .into_iter()
+                        .filter(|p| self.user_guide.output_predicates().contains(p))
+                        .collect();
+                    if overlap.is_empty() {
+                        user_guide_assumptions.push(formula.replace_placeholders(&placeholders));
+                    } else {
+                        return Err(ExternalEquivalenceTaskError::OutputPredicateInAssumption(
+                            overlap,
+                        ));
+                    }
+                }
+                _ => warnings.push(ExternalEquivalenceTaskWarning::InvalidRoleWithinUserGuide(
+                    formula,
+                )),
+            }
+        }
 
         Ok(ValidatedExternalEquivalenceTask {
             left,
             right,
-            user_guide_assumptions: todo!(),
+            user_guide_assumptions,
             proof_outline: todo!(),
             decomposition: self.decomposition,
             direction: self.direction,
