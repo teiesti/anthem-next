@@ -396,12 +396,12 @@ impl ExternalEquivalenceTask {
         }
     }
 
-    fn ensure_program_heads_do_not_contain_input_predicates(
+    fn ensure_rule_heads_do_not_contain_input_predicates(
         &self,
+        program: &asp::Program,
     ) -> Result<(), ExternalEquivalenceTaskWarning, ExternalEquivalenceTaskError> {
         let input_predicates = self.user_guide.input_predicates();
-        let head_predicates: IndexSet<_> = self
-            .program
+        let head_predicates: IndexSet<_> = program
             .head_predicates()
             .into_iter()
             .map(fol::Predicate::from)
@@ -423,25 +423,24 @@ impl ExternalEquivalenceTask {
 
     fn ensure_specification_assumptions_do_not_contain_output_predicates(
         &self,
+        specification: &fol::Specification,
     ) -> Result<(), ExternalEquivalenceTaskWarning, ExternalEquivalenceTaskError> {
-        if let Either::Right(ref specification) = self.specification {
-            let output_predicates = self.user_guide.output_predicates();
+        let output_predicates = self.user_guide.output_predicates();
 
-            for formula in &specification.formulas {
-                if matches!(formula.role, fol::Role::Assumption) {
-                    let overlap: Vec<_> = formula
-                        .predicates()
-                        .into_iter()
-                        .filter(|p| output_predicates.contains(p))
-                        .collect();
+        for formula in &specification.formulas {
+            if matches!(formula.role, fol::Role::Assumption) {
+                let overlap: Vec<_> = formula
+                    .predicates()
+                    .into_iter()
+                    .filter(|p| output_predicates.contains(p))
+                    .collect();
 
-                    if !overlap.is_empty() {
-                        return Err(
-                            ExternalEquivalenceTaskError::OutputPredicateInSpecificationAssumption(
-                                overlap,
-                            ),
-                        );
-                    }
+                if !overlap.is_empty() {
+                    return Err(
+                        ExternalEquivalenceTaskError::OutputPredicateInSpecificationAssumption(
+                            overlap,
+                        ),
+                    );
                 }
             }
         }
@@ -456,8 +455,19 @@ impl Task for ExternalEquivalenceTask {
 
     fn decompose(self) -> Result<Vec<Problem>, Self::Warning, Self::Error> {
         self.ensure_input_and_output_predicates_are_disjoint()?;
-        self.ensure_program_heads_do_not_contain_input_predicates()?;
-        self.ensure_specification_assumptions_do_not_contain_output_predicates()?;
+        self.ensure_rule_heads_do_not_contain_input_predicates(&self.program)?;
+
+        match self.specification {
+            Either::Left(program) => {
+                self.ensure_rule_heads_do_not_contain_input_predicates(&program)?;
+            }
+            Either::Right(specification) => {
+                self.ensure_specification_assumptions_do_not_contain_output_predicates(
+                    &specification,
+                )?;
+            }
+        }
+
         // TODO: Add more error handing
 
         let mut warnings = Vec::new();
