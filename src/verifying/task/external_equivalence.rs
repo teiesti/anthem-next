@@ -1,7 +1,10 @@
 use {
     crate::{
         command_line::Decomposition,
-        convenience::with_warnings::{Result, WithWarnings},
+        convenience::{
+            apply::Apply as _,
+            with_warnings::{Result, WithWarnings},
+        },
         syntax_tree::{asp, fol},
         verifying::{
             problem::{self, Problem},
@@ -9,10 +12,158 @@ use {
         },
     },
     either::Either,
-    indexmap::IndexSet,
+    indexmap::{IndexMap, IndexSet},
     std::fmt::Display,
     thiserror::Error,
 };
+
+// TODO: The following could be much easier with an enum over all types of nodes which implements the apply trait
+trait ReplacePlaceholders {
+    fn replace_placeholders(self, mapping: &IndexMap<String, fol::FunctionConstant>) -> Self;
+}
+
+impl ReplacePlaceholders for fol::Theory {
+    fn replace_placeholders(self, mapping: &IndexMap<String, fol::FunctionConstant>) -> Self {
+        fol::Theory {
+            formulas: self
+                .formulas
+                .into_iter()
+                .map(|f| f.replace_placeholders(mapping))
+                .collect(),
+        }
+    }
+}
+
+impl ReplacePlaceholders for fol::Formula {
+    fn replace_placeholders(self, mapping: &IndexMap<String, fol::FunctionConstant>) -> Self {
+        self.apply(&mut |formula| match formula {
+            fol::Formula::AtomicFormula(a) => {
+                fol::Formula::AtomicFormula(a.replace_placeholders(mapping))
+            }
+            x => x,
+        })
+    }
+}
+
+impl ReplacePlaceholders for fol::AtomicFormula {
+    fn replace_placeholders(self, mapping: &IndexMap<String, fol::FunctionConstant>) -> Self {
+        match self {
+            fol::AtomicFormula::Atom(a) => {
+                fol::AtomicFormula::Atom(a.replace_placeholders(mapping))
+            }
+            fol::AtomicFormula::Comparison(c) => {
+                fol::AtomicFormula::Comparison(c.replace_placeholders(mapping))
+            }
+            x => x,
+        }
+    }
+}
+
+impl ReplacePlaceholders for fol::Atom {
+    fn replace_placeholders(self, mapping: &IndexMap<String, fol::FunctionConstant>) -> Self {
+        fol::Atom {
+            predicate_symbol: self.predicate_symbol,
+            terms: self
+                .terms
+                .into_iter()
+                .map(|t| t.replace_placeholders(mapping))
+                .collect(),
+        }
+    }
+}
+
+impl ReplacePlaceholders for fol::Comparison {
+    fn replace_placeholders(self, mapping: &IndexMap<String, fol::FunctionConstant>) -> Self {
+        fol::Comparison {
+            term: self.term.replace_placeholders(mapping),
+            guards: self
+                .guards
+                .into_iter()
+                .map(|g| g.replace_placeholders(mapping))
+                .collect(),
+        }
+    }
+}
+
+impl ReplacePlaceholders for fol::Guard {
+    fn replace_placeholders(self, mapping: &IndexMap<String, fol::FunctionConstant>) -> Self {
+        fol::Guard {
+            relation: self.relation,
+            term: self.term.replace_placeholders(mapping),
+        }
+    }
+}
+
+impl ReplacePlaceholders for fol::GeneralTerm {
+    fn replace_placeholders(self, mapping: &IndexMap<String, fol::FunctionConstant>) -> Self {
+        match self {
+            fol::GeneralTerm::SymbolicTerm(fol::SymbolicTerm::Symbol(s)) => {
+                if let Some(fc) = mapping.get(&s) {
+                    match fc.sort {
+                        fol::Sort::General => fol::GeneralTerm::FunctionConstant(s),
+                        fol::Sort::Integer => {
+                            fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::FunctionConstant(s))
+                        }
+                        fol::Sort::Symbol => {
+                            fol::GeneralTerm::SymbolicTerm(fol::SymbolicTerm::FunctionConstant(s))
+                        }
+                    }
+                } else {
+                    fol::GeneralTerm::SymbolicTerm(fol::SymbolicTerm::Symbol(s))
+                }
+            }
+            x => x,
+        }
+    }
+}
+
+trait RenamePredicates {
+    fn rename_predicates(self, mapping: &IndexMap<fol::Predicate, String>) -> Self;
+}
+
+impl RenamePredicates for fol::Theory {
+    fn rename_predicates(self, mapping: &IndexMap<fol::Predicate, String>) -> Self {
+        fol::Theory {
+            formulas: self
+                .formulas
+                .into_iter()
+                .map(|f| f.rename_predicates(mapping))
+                .collect(),
+        }
+    }
+}
+
+impl RenamePredicates for fol::Formula {
+    fn rename_predicates(self, mapping: &IndexMap<fol::Predicate, String>) -> Self {
+        self.apply(&mut |formula| match formula {
+            fol::Formula::AtomicFormula(a) => {
+                fol::Formula::AtomicFormula(a.rename_predicates(mapping))
+            }
+            x => x,
+        })
+    }
+}
+
+impl RenamePredicates for fol::AtomicFormula {
+    fn rename_predicates(self, mapping: &IndexMap<fol::Predicate, String>) -> Self {
+        match self {
+            fol::AtomicFormula::Atom(a) => fol::AtomicFormula::Atom(a.rename_predicates(mapping)),
+            x => x,
+        }
+    }
+}
+
+impl RenamePredicates for fol::Atom {
+    fn rename_predicates(self, mapping: &IndexMap<fol::Predicate, String>) -> Self {
+        match mapping.get(&self.predicate()) {
+            Some(name_extension) => fol::Atom {
+                predicate_symbol: format!("{}_{}", self.predicate_symbol, name_extension),
+                terms: self.terms,
+            },
+            None => self,
+        }
+    }
+}
 
 // If all the conjectures are proven,
 // then all consequences can be added as axioms to the next proof step
