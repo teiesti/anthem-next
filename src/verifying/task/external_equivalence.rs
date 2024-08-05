@@ -458,10 +458,10 @@ impl Task for ExternalEquivalenceTask {
         self.ensure_rule_heads_do_not_contain_input_predicates(&self.program)?;
 
         match self.specification {
-            Either::Left(program) => {
+            Either::Left(ref program) => {
                 self.ensure_rule_heads_do_not_contain_input_predicates(&program)?;
             }
-            Either::Right(specification) => {
+            Either::Right(ref specification) => {
                 self.ensure_specification_assumptions_do_not_contain_output_predicates(
                     &specification,
                 )?;
