@@ -5,7 +5,11 @@ use {
             apply::Apply as _,
             with_warnings::{Result, WithWarnings},
         },
-        syntax_tree::{asp, fol},
+        syntax_tree::{
+            asp,
+            fol::{self, BinaryConnective, Quantification},
+        },
+        translating::{completion::completion, tau_star::tau_star},
         verifying::{
             problem::{self, Problem},
             task::Task,
@@ -13,13 +17,32 @@ use {
     },
     either::Either,
     indexmap::{IndexMap, IndexSet},
-    std::fmt::Display,
+    std::fmt::{format, Display},
     thiserror::Error,
 };
 
 // TODO: The following could be much easier with an enum over all types of nodes which implements the apply trait
 trait ReplacePlaceholders {
     fn replace_placeholders(self, mapping: &IndexMap<String, fol::FunctionConstant>) -> Self;
+}
+
+impl ReplacePlaceholders for fol::Specification {
+    fn replace_placeholders(self, mapping: &IndexMap<String, fol::FunctionConstant>) -> Self {
+        fol::Specification {
+            formulas: self
+                .formulas
+                .into_iter()
+                .map(|f| f.replace_placeholders(mapping))
+                .collect(),
+        }
+    }
+}
+
+impl ReplacePlaceholders for fol::AnnotatedFormula {
+    fn replace_placeholders(mut self, mapping: &IndexMap<String, fol::FunctionConstant>) -> Self {
+        self.formula = self.formula.replace_placeholders(mapping);
+        self
+    }
 }
 
 impl ReplacePlaceholders for fol::Theory {
@@ -373,12 +396,125 @@ impl Task for ExternalEquivalenceTask {
         self.ensure_program_heads_do_not_contain_input_predicates()?;
         // TODO: Add more error handing
 
-        todo!()
+        let mut warnings = Vec::new();
+
+        let placeholders = self
+            .user_guide
+            .placeholders()
+            .into_iter()
+            .map(|p| (p.name.clone(), p))
+            .collect();
+
+        let public_predicates = self.user_guide.public_predicates();
+
+        let specification_private_predicates: Vec<_> = match self.specification {
+            Either::Left(ref program) => program
+                .predicates()
+                .into_iter()
+                .map(fol::Predicate::from)
+                .filter(|p| public_predicates.contains(p))
+                .collect(),
+            Either::Right(ref specification) => specification
+                .predicates()
+                .into_iter()
+                .filter(|p| public_predicates.contains(p))
+                .collect(),
+        };
+
+        let program_private_predicates: Vec<_> = self
+            .program
+            .predicates()
+            .into_iter()
+            .map(fol::Predicate::from)
+            .filter(|p| public_predicates.contains(p))
+            .collect();
+
+        fn head_predicate(formula: &fol::Formula) -> Option<fol::Predicate> {
+            match formula {
+                fol::Formula::BinaryFormula {
+                    connective: fol::BinaryConnective::Equivalence,
+                    lhs,
+                    rhs: _,
+                } => match **lhs {
+                    fol::Formula::AtomicFormula(fol::AtomicFormula::Atom(ref a)) => {
+                        Some(a.predicate())
+                    }
+                    _ => None,
+                },
+                fol::Formula::QuantifiedFormula {
+                    quantification:
+                        fol::Quantification {
+                            quantifier: fol::Quantifier::Forall,
+                            variables: _,
+                        },
+                    formula,
+                } => head_predicate(&formula),
+                _ => None,
+            }
+        }
+
+        let control_translate = |theory: fol::Theory| {
+            let mut constraint_counter = 0..;
+            let formulas = theory
+                .formulas
+                .into_iter()
+                .map(|formula| match head_predicate(&formula) {
+                    Some(p) if public_predicates.contains(&p) => fol::AnnotatedFormula {
+                        role: fol::Role::Spec,
+                        direction: fol::Direction::Universal,
+                        name: format!("completed_definition_of_{}_{}", p.symbol, p.arity),
+                        formula,
+                    },
+                    Some(p) => fol::AnnotatedFormula {
+                        role: fol::Role::Assumption,
+                        direction: fol::Direction::Universal,
+                        name: format!("completed_definition_of_{}_{}", p.symbol, p.arity),
+                        formula,
+                    },
+                    None => fol::AnnotatedFormula {
+                        role: fol::Role::Spec,
+                        direction: fol::Direction::Universal,
+                        name: format!("constraint_{}", constraint_counter.next().unwrap()),
+                        formula,
+                    },
+                })
+                .collect();
+            fol::Specification { formulas }
+        };
+
+        let left = match self.specification {
+            Either::Left(program) => control_translate(
+                completion(tau_star(program).replace_placeholders(&placeholders))
+                    .expect("tau_star did not create a completable theory"),
+            ),
+            Either::Right(specification) => specification.replace_placeholders(&placeholders),
+        }
+        .formulas;
+
+        let right = control_translate(
+            completion(tau_star(self.program).replace_placeholders(&placeholders))
+                .expect("tau_star did not create a completable theory"),
+        )
+        .formulas;
+
+        // TODO: user_guide_assumptions and proof_outline
+
+        Ok(ValidatedExternalEquivalenceTask {
+            left,
+            right,
+            user_guide_assumptions: todo!(),
+            proof_outline: todo!(),
+            decomposition: self.decomposition,
+            direction: self.direction,
+            break_equivalences: self.break_equivalences,
+        }
+        .decompose()?
+        .preface_warnings(warnings))
     }
 }
 
 struct ValidatedExternalEquivalenceTask {
-    pub left: Vec<fol::AnnotatedFormula>,
+    pub left: Vec<fol::AnnotatedFormula>, // TODO: Use fol::Specification?
     pub right: Vec<fol::AnnotatedFormula>,
     pub user_guide_assumptions: Vec<fol::AnnotatedFormula>,
     pub proof_outline: ProofOutline,
