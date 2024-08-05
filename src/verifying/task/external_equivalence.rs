@@ -291,7 +291,8 @@ impl Display for ExternalEquivalenceTaskWarning {
 pub enum ExternalEquivalenceTaskError {
     InputOutputPredicatesOverlap(Vec<fol::Predicate>),
     InputPredicateInRuleHead(Vec<fol::Predicate>),
-    OutputPredicateInAssumption(Vec<fol::Predicate>),
+    OutputPredicateInUserGuideAssumption(Vec<fol::Predicate>),
+    OutputPredicateInSpecificationAssumption(Vec<fol::Predicate>),
 }
 
 impl Display for ExternalEquivalenceTaskError {
@@ -326,10 +327,26 @@ impl Display for ExternalEquivalenceTaskError {
 
                 writeln!(f)
             }
-            ExternalEquivalenceTaskError::OutputPredicateInAssumption(predicates) => {
+            ExternalEquivalenceTaskError::OutputPredicateInUserGuideAssumption(predicates) => {
                 write!(
                     f,
                     "the following output predicates occur in user guide assumptions: "
+                )?;
+
+                let mut iter = predicates.iter().peekable();
+                for predicate in predicates {
+                    write!(f, "{predicate}")?;
+                    if iter.peek().is_some() {
+                        write!(f, ", ")?;
+                    }
+                }
+
+                writeln!(f)
+            }
+            ExternalEquivalenceTaskError::OutputPredicateInSpecificationAssumption(predicates) => {
+                write!(
+                    f,
+                    "the following output predicates occur in specification assumptions: "
                 )?;
 
                 let mut iter = predicates.iter().peekable();
@@ -403,6 +420,34 @@ impl ExternalEquivalenceTask {
             ))
         }
     }
+
+    fn ensure_specification_assumptions_do_not_contain_output_predicates(
+        &self,
+    ) -> Result<(), ExternalEquivalenceTaskWarning, ExternalEquivalenceTaskError> {
+        if let Either::Right(ref specification) = self.specification {
+            let output_predicates = self.user_guide.output_predicates();
+
+            for formula in &specification.formulas {
+                if matches!(formula.role, fol::Role::Assumption) {
+                    let overlap: Vec<_> = formula
+                        .predicates()
+                        .into_iter()
+                        .filter(|p| output_predicates.contains(p))
+                        .collect();
+
+                    if !overlap.is_empty() {
+                        return Err(
+                            ExternalEquivalenceTaskError::OutputPredicateInSpecificationAssumption(
+                                overlap,
+                            ),
+                        );
+                    }
+                }
+            }
+        }
+
+        Ok(WithWarnings::flawless(()))
+    }
 }
 
 impl Task for ExternalEquivalenceTask {
@@ -412,8 +457,7 @@ impl Task for ExternalEquivalenceTask {
     fn decompose(self) -> Result<Vec<Problem>, Self::Warning, Self::Error> {
         self.ensure_input_and_output_predicates_are_disjoint()?;
         self.ensure_program_heads_do_not_contain_input_predicates()?;
-        // TODO: Check specification assumptions for output predicates
-        // TODO: Ensure program heads do not contain input predicates
+        self.ensure_specification_assumptions_do_not_contain_output_predicates()?;
         // TODO: Add more error handing
 
         let mut warnings = Vec::new();
@@ -529,9 +573,11 @@ impl Task for ExternalEquivalenceTask {
                     if overlap.is_empty() {
                         user_guide_assumptions.push(formula.replace_placeholders(&placeholders));
                     } else {
-                        return Err(ExternalEquivalenceTaskError::OutputPredicateInAssumption(
-                            overlap,
-                        ));
+                        return Err(
+                            ExternalEquivalenceTaskError::OutputPredicateInUserGuideAssumption(
+                                overlap,
+                            ),
+                        );
                     }
                 }
                 _ => warnings.push(ExternalEquivalenceTaskWarning::InvalidRoleWithinUserGuide(
