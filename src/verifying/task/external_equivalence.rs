@@ -293,6 +293,7 @@ pub enum ExternalEquivalenceTaskError {
     InputPredicateInRuleHead(Vec<fol::Predicate>),
     OutputPredicateInUserGuideAssumption(Vec<fol::Predicate>),
     OutputPredicateInSpecificationAssumption(Vec<fol::Predicate>),
+    ProofOutlineError(#[from] ProofOutlineError),
 }
 
 impl Display for ExternalEquivalenceTaskError {
@@ -358,6 +359,9 @@ impl Display for ExternalEquivalenceTaskError {
                 }
 
                 writeln!(f)
+            }
+            ExternalEquivalenceTaskError::ProofOutlineError(_) => {
+                writeln!(f, "the given proof outline contains errors")
             }
         }
     }
@@ -600,7 +604,7 @@ impl Task for ExternalEquivalenceTask {
             left,
             right,
             user_guide_assumptions,
-            proof_outline: todo!(),
+            proof_outline: ProofOutline::from_specification(self.proof_outline)?,
             decomposition: self.decomposition,
             direction: self.direction,
             break_equivalences: self.break_equivalences,
