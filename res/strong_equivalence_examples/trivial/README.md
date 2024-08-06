@@ -7,7 +7,7 @@ anthem verify --equivalence=strong --out-dir out trivial.1.lp trivial.2.lp
 ```
 
 ## Origin
-This examples was taken from
+This example was taken from
 
 > Vladimir Lifschitz, Patrick Lühne, Torsten Schaub:
 > Verifying Strong Equivalence of Programs in the Input Language of gringo. LPNMR 2019: 270-283.

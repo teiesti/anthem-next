@@ -7,7 +7,7 @@ anthem verify --equivalence=strong --out-dir out successor.1.lp successor.2.lp
 ```
 
 ## Origin
-This examples was taken from
+This example was taken from
 
 > Jorge Fandinno, Vladimir Lifschitz:
 > On Heuer's Procedure for Verifying Strong Equivalence. JELIA 2023: 253-261.
