@@ -7,7 +7,7 @@ anthem verify --equivalence=strong --out-dir out transitive.1.lp transitive.2.lp
 ```
 
 ## Origin
-This examples was taken from
+This example was taken from
 
 > Amelia Harrison, Vladimir Lifschitz, David Pearce, Agustín Valverde:
 > Infinitary equilibrium logic and strongly equivalent logic programs. Artif. Intell. 246: 22-33 (2017)
