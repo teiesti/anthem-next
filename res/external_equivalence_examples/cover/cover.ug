@@ -1,0 +1,6 @@
+input: n$i.
+input: s/2.
+
+output: in_cover/1.
+
+assumption: n$i >= 0.

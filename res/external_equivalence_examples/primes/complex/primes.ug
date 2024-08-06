@@ -1,0 +1,6 @@
+input: a$i.
+input: b$i.
+
+assumption: a$i > 1.
+
+output: prime/1.
