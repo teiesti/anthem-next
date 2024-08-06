@@ -160,18 +160,6 @@ impl RenamePredicates for fol::AnnotatedFormula {
     }
 }
 
-impl RenamePredicates for fol::Theory {
-    fn rename_predicates(self, mapping: &IndexMap<fol::Predicate, String>) -> Self {
-        fol::Theory {
-            formulas: self
-                .formulas
-                .into_iter()
-                .map(|f| f.rename_predicates(mapping))
-                .collect(),
-        }
-    }
-}
-
 impl RenamePredicates for fol::Formula {
     fn rename_predicates(self, mapping: &IndexMap<fol::Predicate, String>) -> Self {
         self.apply(&mut |formula| match formula {
@@ -236,7 +224,7 @@ impl TryFrom<fol::AnnotatedFormula> for GeneralLemma {
 }
 
 #[derive(Error, Debug)]
-enum ProofOutlineError {
+pub enum ProofOutlineError {
     #[error("the following annotated formula has a role that is forbidden in proof outlines: {0}")]
     AnnotatedFormulaWithInvalidRole(fol::AnnotatedFormula),
 }
@@ -482,11 +470,11 @@ impl Task for ExternalEquivalenceTask {
 
         match self.specification {
             Either::Left(ref program) => {
-                self.ensure_rule_heads_do_not_contain_input_predicates(&program)?;
+                self.ensure_rule_heads_do_not_contain_input_predicates(program)?;
             }
             Either::Right(ref specification) => {
                 self.ensure_specification_assumptions_do_not_contain_output_predicates(
-                    &specification,
+                    specification,
                 )?;
             }
         }
@@ -547,7 +535,7 @@ impl Task for ExternalEquivalenceTask {
                             variables: _,
                         },
                     formula,
-                } => head_predicate(&formula),
+                } => head_predicate(formula),
                 _ => None,
             }
         }
@@ -689,7 +677,10 @@ impl Task for ValidatedExternalEquivalenceTask {
                         forward_premises.push(formula.clone().into_problem_formula(Axiom))
                     }
                     if matches!(formula.direction, Universal | Backward) {
-                        // TODO: Apply symmetry breaking
+                        if self.break_equivalences {
+                            // TODO: Apply symmetry breaking
+                            todo!("Symmetry breaking is not yet implemented")
+                        }
                         backward_conclusions.push(formula.into_problem_formula(Conjecture))
                     }
                 }
@@ -711,7 +702,10 @@ impl Task for ValidatedExternalEquivalenceTask {
                         backward_premises.push(formula.clone().into_problem_formula(Axiom))
                     }
                     if matches!(formula.direction, Universal | Forward) {
-                        // TODO: Apply symmetry breaking
+                        if self.break_equivalences {
+                            // TODO: Apply symmetry breaking
+                            todo!("Symmetry breaking is not yet implemented")
+                        }
                         forward_conclusions.push(formula.into_problem_formula(Conjecture))
                     }
                 }
