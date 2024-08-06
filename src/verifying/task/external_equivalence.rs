@@ -141,6 +141,25 @@ trait RenamePredicates {
     fn rename_predicates(self, mapping: &IndexMap<fol::Predicate, String>) -> Self;
 }
 
+impl RenamePredicates for fol::Specification {
+    fn rename_predicates(self, mapping: &IndexMap<fol::Predicate, String>) -> Self {
+        fol::Specification {
+            formulas: self
+                .formulas
+                .into_iter()
+                .map(|f| f.rename_predicates(mapping))
+                .collect(),
+        }
+    }
+}
+
+impl RenamePredicates for fol::AnnotatedFormula {
+    fn rename_predicates(mut self, mapping: &IndexMap<fol::Predicate, String>) -> Self {
+        self.formula = self.formula.rename_predicates(mapping);
+        self
+    }
+}
+
 impl RenamePredicates for fol::Theory {
     fn rename_predicates(self, mapping: &IndexMap<fol::Predicate, String>) -> Self {
         fol::Theory {
@@ -472,6 +491,8 @@ impl Task for ExternalEquivalenceTask {
             }
         }
 
+        // TODO: Ensure assumption in user guides and first-order specification only contain input symbols
+        // TODO: Ensure placeholder name uniqueness?
         // TODO: Add more error handing
 
         let mut warnings = Vec::new();
@@ -485,7 +506,7 @@ impl Task for ExternalEquivalenceTask {
 
         let public_predicates = self.user_guide.public_predicates();
 
-        let specification_private_predicates: Vec<_> = match self.specification {
+        let specification_private_predicates: IndexSet<_> = match self.specification {
             Either::Left(ref program) => program
                 .predicates()
                 .into_iter()
@@ -499,7 +520,7 @@ impl Task for ExternalEquivalenceTask {
                 .collect(),
         };
 
-        let program_private_predicates: Vec<_> = self
+        let program_private_predicates: IndexSet<_> = self
             .program
             .predicates()
             .into_iter()
@@ -566,14 +587,21 @@ impl Task for ExternalEquivalenceTask {
                     .expect("tau_star did not create a completable theory"),
             ),
             Either::Right(specification) => specification.replace_placeholders(&placeholders),
-        }
-        .formulas;
+        };
 
         let right = control_translate(
             completion(tau_star(self.program).replace_placeholders(&placeholders))
                 .expect("tau_star did not create a completable theory"),
-        )
-        .formulas;
+        );
+
+        // TODO: Warn when a conflict between private predicates is encountered
+        // TODO: Check if renaming creates new conflicts
+        let right = right.rename_predicates(
+            &specification_private_predicates
+                .intersection(&program_private_predicates)
+                .map(|p| (p.clone(), "p".to_string()))
+                .collect(),
+        );
 
         let mut user_guide_assumptions = Vec::new();
         for formula in self.user_guide.formulas() {
@@ -601,8 +629,8 @@ impl Task for ExternalEquivalenceTask {
         }
 
         Ok(ValidatedExternalEquivalenceTask {
-            left,
-            right,
+            left: left.formulas,
+            right: right.formulas,
             user_guide_assumptions,
             proof_outline: ProofOutline::from_specification(self.proof_outline)?,
             decomposition: self.decomposition,
