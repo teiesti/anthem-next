@@ -499,12 +499,12 @@ impl Task for ExternalEquivalenceTask {
                 .predicates()
                 .into_iter()
                 .map(fol::Predicate::from)
-                .filter(|p| public_predicates.contains(p))
+                .filter(|p| !public_predicates.contains(p))
                 .collect(),
             Either::Right(ref specification) => specification
                 .predicates()
                 .into_iter()
-                .filter(|p| public_predicates.contains(p))
+                .filter(|p| !public_predicates.contains(p))
                 .collect(),
         };
 
@@ -513,7 +513,7 @@ impl Task for ExternalEquivalenceTask {
             .predicates()
             .into_iter()
             .map(fol::Predicate::from)
-            .filter(|p| public_predicates.contains(p))
+            .filter(|p| !public_predicates.contains(p))
             .collect();
 
         fn head_predicate(formula: &fol::Formula) -> Option<fol::Predicate> {
