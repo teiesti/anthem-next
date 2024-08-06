@@ -85,7 +85,7 @@ impl Problem {
         mut self,
         annotated_formulas: impl IntoIterator<Item = AnnotatedFormula>,
     ) -> Self {
-        self.formulas.extend(annotated_formulas.into_iter());
+        self.formulas.extend(annotated_formulas);
         self
     }
 
