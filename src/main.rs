@@ -111,7 +111,7 @@ fn main() -> Result<()> {
                     let proof_outline = match aux.get(1) {
                         Some(path) => match path.extension().map(OsStr::to_str) {
                             Some(Some("spec")) => {
-                                fol::Specification::from_file(aux.first().unwrap())?
+                                fol::Specification::from_file(aux.get(1).unwrap())?
                             }
                             Some(Some(_x)) => todo!(),
                             Some(None) => todo!(),
