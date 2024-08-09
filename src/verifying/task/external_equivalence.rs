@@ -981,7 +981,6 @@ mod tests {
     use {
         super::{CheckInternal, ProofOutlineError},
         crate::syntax_tree::fol,
-        frame_support::assert_err,
         indexmap::IndexSet,
     };
 
@@ -1056,7 +1055,7 @@ mod tests {
                     arity: 1,
                 }]);
             let formula: fol::Formula = src.parse().unwrap();
-            assert_err!(formula.definition(&taken_predicates), target)
+            assert_eq!(formula.definition(&taken_predicates), Err(target))
         }
     }
 }
