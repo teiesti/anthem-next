@@ -4,8 +4,8 @@ use {
         command_line::arguments::Decomposition,
         convenience::{
             apply::Apply as _,
-            with_warnings::{Result, WithWarnings},
             unbox::{fol::UnboxedFormula, Unbox as _},
+            with_warnings::{Result, WithWarnings},
         },
         syntax_tree::{asp, fol},
         translating::{completion::completion, tau_star::tau_star},
@@ -360,7 +360,7 @@ impl ProofOutline {
                             backward_definitions.push(f);
                         }
                     }
-                },
+                }
                 fol::Role::Assumption | fol::Role::Spec => {
                     return Err(ProofOutlineError::AnnotatedFormulaWithInvalidRole(anf))
                 }
@@ -900,7 +900,12 @@ impl Task for AssembledExternalEquivalenceTask {
         ) {
             let mut axioms = self.stable_premises.clone();
             axioms.extend(self.forward_premises.clone());
-            axioms.extend(self.proof_outline.forward_definitions.into_iter().map(|f| f.into_problem_formula(problem::Role::Axiom)));
+            axioms.extend(
+                self.proof_outline
+                    .forward_definitions
+                    .into_iter()
+                    .map(|f| f.into_problem_formula(problem::Role::Axiom)),
+            );
 
             for (i, lemma) in self.proof_outline.forward_lemmas.iter().enumerate() {
                 for (j, conjecture) in lemma.conjectures.iter().enumerate() {
@@ -934,7 +939,12 @@ impl Task for AssembledExternalEquivalenceTask {
         ) {
             let mut axioms = self.stable_premises.clone();
             axioms.extend(self.backward_premises.clone());
-            axioms.extend(self.proof_outline.backward_definitions.into_iter().map(|f| f.into_problem_formula(problem::Role::Axiom)));
+            axioms.extend(
+                self.proof_outline
+                    .backward_definitions
+                    .into_iter()
+                    .map(|f| f.into_problem_formula(problem::Role::Axiom)),
+            );
 
             for (i, lemma) in self.proof_outline.backward_lemmas.iter().enumerate() {
                 for (j, conjecture) in lemma.conjectures.iter().enumerate() {
@@ -966,12 +976,11 @@ impl Task for AssembledExternalEquivalenceTask {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use {
-        super::{ProofOutlineError, CheckInternal},
-        crate::{syntax_tree::fol},
+        super::{CheckInternal, ProofOutlineError},
+        crate::syntax_tree::fol,
         frame_support::assert_err,
         indexmap::IndexSet,
     };
