@@ -21,7 +21,7 @@ use {
     clap::Parser as _,
     either::Either,
     std::ffi::OsStr,
-    verifying::proof::{vampire::Vampire, Prover},
+    verifying::proof::{vampire::Vampire, Prover, Report, Status, Success},
 };
 
 fn main() -> Result<()> {
@@ -144,9 +144,21 @@ fn main() -> Result<()> {
             }
 
             if !no_proof_search {
+                let mut success = true;
                 for problem in problems {
-                    let report = Vampire.prove(problem)?; // TODO: Handle the error case properly
+                    // TODO: Handle the error cases properly
+                    let report = Vampire.prove(problem)?;
+                    if !matches!(report.status()?, Status::Success(Success::Theorem)) {
+                        success = false;
+                    }
                     println!("{report}");
+                }
+
+                println!("--- Summary ---");
+                if success {
+                    println!("Success! Anthem found a proof of equivalence.");
+                } else {
+                    println!("Failure! Anthem was unable to find a proof of equivalence.");
                 }
             }
 
