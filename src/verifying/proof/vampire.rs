@@ -49,13 +49,31 @@ pub struct VampireReport {
 
 impl Report for VampireReport {
     fn status(&self) -> Result<Status, StatusExtractionError> {
-        todo!()
+        self.output.stdout.parse()
     }
 }
 
 impl Display for VampireReport {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        todo!()
+        writeln!(f, "--- {} ---", self.problem.name)?;
+        writeln!(f, "")?;
+
+        writeln!(f, "axioms:")?;
+        for axiom in self.problem.axioms() {
+            writeln!(f, "    {}", axiom.formula)?;
+        }
+        writeln!(f, "")?;
+
+        writeln!(f, "conjectures:")?;
+        for conjecture in self.problem.conjectures() {
+            writeln!(f, "    {}", conjecture.formula)?;
+        }
+        writeln!(f, "")?;
+
+        match self.status() {
+            Ok(status) => writeln!(f, "status: {status}"),
+            Err(error) => writeln!(f, "error: {error}"),
+        }
     }
 }
 
@@ -67,6 +85,7 @@ impl Prover for Vampire {
 
     fn prove(&self, problem: Problem) -> Result<Self::Report, Self::Error> {
         let mut child = Command::new("vampire")
+            .args(["--mode", "casc"])
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
