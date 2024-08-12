@@ -229,15 +229,16 @@ trait CheckInternal {
     fn definition(
         self,
         taken_predicates: &IndexSet<fol::Predicate>,
-    ) -> std::result::Result<fol::Predicate, ProofOutlineError>;
+    ) -> Result<fol::Predicate, ProofOutlineWarning, ProofOutlineError>;
 }
 
 impl CheckInternal for fol::Formula {
     fn definition(
         self,
         taken_predicates: &IndexSet<fol::Predicate>,
-    ) -> std::result::Result<fol::Predicate, ProofOutlineError> {
+    ) -> Result<fol::Predicate, ProofOutlineWarning, ProofOutlineError> {
         let original = self.clone();
+        let mut warnings = Vec::new();
         match self.unbox() {
             UnboxedFormula::QuantifiedFormula {
                 quantification:
@@ -271,7 +272,9 @@ impl CheckInternal for fol::Formula {
                             return Err(ProofOutlineError::FreeRhsVariables(original));
                         }
                         if uniques.difference(&rhs.free_variables()).count() > 0 {
-                            println!("Warning: The universally quantified list of vars contains members which do not occur in RHS.");
+                            warnings.push(ProofOutlineWarning::ExcessQuantifiedVariables(
+                                original.clone(),
+                            ));
                         }
 
                         // check RHS has no predicates other than taken predicates
@@ -285,7 +288,7 @@ impl CheckInternal for fol::Formula {
                             });
                         }
 
-                        Ok(predicate)
+                        Ok(WithWarnings::flawless(predicate).preface_warnings(warnings))
                     }
                     _ => Err(ProofOutlineError::MalformedDefinition(original)),
                 }
@@ -321,16 +324,32 @@ struct ProofOutline {
     pub backward_definitions: Vec<fol::AnnotatedFormula>,
 }
 
+#[derive(Error, Debug, Eq, PartialEq)]
+pub enum ProofOutlineWarning {
+    ExcessQuantifiedVariables(fol::Formula),
+}
+
+impl Display for ProofOutlineWarning {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ProofOutlineWarning::ExcessQuantifiedVariables(formula) => {
+                writeln!(f, "the universally quantified list of variables contains members which do not occur in the RHS of {formula}")
+            }
+        }
+    }
+}
+
 impl ProofOutline {
     fn from_specification(
         specification: fol::Specification,
         mut taken_predicates: IndexSet<fol::Predicate>,
-    ) -> std::result::Result<Self, ProofOutlineError> {
+    ) -> Result<Self, ProofOutlineWarning, ProofOutlineError> {
         let mut forward_lemmas = Vec::new();
         let mut backward_lemmas = Vec::new();
         let mut forward_definitions = Vec::new();
         let mut backward_definitions = Vec::new();
 
+        let mut warnings = Vec::new();
         for anf in specification.formulas {
             match anf.role {
                 fol::Role::Lemma => match anf.direction {
@@ -344,11 +363,11 @@ impl ProofOutline {
                 },
                 fol::Role::Definition => {
                     let predicate = anf.formula.clone().definition(&taken_predicates)?;
-                    taken_predicates.insert(predicate);
+                    taken_predicates.insert(predicate.data);
+                    warnings.extend(predicate.warnings);
                     match anf.direction {
                         fol::Direction::Forward => {
                             forward_definitions.push(anf.clone());
-                            //forward_definitions.push(AnnotatedFormula::from((anf.clone(), Role::Axiom)));
                         }
                         fol::Direction::Backward => {
                             backward_definitions.push(anf.clone());
@@ -366,12 +385,13 @@ impl ProofOutline {
             }
         }
 
-        Ok(ProofOutline {
+        Ok(WithWarnings::flawless(ProofOutline {
             forward_lemmas,
             backward_lemmas,
             forward_definitions,
             backward_definitions,
         })
+        .preface_warnings(warnings))
     }
 }
 
@@ -379,6 +399,7 @@ impl ProofOutline {
 pub enum ExternalEquivalenceTaskWarning {
     InconsistentDirectionAnnotation(fol::AnnotatedFormula),
     InvalidRoleWithinUserGuide(fol::AnnotatedFormula),
+    DefinitionWithWarning(#[from] ProofOutlineWarning),
 }
 
 impl Display for ExternalEquivalenceTaskWarning {
@@ -399,6 +420,7 @@ impl Display for ExternalEquivalenceTaskWarning {
             ExternalEquivalenceTaskWarning::InvalidRoleWithinUserGuide(formula) => writeln!(
                 f, "the following formula is ignored because user guides only permit assumptions: {formula}"
             ),
+            ExternalEquivalenceTaskWarning::DefinitionWithWarning(w) => writeln!(f, "{w}"),
         }
     }
 }
@@ -733,11 +755,20 @@ impl Task for ExternalEquivalenceTask {
             taken_predicates.extend(anf.formula.predicates());
         }
 
+        let proof_outline_construction =
+            ProofOutline::from_specification(self.proof_outline, taken_predicates)?;
+        warnings.extend(
+            proof_outline_construction
+                .warnings
+                .into_iter()
+                .map(ExternalEquivalenceTaskWarning::from),
+        );
+
         Ok(ValidatedExternalEquivalenceTask {
             left: left.formulas,
             right: right.formulas,
             user_guide_assumptions,
-            proof_outline: ProofOutline::from_specification(self.proof_outline, taken_predicates)?,
+            proof_outline: proof_outline_construction.data,
             decomposition: self.decomposition,
             direction: self.direction,
             break_equivalences: self.break_equivalences,
@@ -977,7 +1008,7 @@ mod tests {
                     arity: 1,
                 }]);
             let formula: fol::Formula = src.parse().unwrap();
-            assert_eq!(formula.definition(&taken_predicates).unwrap(), target)
+            assert_eq!(formula.definition(&taken_predicates).unwrap().data, target)
         }
     }
 
