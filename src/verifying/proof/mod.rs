@@ -13,7 +13,8 @@ pub mod vampire;
 
 lazy_static! {
     static ref STATUS: Regex =
-        Regex::new(r"(?m)^% SZS status (?<status>[[:word:]]+) for (?<problem>[[:word:]]*)$").unwrap();
+        Regex::new(r"(?m)^% SZS status (?<status>[[:word:]]+) for (?<problem>[[:word:]]*)$")
+            .unwrap();
 }
 
 #[derive(Debug, Error)]
@@ -48,15 +49,19 @@ pub enum Status {
 
 impl Display for Status {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", match self {
-            Status::Success(Success::Theorem) => "Theorem",
-            Status::Success(Success::CounterSatisfiable) => "CounterSatisfiable",
-            Status::Success(Success::ContradictoryAxioms) => "ContradictoryAxioms",
-            Status::Failure(Failure::TimeOut) => "Timeout",
-            Status::Failure(Failure::MemoryOut) => "MemoryOut",
-            Status::Failure(Failure::GaveUp) => "GaveUp",
-            Status::Failure(Failure::Error) => "Error",
-        })
+        write!(
+            f,
+            "{}",
+            match self {
+                Status::Success(Success::Theorem) => "Theorem",
+                Status::Success(Success::CounterSatisfiable) => "CounterSatisfiable",
+                Status::Success(Success::ContradictoryAxioms) => "ContradictoryAxioms",
+                Status::Failure(Failure::TimeOut) => "Timeout",
+                Status::Failure(Failure::MemoryOut) => "MemoryOut",
+                Status::Failure(Failure::GaveUp) => "GaveUp",
+                Status::Failure(Failure::Error) => "Error",
+            }
+        )
     }
 }
 
