@@ -71,7 +71,7 @@ impl FromStr for Status {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let (_line, [status, _problem]) = STATUS
             .captures(s)
-            .ok_or_else(|| StatusExtractionError::Missing)?
+            .ok_or(StatusExtractionError::Missing)?
             .extract();
 
         match status {
