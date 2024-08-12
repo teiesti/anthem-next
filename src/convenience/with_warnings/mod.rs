@@ -1,5 +1,6 @@
 use std::fmt::Display;
 
+#[derive(Debug, Eq, PartialEq)]
 pub struct WithWarnings<D, W> {
     pub data: D,
     pub warnings: Vec<W>,
