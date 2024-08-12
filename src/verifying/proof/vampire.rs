@@ -19,12 +19,32 @@ pub enum VampireError {
     UnableToWrite(#[source] std::io::Error),
     #[error("unable to wait for vampire")]
     UnableToWait(#[source] std::io::Error),
+    #[error("unable to convert output")]
+    UnableToConvertOutput(#[source] std::string::FromUtf8Error),
+}
+
+#[derive(Debug, Clone)]
+pub struct VampireOutput {
+    pub stdout: String,
+    pub stderr: String,
+}
+
+impl TryFrom<Output> for VampireOutput {
+    type Error = VampireError;
+
+    fn try_from(value: Output) -> Result<Self, Self::Error> {
+        // TODO: Should we do something about the exit status?!
+        Ok(VampireOutput {
+            stdout: String::from_utf8(value.stdout).map_err(VampireError::UnableToConvertOutput)?,
+            stderr: String::from_utf8(value.stderr).map_err(VampireError::UnableToConvertOutput)?,
+        })
+    }
 }
 
 #[derive(Debug, Clone)]
 pub struct VampireReport {
     pub problem: Problem,
-    pub output: Output,
+    pub output: VampireOutput,
 }
 
 impl Report for VampireReport {
@@ -59,7 +79,8 @@ impl Prover for Vampire {
 
         let output = child
             .wait_with_output()
-            .map_err(VampireError::UnableToWait)?;
+            .map_err(VampireError::UnableToWait)?
+            .try_into()?;
 
         Ok(VampireReport { problem, output })
     }
