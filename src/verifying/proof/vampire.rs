@@ -1,7 +1,7 @@
 use {
     crate::verifying::{
         problem::Problem,
-        proof::{Prover, Report},
+        proof::{Prover, Report, Status, StatusExtractionError},
     },
     std::{
         fmt::{self, Display},
@@ -27,7 +27,11 @@ pub struct VampireReport {
     pub output: Output,
 }
 
-impl Report for VampireReport {}
+impl Report for VampireReport {
+    fn status(&self) -> Result<Status, StatusExtractionError> {
+        todo!()
+    }
+}
 
 impl Display for VampireReport {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
