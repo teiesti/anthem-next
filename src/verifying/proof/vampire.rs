@@ -56,19 +56,19 @@ impl Report for VampireReport {
 impl Display for VampireReport {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "--- {} ---", self.problem.name)?;
-        writeln!(f, "")?;
+        writeln!(f)?;
 
         writeln!(f, "axioms:")?;
         for axiom in self.problem.axioms() {
             writeln!(f, "    {}", axiom.formula)?;
         }
-        writeln!(f, "")?;
+        writeln!(f)?;
 
         writeln!(f, "conjectures:")?;
         for conjecture in self.problem.conjectures() {
             writeln!(f, "    {}", conjecture.formula)?;
         }
-        writeln!(f, "")?;
+        writeln!(f)?;
 
         match self.status() {
             Ok(status) => writeln!(f, "status: {status}"),
