@@ -56,7 +56,7 @@ pub fn main() -> Result<()> {
             no_simplify,
             no_eq_break,
             no_proof_search,
-            out_dir,
+            save_problems: out_dir,
             files,
         } => {
             let files =
