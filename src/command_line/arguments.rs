@@ -50,7 +50,7 @@ pub enum Command {
 
         /// The destination directory for the problem files
         #[arg(long)]
-        out_dir: Option<PathBuf>,
+        save_problems: Option<PathBuf>,
 
         /// A set of files from which to construct the claim, including
         ///
