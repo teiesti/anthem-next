@@ -1,6 +1,6 @@
 use {
     crate::{
-        command_line::Decomposition,
+        command_line::arguments::Decomposition,
         convenience::with_warnings::{Result, WithWarnings},
         syntax_tree::{asp, fol},
         translating::{
