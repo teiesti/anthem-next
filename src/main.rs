@@ -21,6 +21,7 @@ use {
     clap::Parser as _,
     either::Either,
     std::ffi::OsStr,
+    verifying::proof::{vampire::Vampire, Prover, Report, Status, Success},
 };
 
 fn main() -> Result<()> {
@@ -56,12 +57,11 @@ fn main() -> Result<()> {
             direction,
             no_simplify,
             no_eq_break,
-            // no_proof_search,
+            no_proof_search,
             out_dir,
             left,
             right,
             aux,
-            ..
         } => {
             let problems = match equivalence {
                 Equivalence::Strong => {
@@ -136,14 +136,31 @@ fn main() -> Result<()> {
             };
 
             if let Some(out_dir) = out_dir {
-                for problem in problems.into_iter() {
+                for problem in &problems {
                     let mut path = out_dir.clone();
                     path.push(format!("{}.p", problem.name));
                     problem.to_file(path)?;
                 }
             }
 
-            // TODO: Run proof search
+            if !no_proof_search {
+                let mut success = true;
+                for problem in problems {
+                    // TODO: Handle the error cases properly
+                    let report = Vampire.prove(problem)?;
+                    if !matches!(report.status()?, Status::Success(Success::Theorem)) {
+                        success = false;
+                    }
+                    println!("{report}");
+                }
+
+                println!("--- Summary ---");
+                if success {
+                    println!("Success! Anthem found a proof of equivalence.");
+                } else {
+                    println!("Failure! Anthem was unable to find a proof of equivalence.");
+                }
+            }
 
             Ok(())
         }
