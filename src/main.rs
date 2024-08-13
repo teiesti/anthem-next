@@ -29,20 +29,23 @@ fn main() -> Result<()> {
         Command::Translate { with, input } => {
             match with {
                 Translation::Completion => {
-                    let theory = fol::Theory::from_file(input)?;
+                    let theory =
+                        input.map_or_else(fol::Theory::from_stdin, fol::Theory::from_file)?;
                     let completed_theory =
                         completion(theory).context("the given theory is not completable")?;
                     print!("{completed_theory}")
                 }
 
                 Translation::Gamma => {
-                    let theory = fol::Theory::from_file(input)?;
+                    let theory =
+                        input.map_or_else(fol::Theory::from_stdin, fol::Theory::from_file)?;
                     let gamma_theory = gamma(theory);
                     print!("{gamma_theory}")
                 }
 
                 Translation::TauStar => {
-                    let program = asp::Program::from_file(input)?;
+                    let program =
+                        input.map_or_else(asp::Program::from_stdin, asp::Program::from_file)?;
                     let theory = tau_star(program);
                     print!("{theory}")
                 }

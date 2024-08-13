@@ -19,7 +19,7 @@ pub enum Command {
         with: Translation,
 
         /// The file to translate
-        input: PathBuf,
+        input: Option<PathBuf>,
     },
 
     /// Create and optionally verify a set of problem files from a claim about answer set programs or first-order theories
