@@ -17,10 +17,10 @@ use {
             strong_equivalence::StrongEquivalenceTask, Task,
         },
     },
-    anyhow::{Context, Result},
+    anyhow::{anyhow, Context, Result},
     clap::Parser as _,
+    command_line::Files,
     either::Either,
-    std::ffi::OsStr,
     verifying::proof::{vampire::Vampire, Prover, Report, Status, Success},
 };
 
@@ -62,80 +62,59 @@ fn main() -> Result<()> {
             no_eq_break,
             no_proof_search,
             out_dir,
-            left,
-            right,
-            aux,
+            files,
         } => {
+            let files =
+                Files::sort(files).context("unable to sort the given files by their function")?;
+
             let problems = match equivalence {
-                Equivalence::Strong => {
-                    StrongEquivalenceTask {
-                        left: asp::Program::from_file(left)?,
-                        right: asp::Program::from_file(right)?,
-                        decomposition,
-                        direction,
-                        simplify: !no_simplify,
-                        break_equivalences: !no_eq_break,
-                    }
-                    .decompose()?
-                    .data // TODO: Add some kind of unwrap to WithWarnings and use it here
+                Equivalence::Strong => StrongEquivalenceTask {
+                    left: asp::Program::from_file(
+                        files
+                            .left()
+                            .ok_or(anyhow!("no left program was provided"))?,
+                    )?,
+                    right: asp::Program::from_file(
+                        files
+                            .right()
+                            .ok_or(anyhow!("no right program was provided"))?,
+                    )?,
+                    decomposition,
+                    direction,
+                    simplify: !no_simplify,
+                    break_equivalences: !no_eq_break,
                 }
-
-                Equivalence::External => {
-                    let specification: Either<asp::Program, fol::Specification> = match left
-                        .extension()
-                        .map(OsStr::to_str)
+                .decompose()?
+                .report_warnings(),
+                Equivalence::External => ExternalEquivalenceTask {
+                    specification: match files
+                        .specification()
+                        .ok_or(anyhow!("no specification was provided"))?
                     {
-                        Some(Some("lp")) => Either::Left(asp::Program::from_file(left)?),
-                        Some(Some("spec")) => Either::Right(fol::Specification::from_file(left)?),
-                        Some(Some(_x)) => todo!(),
-                        Some(None) => todo!(),
-                        None => todo!(),
-                    };
-
-                    let program: asp::Program = match right.extension().map(|x| x.to_str()) {
-                        Some(Some("lp")) => asp::Program::from_file(right)?,
-                        Some(Some(_x)) => todo!(),
-                        Some(None) => todo!(),
-                        None => todo!(),
-                    };
-
-                    let user_guide: fol::UserGuide = match aux
-                        .first()
-                        .with_context(|| "no user guide was provided")?
-                        .extension()
-                        .map(OsStr::to_str)
-                    {
-                        Some(Some("ug")) => fol::UserGuide::from_file(aux.first().unwrap())?,
-                        Some(Some(_x)) => todo!(),
-                        Some(None) => todo!(),
-                        None => todo!(),
-                    };
-
-                    let proof_outline = match aux.get(1) {
-                        Some(path) => match path.extension().map(OsStr::to_str) {
-                            Some(Some("spec")) => {
-                                fol::Specification::from_file(aux.get(1).unwrap())?
-                            }
-                            Some(Some(_x)) => todo!(),
-                            Some(None) => todo!(),
-                            None => todo!(),
-                        },
-                        None => fol::Specification::empty(),
-                    };
-
-                    ExternalEquivalenceTask {
-                        specification,
-                        user_guide,
-                        program,
-                        proof_outline,
-                        decomposition,
-                        direction,
-                        simplify: !no_simplify,
-                        break_equivalences: !no_eq_break,
-                    }
-                    .decompose()?
-                    .data // TODO: Handle warnings
+                        Either::Left(program) => Either::Left(asp::Program::from_file(program)?),
+                        Either::Right(specification) => {
+                            Either::Right(fol::Specification::from_file(specification)?)
+                        }
+                    },
+                    program: asp::Program::from_file(
+                        files.program().ok_or(anyhow!("no program was provided"))?,
+                    )?,
+                    user_guide: fol::UserGuide::from_file(
+                        files
+                            .user_guide()
+                            .ok_or(anyhow!("no user guide was provided"))?,
+                    )?,
+                    proof_outline: files
+                        .proof_outline()
+                        .map(fol::Specification::from_file)
+                        .unwrap_or_else(|| Ok(fol::Specification::empty()))?,
+                    decomposition,
+                    direction,
+                    simplify: !no_simplify,
+                    break_equivalences: !no_eq_break,
                 }
+                .decompose()?
+                .report_warnings(),
             };
 
             if let Some(out_dir) = out_dir {
