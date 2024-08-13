@@ -152,12 +152,18 @@ mod tests {
             ),
             ("p.", "p."),
             ("q :- not p.", "not p -> q."),
-            ("{q(X)} :- p(X).", "forall X (p(X) and not not q(X) -> q(X))."),
+            (
+                "{q(X)} :- p(X).",
+                "forall X (p(X) and not not q(X) -> q(X)).",
+            ),
             (":- p.", "p -> #false."),
             ("{p} :- q.", "q and not not p -> p."),
             ("{p}.", "#true and not not p -> p."),
             ("p. q.", "p. q."),
-            ("{ra(X,a)} :- ta(X). ra(b,a).", "forall X ( ta(X) and not not ra(X,a) -> ra(X,a) ). ra(b,a)."),
+            (
+                "{ra(X,a)} :- ta(X). ra(b,a).",
+                "forall X ( ta(X) and not not ra(X,a) -> ra(X,a) ). ra(b,a).",
+            ),
         ] {
             let left = shorthand(src.parse().unwrap());
             let right = target.parse().unwrap();
