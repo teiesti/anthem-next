@@ -1,6 +1,6 @@
 use {
     crate::{
-        command_line::Decomposition,
+        command_line::arguments::Decomposition,
         convenience::{
             apply::Apply as _,
             with_warnings::{Result, WithWarnings},
