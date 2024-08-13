@@ -1,5 +1,3 @@
-
-
 use {
     crate::{
         command_line::{
@@ -8,15 +6,17 @@ use {
         },
         syntax_tree::{asp, fol, Node as _},
         translating::{completion::completion, gamma::gamma, tau_star::tau_star},
-        verifying::{task::{
-            external_equivalence::ExternalEquivalenceTask,
-            strong_equivalence::StrongEquivalenceTask, Task,
-        },proof::{vampire::Vampire, Prover, Report, Status, Success}},
+        verifying::{
+            proof::{vampire::Vampire, Prover, Report, Status, Success},
+            task::{
+                external_equivalence::ExternalEquivalenceTask,
+                strong_equivalence::StrongEquivalenceTask, Task,
+            },
+        },
     },
     anyhow::{anyhow, Context, Result},
     clap::Parser as _,
     either::Either,
-
 };
 
 pub fn main() -> Result<()> {
