@@ -22,6 +22,14 @@ pub enum Command {
         input: PathBuf,
     },
 
+    Intuit {
+        /// The file to translate as a set of axioms
+        antecedent: PathBuf,
+
+        /// The file to translate as a set of conjectures
+        consequent: PathBuf,
+    },
+
     /// Create and optionally verify a set of problem files from a claim about answer set programs or first-order theories
     Verify {
         /// The equivalence theory used to proof the claim
@@ -68,6 +76,7 @@ pub enum Translation {
     Completion,
     Gamma,
     TauStar,
+    Shorthand,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]

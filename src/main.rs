@@ -21,7 +21,12 @@ use {
     clap::Parser as _,
     either::Either,
     std::ffi::OsStr,
-    verifying::proof::{vampire::Vampire, Prover, Report, Status, Success},
+    translating::shorthand::shorthand,
+    verifying::{
+        problem::IltpProblem,
+        proof::{vampire::Vampire, Prover, Report, Status, Success},
+        task::intuitionistic::IntuitionisticTask,
+    },
 };
 
 fn main() -> Result<()> {
@@ -44,6 +49,12 @@ fn main() -> Result<()> {
                 Translation::TauStar => {
                     let program = asp::Program::from_file(input)?;
                     let theory = tau_star(program);
+                    print!("{theory}")
+                }
+
+                Translation::Shorthand => {
+                    let program = asp::Program::from_file(input)?;
+                    let theory = shorthand(program);
                     print!("{theory}")
                 }
             }
@@ -160,6 +171,23 @@ fn main() -> Result<()> {
                 } else {
                     println!("Failure! Anthem was unable to find a proof of equivalence.");
                 }
+            }
+
+            Ok(())
+        }
+
+        Command::Intuit {
+            antecedent,
+            consequent,
+        } => {
+            let left = asp::Program::from_file(antecedent)?;
+            let right = asp::Program::from_file(consequent)?;
+            let problems = IntuitionisticTask { left, right }.decompose()?.data;
+            let iltp_problems: Vec<IltpProblem> =
+                problems.into_iter().map(IltpProblem::from).collect();
+
+            for p in iltp_problems {
+                println!("{p}");
             }
 
             Ok(())
