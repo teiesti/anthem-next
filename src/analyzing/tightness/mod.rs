@@ -40,9 +40,22 @@ mod tests {
 
     #[test]
     fn test_tightness() {
-        assert!(!Program::from_str("a :- b. b :- a.").unwrap().is_tight());
-        assert!(Program::from_str("a :- not b. b :- not a.")
-            .unwrap()
-            .is_tight());
+        for program in [
+            "a.",
+            "a :- not a.",
+            "a :- not b. b :- not a.",
+            "p(a) :- p.",
+            "p(X) :- not q(X). q(X) :- p(X).",
+        ] {
+            assert!(Program::from_str(program).unwrap().is_tight())
+        }
+
+        for program in [
+            "a :- a.",
+            "a :- b. b :- a.",
+            "p :- q, not r. p :- r. r :- p.",
+        ] {
+            assert!(!Program::from_str(program).unwrap().is_tight())
+        }
     }
 }
