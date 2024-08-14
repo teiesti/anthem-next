@@ -12,6 +12,16 @@ pub struct Arguments {
 
 #[derive(Debug, Subcommand)]
 pub enum Command {
+    /// Analyze a property of a given answer set program or first-order theory
+    Analyze {
+        /// the property to analyze
+        #[arg(long, value_enum)]
+        property: Property,
+
+        /// The file to analyze
+        input: Option<PathBuf>,
+    },
+
     /// Translate a given answer set program or first-order theory
     Translate {
         /// The translation to use
@@ -60,6 +70,11 @@ pub enum Command {
         #[arg(verbatim_doc_comment)]
         files: Vec<PathBuf>,
     },
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
+pub enum Property {
+    Tightness,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]

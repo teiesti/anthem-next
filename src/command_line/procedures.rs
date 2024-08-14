@@ -1,7 +1,8 @@
 use {
     crate::{
+        analysing::tightness::Tightness,
         command_line::{
-            arguments::{Arguments, Command, Equivalence, Translation},
+            arguments::{Arguments, Command, Equivalence, Property, Translation},
             files::Files,
         },
         syntax_tree::{asp, fol, Node as _},
@@ -21,6 +22,19 @@ use {
 
 pub fn main() -> Result<()> {
     match Arguments::parse().command {
+        Command::Analyze { property, input } => {
+            match property {
+                Property::Tightness => {
+                    let program =
+                        input.map_or_else(asp::Program::from_stdin, asp::Program::from_file)?;
+                    let is_tight = program.is_tight();
+                    println!("{is_tight}");
+                }
+            }
+
+            Ok(())
+        }
+
         Command::Translate { with, input } => {
             match with {
                 Translation::Completion => {
