@@ -21,8 +21,10 @@ itertools = "0.13"
 lazy_static = "1"
 pest = "2"
 pest_derive = "2"
+petgraph = "0.6"
 regex = "1"
 thiserror = "1"
+walkdir = "2"
 
 [dev-dependencies]
 assert_cmd = "2"

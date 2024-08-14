@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 #[derive(Debug, Eq, PartialEq)]
 pub struct WithWarnings<D, W> {
     pub data: D,
@@ -21,6 +23,15 @@ impl<D, W> WithWarnings<D, W> {
         warnings.append(&mut self.warnings);
         self.warnings = warnings;
         self
+    }
+}
+
+impl<D, W: Display> WithWarnings<D, W> {
+    pub fn report_warnings(self) -> D {
+        for warning in self.warnings {
+            println!("{warning}");
+        }
+        self.data
     }
 }
 

@@ -1,6 +1,7 @@
 use {
     crate::{
-        command_line::Decomposition,
+        analyzing::tightness::Tightness,
+        command_line::arguments::Decomposition,
         convenience::{
             apply::Apply as _,
             unbox::{fol::UnboxedFormula, Unbox as _},
@@ -397,6 +398,7 @@ impl ProofOutline {
 
 #[derive(Error, Debug)]
 pub enum ExternalEquivalenceTaskWarning {
+    NonTightProgram(asp::Program),
     InconsistentDirectionAnnotation(fol::AnnotatedFormula),
     InvalidRoleWithinUserGuide(fol::AnnotatedFormula),
     DefinitionWithWarning(#[from] ProofOutlineWarning),
@@ -405,6 +407,10 @@ pub enum ExternalEquivalenceTaskWarning {
 impl Display for ExternalEquivalenceTaskWarning {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            ExternalEquivalenceTaskWarning::NonTightProgram(program) => {
+                writeln!(f, "the following program is not tight: ")?;
+                writeln!(f, "{program}")
+            },
             ExternalEquivalenceTaskWarning::InconsistentDirectionAnnotation(formula) => {
                 let proof_direction = match formula.direction {
                     fol::Direction::Forward => fol::Direction::Backward,
@@ -427,6 +433,7 @@ impl Display for ExternalEquivalenceTaskWarning {
 
 #[derive(Error, Debug)]
 pub enum ExternalEquivalenceTaskError {
+    NonTightProgram(asp::Program),
     InputOutputPredicatesOverlap(Vec<fol::Predicate>),
     InputPredicateInRuleHead(Vec<fol::Predicate>),
     OutputPredicateInUserGuideAssumption(Vec<fol::Predicate>),
@@ -437,6 +444,10 @@ pub enum ExternalEquivalenceTaskError {
 impl Display for ExternalEquivalenceTaskError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            ExternalEquivalenceTaskError::NonTightProgram(program) => {
+                writeln!(f, "the following program is not tight: ")?;
+                writeln!(f, "{program}")
+            }
             ExternalEquivalenceTaskError::InputOutputPredicatesOverlap(predicates) => {
                 write!(
                     f,
@@ -513,11 +524,29 @@ pub struct ExternalEquivalenceTask {
     pub proof_outline: fol::Specification,
     pub decomposition: Decomposition,
     pub direction: fol::Direction,
+    pub bypass_tightness: bool,
     pub simplify: bool,
     pub break_equivalences: bool,
 }
 
 impl ExternalEquivalenceTask {
+    fn ensure_program_tightness(
+        &self,
+        program: &asp::Program,
+    ) -> Result<(), ExternalEquivalenceTaskWarning, ExternalEquivalenceTaskError> {
+        if program.is_tight() {
+            Ok(WithWarnings::flawless(()))
+        } else if self.bypass_tightness {
+            Ok(WithWarnings::flawless(()).add_warning(
+                ExternalEquivalenceTaskWarning::NonTightProgram(program.clone()),
+            ))
+        } else {
+            Err(ExternalEquivalenceTaskError::NonTightProgram(
+                program.clone(),
+            ))
+        }
+    }
+
     fn ensure_input_and_output_predicates_are_disjoint(
         &self,
     ) -> Result<(), ExternalEquivalenceTaskWarning, ExternalEquivalenceTaskError> {
@@ -596,11 +625,15 @@ impl Task for ExternalEquivalenceTask {
     type Warning = ExternalEquivalenceTaskWarning;
 
     fn decompose(self) -> Result<Vec<Problem>, Self::Warning, Self::Error> {
+        let mut warnings = Vec::new();
+
         self.ensure_input_and_output_predicates_are_disjoint()?;
+        warnings.extend(self.ensure_program_tightness(&self.program)?.warnings);
         self.ensure_rule_heads_do_not_contain_input_predicates(&self.program)?;
 
         match self.specification {
             Either::Left(ref program) => {
+                warnings.extend(self.ensure_program_tightness(program)?.warnings);
                 self.ensure_rule_heads_do_not_contain_input_predicates(program)?;
             }
             Either::Right(ref specification) => {
@@ -613,8 +646,6 @@ impl Task for ExternalEquivalenceTask {
         // TODO: Ensure assumption in user guides and first-order specification only contain input symbols
         // TODO: Ensure placeholder name uniqueness?
         // TODO: Add more error handing
-
-        let mut warnings = Vec::new();
 
         let placeholders = self
             .user_guide

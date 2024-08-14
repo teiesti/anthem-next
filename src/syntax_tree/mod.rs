@@ -2,9 +2,9 @@ use {
     anyhow::{Context as _, Result},
     std::{
         fmt::{Debug, Display},
-        fs::{read_to_string, File},
+        fs::{self, File},
         hash::Hash,
-        io::Write as _,
+        io::{self, stdin, Write as _},
         path::Path,
         str::FromStr,
     },
@@ -14,12 +14,22 @@ pub mod asp;
 pub mod fol;
 
 pub trait Node: Clone + Debug + Eq + PartialEq + FromStr + Display + Hash {
+    fn from_stdin() -> Result<Self>
+    where
+        <Self as FromStr>::Err: std::error::Error + Sync + Send + 'static,
+    {
+        io::read_to_string(stdin())
+            .with_context(|| "could not read from stdin")?
+            .parse()
+            .with_context(|| "could not parse content from stdin")
+    }
+
     fn from_file<P: AsRef<Path>>(path: P) -> Result<Self>
     where
         <Self as FromStr>::Err: std::error::Error + Sync + Send + 'static,
     {
         let path = path.as_ref();
-        read_to_string(path)
+        fs::read_to_string(path)
             .with_context(|| format!("could not read file `{}`", path.display()))?
             .parse()
             .with_context(|| format!("could not parse file `{}`", path.display()))

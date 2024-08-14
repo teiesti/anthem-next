@@ -1,6 +1,6 @@
 use {
     crate::{
-        command_line::Decomposition,
+        command_line::arguments::Decomposition,
         syntax_tree::fol::{Formula, FunctionConstant, Predicate, Sort, Theory},
     },
     anyhow::{Context as _, Result},
