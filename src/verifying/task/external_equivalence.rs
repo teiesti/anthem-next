@@ -228,19 +228,17 @@ impl TryFrom<fol::AnnotatedFormula> for GeneralLemma {
 trait CheckInternal {
     // Returns the predicate defined in the LHS of the formula if it is a valid definition, else returns an error
     fn definition(
-        self,
+        &self,
         taken_predicates: &IndexSet<fol::Predicate>,
     ) -> Result<fol::Predicate, ProofOutlineWarning, ProofOutlineError>;
 }
 
 impl CheckInternal for fol::Formula {
     fn definition(
-        self,
+        &self,
         taken_predicates: &IndexSet<fol::Predicate>,
     ) -> Result<fol::Predicate, ProofOutlineWarning, ProofOutlineError> {
-        let original = self.clone();
-        let mut warnings = Vec::new();
-        match self.unbox() {
+        match self.clone().unbox() {
             UnboxedFormula::QuantifiedFormula {
                 quantification:
                     fol::Quantification {
@@ -253,48 +251,50 @@ impl CheckInternal for fol::Formula {
                         lhs,
                         rhs,
                     },
-            } => {
-                match lhs.unbox() {
-                    UnboxedFormula::AtomicFormula(fol::AtomicFormula::Atom(a)) => {
-                        // check variables has no duplicates
-                        let uniques: IndexSet<fol::Variable> =
-                            IndexSet::from_iter(variables.clone());
-                        if uniques.len() < variables.len() {
-                            return Err(ProofOutlineError::DuplicatedVariables(original));
-                        }
+            } => match lhs.unbox() {
+                UnboxedFormula::AtomicFormula(fol::AtomicFormula::Atom(a)) => {
+                    let mut warnings = Vec::new();
 
-                        // check predicate is totally fresh
-                        let predicate = a.predicate();
-                        if taken_predicates.contains(&predicate) {
-                            return Err(ProofOutlineError::TakenPredicate(predicate));
-                        }
-                        // check RHS has no free variables other than those in uniques
-                        if rhs.free_variables().difference(&uniques).count() > 0 {
-                            return Err(ProofOutlineError::FreeRhsVariables(original));
-                        }
-                        if uniques.difference(&rhs.free_variables()).count() > 0 {
-                            warnings.push(ProofOutlineWarning::ExcessQuantifiedVariables(
-                                original.clone(),
-                            ));
-                        }
-
-                        // check RHS has no predicates other than taken predicates
-                        // this should ensure no recursion through definition sequence
-                        if let Some(predicate) =
-                            rhs.predicates().difference(taken_predicates).next()
-                        {
-                            return Err(ProofOutlineError::UndefinedRhsPredicate {
-                                definition: original,
-                                predicate: predicate.clone(),
-                            });
-                        }
-
-                        Ok(WithWarnings::flawless(predicate).preface_warnings(warnings))
+                    // check variables has no duplicates
+                    let len = variables.len();
+                    let uniques: IndexSet<fol::Variable> = IndexSet::from_iter(variables);
+                    if uniques.len() < len {
+                        return Err(ProofOutlineError::DuplicatedVariables(self.clone()));
                     }
-                    _ => Err(ProofOutlineError::MalformedDefinition(original)),
+
+                    // TODO: Check variables in quantifications are the same as the terms in the atom
+
+                    // check predicate is totally fresh
+                    let predicate = a.predicate();
+                    if taken_predicates.contains(&predicate) {
+                        return Err(ProofOutlineError::TakenPredicate(predicate));
+                    }
+
+                    // check RHS has no free variables other than those in uniques
+                    if rhs.free_variables().difference(&uniques).next().is_some() {
+                        return Err(ProofOutlineError::FreeRhsVariables(self.clone()));
+                    }
+
+                    // warn the user if the RHS is missing some variable from the quantification
+                    if uniques.difference(&rhs.free_variables()).next().is_some() {
+                        warnings.push(ProofOutlineWarning::ExcessQuantifiedVariables(self.clone()));
+                    }
+
+                    // check RHS has no predicates other than taken predicates
+                    // this should ensure no recursion through definition sequence
+                    if let Some(predicate) = rhs.predicates().difference(taken_predicates).next() {
+                        return Err(ProofOutlineError::UndefinedRhsPredicate {
+                            definition: self.clone(),
+                            predicate: predicate.clone(),
+                        });
+                    }
+
+                    Ok(WithWarnings::flawless(predicate).preface_warnings(warnings))
                 }
-            }
-            _ => Err(ProofOutlineError::MalformedDefinition(original)),
+                _ => Err(ProofOutlineError::MalformedDefinition(self.clone())),
+            },
+
+            _ => Err(ProofOutlineError::MalformedDefinition(self.clone())),
         }
     }
 }
@@ -303,18 +303,20 @@ impl CheckInternal for fol::Formula {
 pub enum ProofOutlineError {
     #[error("the following annotated formula has a role that is forbidden in proof outlines: {0}")]
     AnnotatedFormulaWithInvalidRole(fol::AnnotatedFormula),
-    #[error("the definition `{0}` contains duplicated variables in outermost quantification")]
+    #[error(
+        "the following definiton contains duplicated variables in outermost quantification: {0}"
+    )]
     DuplicatedVariables(fol::Formula),
-    #[error("predicate `{0}` is taken - definitions require fresh predicates")]
+    #[error("definitions require fresh predicates but the following predicate is taken: {0}")]
     TakenPredicate(fol::Predicate),
-    #[error("the definition `{0}` contains free variables in the RHS")]
+    #[error("the following definition contains free variables in the RHS: {0}")]
     FreeRhsVariables(fol::Formula),
-    #[error("undefined predicate - {predicate:?} occurs for the first time in the RHS of definition {definition:?}")]
+    #[error("undefined predicate -- `{predicate}` occurs for the first time in the RHS of definition `{definition}`")]
     UndefinedRhsPredicate {
         definition: fol::Formula,
         predicate: fol::Predicate,
     },
-    #[error("the definition `{0}` is malformed")]
+    #[error("the follwing definition is malformed: {0}")]
     MalformedDefinition(fol::Formula),
 }
 
@@ -345,12 +347,13 @@ impl ProofOutline {
         specification: fol::Specification,
         mut taken_predicates: IndexSet<fol::Predicate>,
     ) -> Result<Self, ProofOutlineWarning, ProofOutlineError> {
+        let mut warnings = Vec::new();
+
         let mut forward_lemmas = Vec::new();
         let mut backward_lemmas = Vec::new();
         let mut forward_definitions = Vec::new();
         let mut backward_definitions = Vec::new();
 
-        let mut warnings = Vec::new();
         for anf in specification.formulas {
             match anf.role {
                 fol::Role::Lemma => match anf.direction {
@@ -363,20 +366,19 @@ impl ProofOutline {
                     fol::Direction::Backward => backward_lemmas.push(anf.try_into().unwrap()),
                 },
                 fol::Role::Definition => {
-                    let predicate = anf.formula.clone().definition(&taken_predicates)?;
+                    let predicate = anf.formula.definition(&taken_predicates)?;
                     taken_predicates.insert(predicate.data);
                     warnings.extend(predicate.warnings);
                     match anf.direction {
                         fol::Direction::Forward => {
-                            forward_definitions.push(anf.clone());
+                            forward_definitions.push(anf);
                         }
                         fol::Direction::Backward => {
-                            backward_definitions.push(anf.clone());
+                            backward_definitions.push(anf);
                         }
                         fol::Direction::Universal => {
-                            let f = anf.clone();
-                            forward_definitions.push(f.clone());
-                            backward_definitions.push(f);
+                            forward_definitions.push(anf.clone());
+                            backward_definitions.push(anf);
                         }
                     }
                 }
@@ -779,10 +781,10 @@ impl Task for ExternalEquivalenceTask {
         }
 
         let mut taken_predicates = self.user_guide.input_predicates();
-        for anf in left.formulas.clone() {
+        for anf in left.formulas.iter() {
             taken_predicates.extend(anf.formula.predicates());
         }
-        for anf in right.formulas.clone() {
+        for anf in right.formulas.iter() {
             taken_predicates.extend(anf.formula.predicates());
         }
 
