@@ -67,7 +67,7 @@ impl Tightness for Program {
                     for predicate in private_body_predicates {
                         dependency_graph.update_edge(
                             mapping[&head_predicate],
-                            mapping[&predicate],
+                            mapping[predicate],
                             (),
                         );
                     }
