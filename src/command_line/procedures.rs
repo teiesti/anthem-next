@@ -67,6 +67,7 @@ pub fn main() -> Result<()> {
             equivalence,
             decomposition,
             direction,
+            bypass_tightness,
             no_simplify,
             no_eq_break,
             no_proof_search,
@@ -119,6 +120,7 @@ pub fn main() -> Result<()> {
                         .unwrap_or_else(|| Ok(fol::Specification::empty()))?,
                     decomposition,
                     direction,
+                    bypass_tightness,
                     simplify: !no_simplify,
                     break_equivalences: !no_eq_break,
                 }
