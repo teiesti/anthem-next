@@ -30,6 +30,19 @@ impl Tightness for Program {
             }
         }
 
-        is_cyclic_directed(&dependency_graph)
+        !is_cyclic_directed(&dependency_graph)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use {super::Tightness, crate::syntax_tree::asp::Program, std::str::FromStr};
+
+    #[test]
+    fn test_tightness() {
+        assert!(!Program::from_str("a :- b. b :- a.").unwrap().is_tight());
+        assert!(Program::from_str("a :- not b. b :- not a.")
+            .unwrap()
+            .is_tight());
     }
 }
