@@ -1,4 +1,4 @@
-pub mod analysing;
+pub mod analyzing;
 pub mod command_line;
 pub mod convenience;
 pub mod formatting;
