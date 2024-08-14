@@ -241,6 +241,16 @@ impl AtomicFormula {
         }
     }
 
+    fn positive_predicates(&self) -> IndexSet<Predicate> {
+        match &self {
+            AtomicFormula::Literal(Literal {
+                sign: Sign::NoSign,
+                atom,
+            }) => IndexSet::from([atom.predicate()]),
+            AtomicFormula::Literal(_) | AtomicFormula::Comparison(_) => IndexSet::new(),
+        }
+    }
+
     pub fn function_constants(&self) -> IndexSet<String> {
         match &self {
             AtomicFormula::Literal(l) => l.function_constants(),
@@ -312,6 +322,14 @@ impl Body {
         let mut predicates = IndexSet::new();
         for formula in self.formulas.iter() {
             predicates.extend(formula.predicates())
+        }
+        predicates
+    }
+
+    pub fn positive_predicates(&self) -> IndexSet<Predicate> {
+        let mut predicates = IndexSet::new();
+        for formula in self.formulas.iter() {
+            predicates.extend(formula.positive_predicates())
         }
         predicates
     }
