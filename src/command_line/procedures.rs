@@ -1,6 +1,6 @@
 use {
     crate::{
-        analysing::tightness::Tightness,
+        analyzing::tightness::Tightness,
         command_line::{
             arguments::{Arguments, Command, Equivalence, Property, Translation},
             files::Files,
