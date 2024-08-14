@@ -14,7 +14,7 @@ pub struct Arguments {
 pub enum Command {
     /// Analyze a property of a given answer set program or first-order theory
     Analyze {
-        /// the property to analyze
+        /// The property to analyze
         #[arg(long, value_enum)]
         property: Property,
 
