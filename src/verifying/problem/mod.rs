@@ -204,7 +204,11 @@ impl fmt::Display for Problem {
             //     .collect();
             let input: String =
                 Itertools::intersperse(repeat("general").take(predicate.arity), " * ").collect();
-            writeln!(f, "tff(predicate_{i}, type, {symbol}: ({input}) > $o).")?
+            if predicate.arity > 0 {
+                writeln!(f, "tff(predicate_{i}, type, {symbol}: ({input}) > $o).")?
+            } else {
+                writeln!(f, "tff(predicate_{i}, type, {symbol}: $o).")?
+            }
         }
 
         for (i, symbol) in self.symbols().into_iter().enumerate() {
