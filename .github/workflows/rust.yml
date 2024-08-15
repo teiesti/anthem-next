@@ -44,7 +44,7 @@ jobs:
         with:
           command: test
 
-      - name: Check the package
+      - name: Check the package for poor code style
         uses: actions-rs/cargo@v1
         with:
           command: fmt
