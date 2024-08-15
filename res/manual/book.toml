@@ -1,0 +1,6 @@
+[book]
+authors = ["Tobias Stolzmann"]
+language = "en"
+multilingual = false
+src = "src"
+title = "The Anthem Manual"
