@@ -1,6 +1,6 @@
 use {
     crate::{
-        analyzing::tightness::Tightness,
+        analyzing::{private_recursion::PrivateRecursion, tightness::Tightness},
         command_line::arguments::Decomposition,
         convenience::{
             apply::Apply as _,
@@ -437,6 +437,7 @@ impl Display for ExternalEquivalenceTaskWarning {
 #[derive(Error, Debug)]
 pub enum ExternalEquivalenceTaskError {
     NonTightProgram(asp::Program),
+    ProgramContainsPrivateRecursion(asp::Program),
     InputOutputPredicatesOverlap(Vec<fol::Predicate>),
     InputPredicateInRuleHead(Vec<fol::Predicate>),
     OutputPredicateInUserGuideAssumption(Vec<fol::Predicate>),
@@ -449,6 +450,10 @@ impl Display for ExternalEquivalenceTaskError {
         match self {
             ExternalEquivalenceTaskError::NonTightProgram(program) => {
                 writeln!(f, "the following program is not tight: ")?;
+                writeln!(f, "{program}")
+            }
+            ExternalEquivalenceTaskError::ProgramContainsPrivateRecursion(program) => {
+                writeln!(f, "the following program contains private recursion: ")?;
                 writeln!(f, "{program}")
             }
             ExternalEquivalenceTaskError::InputOutputPredicatesOverlap(predicates) => {
@@ -550,6 +555,24 @@ impl ExternalEquivalenceTask {
         }
     }
 
+    fn ensure_absence_of_private_recursion(
+        &self,
+        program: &asp::Program,
+        private_predicates: &IndexSet<fol::Predicate>,
+    ) -> Result<(), ExternalEquivalenceTaskWarning, ExternalEquivalenceTaskError> {
+        let private_predicates = private_predicates
+            .into_iter()
+            .cloned()
+            .map(asp::Predicate::from)
+            .collect();
+
+        if program.has_private_recursion(&private_predicates) {
+            Err(ExternalEquivalenceTaskError::ProgramContainsPrivateRecursion(program.clone()))
+        } else {
+            Ok(WithWarnings::flawless(()))
+        }
+    }
+
     fn ensure_input_and_output_predicates_are_disjoint(
         &self,
     ) -> Result<(), ExternalEquivalenceTaskWarning, ExternalEquivalenceTaskError> {
@@ -628,28 +651,6 @@ impl Task for ExternalEquivalenceTask {
     type Warning = ExternalEquivalenceTaskWarning;
 
     fn decompose(self) -> Result<Vec<Problem>, Self::Warning, Self::Error> {
-        let mut warnings = Vec::new();
-
-        self.ensure_input_and_output_predicates_are_disjoint()?;
-        warnings.extend(self.ensure_program_tightness(&self.program)?.warnings);
-        self.ensure_rule_heads_do_not_contain_input_predicates(&self.program)?;
-
-        match self.specification {
-            Either::Left(ref program) => {
-                warnings.extend(self.ensure_program_tightness(program)?.warnings);
-                self.ensure_rule_heads_do_not_contain_input_predicates(program)?;
-            }
-            Either::Right(ref specification) => {
-                self.ensure_specification_assumptions_do_not_contain_output_predicates(
-                    specification,
-                )?;
-            }
-        }
-
-        // TODO: Ensure assumption in user guides and first-order specification only contain input symbols
-        // TODO: Ensure placeholder name uniqueness?
-        // TODO: Add more error handing
-
         let placeholders = self
             .user_guide
             .placeholders()
@@ -680,6 +681,33 @@ impl Task for ExternalEquivalenceTask {
             .map(fol::Predicate::from)
             .filter(|p| !public_predicates.contains(p))
             .collect();
+
+        let mut warnings = Vec::new();
+
+        self.ensure_input_and_output_predicates_are_disjoint()?;
+        warnings.extend(self.ensure_program_tightness(&self.program)?.warnings);
+        self.ensure_absence_of_private_recursion(&self.program, &program_private_predicates)?;
+        self.ensure_rule_heads_do_not_contain_input_predicates(&self.program)?;
+
+        match self.specification {
+            Either::Left(ref program) => {
+                warnings.extend(self.ensure_program_tightness(program)?.warnings);
+                self.ensure_absence_of_private_recursion(
+                    program,
+                    &specification_private_predicates,
+                )?;
+                self.ensure_rule_heads_do_not_contain_input_predicates(program)?;
+            }
+            Either::Right(ref specification) => {
+                self.ensure_specification_assumptions_do_not_contain_output_predicates(
+                    specification,
+                )?;
+            }
+        }
+
+        // TODO: Ensure assumption in user guides and first-order specification only contain input symbols
+        // TODO: Ensure placeholder name uniqueness?
+        // TODO: Add more error handing
 
         fn head_predicate(formula: &fol::Formula) -> Option<fol::Predicate> {
             match formula {
