@@ -55,3 +55,8 @@ jobs:
         with:
           command: clippy
           args: -- -D warnings
+
+      - name: Build the package's documentation
+        uses: actions-rs/cargo@v1
+        with:
+          command: doc
