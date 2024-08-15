@@ -1,4 +1,4 @@
-name: Build, test, and lint
+name: Build the application with Cargo
 
 on:
   push:
