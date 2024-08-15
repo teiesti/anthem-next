@@ -101,7 +101,8 @@ impl Task for StrongEquivalenceTask {
                         name: format!("right_{i}"),
                         role: Role::Conjecture,
                         formula,
-                    }),
+                    })
+                    .rename_conflicting_symbols(),
             );
         }
         if matches!(
@@ -124,7 +125,8 @@ impl Task for StrongEquivalenceTask {
                         name: format!("left_{i}"),
                         role: Role::Conjecture,
                         formula,
-                    }),
+                    })
+                    .rename_conflicting_symbols(),
             );
         }
 

@@ -54,6 +54,14 @@ impl AnnotatedFormula {
     pub fn function_constants(&self) -> IndexSet<FunctionConstant> {
         self.formula.function_constants()
     }
+
+    pub fn rename_conflicting_symbols(self, possible_conflicts: &IndexSet<Predicate>) -> Self {
+        AnnotatedFormula {
+            name: self.name,
+            role: self.role,
+            formula: self.formula.rename_conflicting_symbols(possible_conflicts),
+        }
+    }
 }
 
 impl fmt::Display for AnnotatedFormula {
@@ -96,6 +104,21 @@ impl Problem {
         for (i, formula) in theory.formulas.into_iter().enumerate() {
             self.formulas.push(annotate(i, formula))
         }
+        self
+    }
+
+    pub fn rename_conflicting_symbols(mut self) -> Self {
+        let propositional_predicates =
+            IndexSet::from_iter(self.predicates().into_iter().filter(|p| p.arity == 0));
+
+        println!("propositional predicates: {:?}", propositional_predicates);
+
+        let formulas = self
+            .formulas
+            .into_iter()
+            .map(|f| f.rename_conflicting_symbols(&propositional_predicates))
+            .collect();
+        self.formulas = formulas;
         self
     }
 
@@ -198,10 +221,6 @@ impl fmt::Display for Problem {
 
         for (i, predicate) in self.predicates().into_iter().enumerate() {
             let symbol = predicate.symbol;
-            // let input: String = repeat("general")
-            //     .take(predicate.arity)
-            //     .intersperse(" * ")
-            //     .collect();
             let input: String =
                 Itertools::intersperse(repeat("general").take(predicate.arity), " * ").collect();
             if predicate.arity > 0 {
