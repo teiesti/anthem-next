@@ -201,6 +201,24 @@ impl GeneralTerm {
             t => t,
         }
     }
+
+    fn rename_conflicting_symbols(self, possible_conflicts: &IndexSet<Predicate>) -> Self {
+        match self {
+            GeneralTerm::SymbolicTerm(SymbolicTerm::Symbol(s)) => {
+                let predicate = Predicate {
+                    symbol: s.clone(),
+                    arity: 0,
+                };
+                // TODO: increment new name while conflicts exist
+                if possible_conflicts.contains(&predicate) {
+                    GeneralTerm::SymbolicTerm(SymbolicTerm::Symbol(format!("{s}__s")))
+                } else {
+                    GeneralTerm::SymbolicTerm(SymbolicTerm::Symbol(s))
+                }
+            }
+            x => x,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
@@ -242,6 +260,17 @@ impl Atom {
         Predicate {
             symbol: self.predicate_symbol.clone(),
             arity: self.terms.len(),
+        }
+    }
+
+    fn rename_conflicting_symbols(self, possible_conflicts: &IndexSet<Predicate>) -> Self {
+        Atom {
+            predicate_symbol: self.predicate_symbol,
+            terms: self
+                .terms
+                .into_iter()
+                .map(|t| t.rename_conflicting_symbols(possible_conflicts))
+                .collect(),
         }
     }
 }
@@ -320,6 +349,23 @@ impl Comparison {
         }
 
         Comparison { term: lhs, guards }
+    }
+
+    fn rename_conflicting_symbols(self, possible_conflicts: &IndexSet<Predicate>) -> Self {
+        let term = self.term.rename_conflicting_symbols(possible_conflicts);
+
+        let mut guards = Vec::new();
+        for old_guard in self.guards {
+            let new_guard = Guard {
+                relation: old_guard.relation,
+                term: old_guard
+                    .term
+                    .rename_conflicting_symbols(possible_conflicts),
+            };
+            guards.push(new_guard);
+        }
+
+        Comparison { term, guards }
     }
 }
 
@@ -408,6 +454,18 @@ impl AtomicFormula {
             AtomicFormula::Atom(a) => AtomicFormula::Atom(a.substitute(var, term)),
             AtomicFormula::Comparison(c) => AtomicFormula::Comparison(c.substitute(var, term)),
             f => f,
+        }
+    }
+
+    fn rename_conflicting_symbols(self, possible_conflicts: &IndexSet<Predicate>) -> Self {
+        match self {
+            AtomicFormula::Atom(a) => {
+                AtomicFormula::Atom(a.rename_conflicting_symbols(possible_conflicts))
+            }
+            AtomicFormula::Comparison(c) => {
+                AtomicFormula::Comparison(c.rename_conflicting_symbols(possible_conflicts))
+            }
+            x => x,
         }
     }
 }
@@ -667,6 +725,41 @@ impl Formula {
     pub fn universal_closure(self) -> Formula {
         let variables = self.free_variables().into_iter().collect();
         self.quantify(Quantifier::Forall, variables)
+    }
+
+    pub fn rename_conflicting_symbols(self, possible_conflicts: &IndexSet<Predicate>) -> Formula {
+        match self {
+            Formula::AtomicFormula(a) => {
+                Formula::AtomicFormula(a.rename_conflicting_symbols(possible_conflicts))
+            }
+            Formula::UnaryFormula {
+                connective,
+                formula,
+            } => Formula::UnaryFormula {
+                connective,
+                formula: formula
+                    .rename_conflicting_symbols(possible_conflicts)
+                    .into(),
+            },
+            Formula::BinaryFormula {
+                connective,
+                lhs,
+                rhs,
+            } => Formula::BinaryFormula {
+                connective,
+                lhs: lhs.rename_conflicting_symbols(possible_conflicts).into(),
+                rhs: rhs.rename_conflicting_symbols(possible_conflicts).into(),
+            },
+            Formula::QuantifiedFormula {
+                quantification,
+                formula,
+            } => Formula::QuantifiedFormula {
+                quantification,
+                formula: formula
+                    .rename_conflicting_symbols(possible_conflicts)
+                    .into(),
+            },
+        }
     }
 }
 
