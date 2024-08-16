@@ -1,0 +1,12 @@
+[book]
+title = "The Anthem Manual"
+authors = ["Tobias Stolzmann", "Zach Hansen"]
+language = "en"
+multilingual = false
+
+[rust]
+edition = "2021"
+
+[output.html]
+smart-punctuation = true
+mathjax-support = true

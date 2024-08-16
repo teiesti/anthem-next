@@ -1,4 +1,4 @@
-name: Build, test, and lint
+name: Build the application with Cargo
 
 on:
   push:
@@ -23,29 +23,40 @@ jobs:
           - 1.74.0
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v3
 
-      - uses: actions-rs/toolchain@v1
+      - name: Install the Rust toolchain
+        uses: actions-rs/toolchain@v1
         with:
           profile: minimal
           toolchain: ${{ matrix.rust }}
           override: true
           components: rustfmt, clippy
 
-      - uses: actions-rs/cargo@v1
+      - name: Build the package
+        uses: actions-rs/cargo@v1
         with:
           command: build
 
-      - uses: actions-rs/cargo@v1
+      - name: Test the package
+        uses: actions-rs/cargo@v1
         with:
           command: test
 
-      - uses: actions-rs/cargo@v1
+      - name: Check the package for poor code style
+        uses: actions-rs/cargo@v1
         with:
           command: fmt
           args: --all --check
 
-      - uses: actions-rs/cargo@v1
+      - name: Check the package for lints
+        uses: actions-rs/cargo@v1
         with:
           command: clippy
           args: -- -D warnings
+
+      - name: Build the package's documentation
+        uses: actions-rs/cargo@v1
+        with:
+          command: doc
