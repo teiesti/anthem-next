@@ -1,6 +1,12 @@
 [book]
-authors = ["Tobias Stolzmann"]
+title = "The Anthem Manual"
+authors = ["Tobias Stolzmann", "Zach Hansen"]
 language = "en"
 multilingual = false
-src = "src"
-title = "The Anthem Manual"
+
+[rust]
+edition = "2021"
+
+[output.html]
+smart-punctuation = true
+mathjax-support = true
