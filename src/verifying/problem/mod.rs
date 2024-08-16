@@ -111,8 +111,6 @@ impl Problem {
         let propositional_predicates =
             IndexSet::from_iter(self.predicates().into_iter().filter(|p| p.arity == 0));
 
-        println!("propositional predicates: {:?}", propositional_predicates);
-
         let formulas = self
             .formulas
             .into_iter()
@@ -221,6 +219,10 @@ impl fmt::Display for Problem {
 
         for (i, predicate) in self.predicates().into_iter().enumerate() {
             let symbol = predicate.symbol;
+            // let input: String = repeat("general")
+            //     .take(predicate.arity)
+            //     .intersperse(" * ")
+            //     .collect();
             let input: String =
                 Itertools::intersperse(repeat("general").take(predicate.arity), " * ").collect();
             if predicate.arity > 0 {
