@@ -141,28 +141,67 @@ fn join_nested_quantifiers(formula: Formula) -> Formula {
 #[cfg(test)]
 mod tests {
     use {
-        super::{join_nested_quantifiers, simplify_formula},
+        super::{
+            join_nested_quantifiers, remove_annihilations, remove_idempotences, remove_identities,
+            simplify_formula,
+        },
         crate::{convenience::apply::Apply as _, syntax_tree::fol::Formula},
     };
 
     #[test]
-    fn test_simplify_formula() {
+    fn test_simplify() {
         for (src, target) in [
-            ("#true and a", "a"),
-            ("a and #true", "a"),
-            ("#false or a", "a"),
-            ("a or #false", "a"),
-            ("#true or a", "#true"),
-            ("a or #true", "#true"),
-            ("#false and a", "#false"),
-            ("a and #false", "#false"),
-            ("a and a", "a"),
-            ("a or a", "a"),
             ("#true and #true and a", "a"),
             ("#true and (#true and a)", "a"),
         ] {
             assert_eq!(
                 simplify_formula(src.parse().unwrap()),
+                target.parse().unwrap()
+            )
+        }
+    }
+
+    #[test]
+    fn test_remove_identities() {
+        for (src, target) in [
+            ("#true and a", "a"),
+            ("a and #true", "a"),
+            ("#false or a", "a"),
+            ("a or #false", "a"),
+        ] {
+            assert_eq!(
+                src.parse::<Formula>()
+                    .unwrap()
+                    .apply(&mut remove_identities),
+                target.parse().unwrap()
+            )
+        }
+    }
+
+    #[test]
+    fn test_remove_annihilations() {
+        for (src, target) in [
+            ("#true or a", "#true"),
+            ("a or #true", "#true"),
+            ("#false and a", "#false"),
+            ("a and #false", "#false"),
+        ] {
+            assert_eq!(
+                src.parse::<Formula>()
+                    .unwrap()
+                    .apply(&mut remove_annihilations),
+                target.parse().unwrap()
+            )
+        }
+    }
+
+    #[test]
+    fn test_remove_idempotences() {
+        for (src, target) in [("a and a", "a"), ("a or a", "a")] {
+            assert_eq!(
+                src.parse::<Formula>()
+                    .unwrap()
+                    .apply(&mut remove_idempotences),
                 target.parse().unwrap()
             )
         }
