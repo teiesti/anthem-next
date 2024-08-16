@@ -17,6 +17,7 @@ fn simplify_formula(formula: Formula) -> Formula {
         Box::new(remove_identities),
         Box::new(remove_annihilations),
         Box::new(remove_idempotences),
+        Box::new(join_nested_quantifiers),
     ])
 }
 
@@ -111,9 +112,38 @@ fn remove_idempotences(formula: Formula) -> Formula {
     }
 }
 
+fn join_nested_quantifiers(formula: Formula) -> Formula {
+    // Remove nested quantifiers
+    // e.g. q X ( q Y F(X,Y) ) => q X Y F(X,Y)
+
+    match formula.unbox() {
+        // forall X ( forall Y F(X,Y) ) => forall X Y F(X,Y)
+        // exists X ( exists Y F(X,Y) ) => exists X Y F(X,Y)
+        UnboxedFormula::QuantifiedFormula {
+            quantification: outer_quantification,
+            formula:
+                Formula::QuantifiedFormula {
+                    quantification: mut inner_quantification,
+                    formula: inner_formula,
+                },
+        } if outer_quantification.quantifier == inner_quantification.quantifier => {
+            let mut variables = outer_quantification.variables;
+            variables.append(&mut inner_quantification.variables);
+            variables.sort();
+            variables.dedup();
+
+            inner_formula.quantify(outer_quantification.quantifier, variables)
+        }
+        x => x.rebox(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use super::simplify_formula;
+    use {
+        super::{join_nested_quantifiers, simplify_formula},
+        crate::{convenience::apply::Apply as _, syntax_tree::fol::Formula},
+    };
 
     #[test]
     fn test_simplify_formula() {
@@ -133,6 +163,40 @@ mod tests {
         ] {
             assert_eq!(
                 simplify_formula(src.parse().unwrap()),
+                target.parse().unwrap()
+            )
+        }
+    }
+
+    #[test]
+    fn test_join_nested_quantifiers() {
+        for (src, target) in [
+            ("exists X (exists Y (X = Y))", "exists X Y (X = Y)"),
+            (
+                "exists X Y ( exists Z ( X < Y and Y < Z ))",
+                "exists X Y Z ( X < Y and Y < Z )",
+            ),
+            (
+                "exists X (exists Y (X = Y and q(Y)))",
+                "exists X Y (X = Y and q(Y))",
+            ),
+            (
+                "exists X (exists X$i (p(X) -> X$i < 1))",
+                "exists X X$i (p(X) -> X$i < 1)",
+            ),
+            (
+                "forall X Y (forall Y Z (p(X,Y) and q(Y,Z)))",
+                "forall X Y Z (p(X,Y) and q(Y,Z))",
+            ),
+            (
+                "forall X (forall Y (forall Z (X = Y = Z)))",
+                "forall X Y Z (X = Y = Z)",
+            ),
+        ] {
+            assert_eq!(
+                src.parse::<Formula>()
+                    .unwrap()
+                    .apply(&mut join_nested_quantifiers),
                 target.parse().unwrap()
             )
         }
