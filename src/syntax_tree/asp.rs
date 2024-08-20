@@ -353,6 +353,14 @@ impl Body {
     }
 }
 
+impl FromIterator<AtomicFormula> for Body {
+    fn from_iter<T: IntoIterator<Item = AtomicFormula>>(iter: T) -> Self {
+        Body {
+            formulas: iter.into_iter().collect(),
+        }
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Rule {
     pub head: Head,
@@ -425,6 +433,14 @@ impl Program {
             functions.extend(rule.function_constants());
         }
         functions
+    }
+}
+
+impl FromIterator<Rule> for Program {
+    fn from_iter<T: IntoIterator<Item = Rule>>(iter: T) -> Self {
+        Program {
+            rules: iter.into_iter().collect(),
+        }
     }
 }
 
