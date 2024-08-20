@@ -106,16 +106,33 @@ impl Display for Format<'_, Atom> {
     }
 }
 
+impl Format<'_, Relation> {
+    fn repr_integer(&self) -> &'static str {
+        match self.0 {
+            Relation::Equal => "=",
+            Relation::NotEqual => "!=",
+            Relation::GreaterEqual => "$greatereq",
+            Relation::LessEqual => "$lesseq",
+            Relation::Greater => "$greater",
+            Relation::Less => "$less",
+        }
+    }
+
+    fn repr_general(&self) -> &'static str {
+        match self.0 {
+            Relation::Equal => "=",
+            Relation::NotEqual => "!=",
+            Relation::GreaterEqual => "p__greater_equal__",
+            Relation::LessEqual => "p__less_equal__",
+            Relation::Greater => "p__greater__",
+            Relation::Less => "p__less__",
+        }
+    }
+}
+
 impl Display for Format<'_, Relation> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self.0 {
-            Relation::Equal => write!(f, "="),
-            Relation::NotEqual => write!(f, "!="),
-            Relation::GreaterEqual => write!(f, "p__greater_equal__"),
-            Relation::LessEqual => write!(f, "p__less_equal__"),
-            Relation::Greater => write!(f, "p__greater__"),
-            Relation::Less => write!(f, "p__less__"),
-        }
+        write!(f, "{}", self.repr_general())
     }
 }
 
@@ -128,22 +145,41 @@ impl Display for Format<'_, Comparison> {
             if counter > 0 {
                 write!(f, " & ")?;
             }
-            match g.relation {
-                Relation::Equal | Relation::NotEqual => write!(
-                    f,
-                    "{} {} {}",
-                    Format(previous_term),
-                    Format(&g.relation),
-                    Format(&g.term)
-                ),
-                _ => write!(
-                    f,
-                    "{}({}, {})",
-                    Format(&g.relation),
-                    Format(previous_term),
-                    Format(&g.term)
-                ),
+
+            match (previous_term, &g.term) {
+                (GeneralTerm::IntegerTerm(lhs), GeneralTerm::IntegerTerm(rhs)) => {
+                    match g.relation {
+                        Relation::Equal | Relation::NotEqual => write!(
+                            f,
+                            "{} {} {}",
+                            Format(lhs),
+                            Format(&g.relation).repr_integer(),
+                            Format(rhs)
+                        ),
+                        _ => write!(
+                            f,
+                            "{}({}, {})",
+                            Format(&g.relation).repr_integer(),
+                            Format(lhs),
+                            Format(rhs)
+                        ),
+                    }
+                }
+
+                (lhs, rhs) => match g.relation {
+                    Relation::Equal | Relation::NotEqual => {
+                        write!(f, "{} {} {}", Format(lhs), Format(&g.relation), Format(rhs))
+                    }
+                    _ => write!(
+                        f,
+                        "{}({}, {})",
+                        Format(&g.relation),
+                        Format(lhs),
+                        Format(rhs)
+                    ),
+                },
             }?;
+
             previous_term = &g.term;
         }
 
