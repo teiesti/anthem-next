@@ -400,7 +400,8 @@ mod tests {
                 }]
             })
             .to_string(),
-            "f__integer__(5) = f__integer__(3)"
+            // "f__integer__(5) = f__integer__(3)"
+            "5 = 3"
         );
         assert_eq!(
             Format(&Comparison {
@@ -411,7 +412,8 @@ mod tests {
                 }]
             })
             .to_string(),
-            "f__integer__(5) != f__integer__(3)"
+            // "f__integer__(5) != f__integer__(3)"
+            "5 != 3"
         );
         assert_eq!(
             Format(&Comparison {
@@ -422,7 +424,8 @@ mod tests {
                 }]
             })
             .to_string(),
-            "p__less_equal__(f__integer__(5), f__integer__(3))"
+            // "p__less_equal__(f__integer__(5), f__integer__(3))"
+            "$lesseq(5, 3)"
         );
         assert_eq!(
             Format(&Comparison {
@@ -439,7 +442,8 @@ mod tests {
                 ]
             })
             .to_string(),
-            "p__less_equal__(f__integer__(5), f__integer__(3)) & f__integer__(3) = f__integer__(4)"
+            // "p__less_equal__(f__integer__(5), f__integer__(3)) & f__integer__(3) = f__integer__(4)"
+            "$lesseq(5, 3) & 3 = 4"
         );
         assert_eq!(
             Format(&Comparison {
@@ -460,7 +464,8 @@ mod tests {
                 ]
             })
             .to_string(),
-            "p__less_equal__(f__integer__(5), f__integer__(3)) & p__less__(f__integer__(3), f__integer__(6)) & f__integer__(6) != f__integer__(5)"
+            // "p__less_equal__(f__integer__(5), f__integer__(3)) & p__less__(f__integer__(3), f__integer__(6)) & f__integer__(6) != f__integer__(5)"
+            "$lesseq(5, 3) & $less(3, 6) & 6 != 5"
         );
     }
 
