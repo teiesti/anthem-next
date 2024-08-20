@@ -13,6 +13,7 @@ use {
         verifying::problem,
     },
     clap::ValueEnum,
+    derive_more::derive::IntoIterator,
     indexmap::IndexSet,
     std::hash::Hash,
 };
@@ -763,8 +764,9 @@ impl Formula {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash, IntoIterator)]
 pub struct Theory {
+    #[into_iterator(owned, ref, ref_mut)]
     pub formulas: Vec<Formula>,
 }
 
@@ -819,8 +821,9 @@ impl AnnotatedFormula {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash, IntoIterator)]
 pub struct Specification {
+    #[into_iterator(owned, ref, ref_mut)]
     pub formulas: Vec<AnnotatedFormula>,
 }
 
@@ -850,8 +853,9 @@ pub enum UserGuideEntry {
 
 impl_node!(UserGuideEntry, Format, UserGuideEntryParser);
 
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash, IntoIterator)]
 pub struct UserGuide {
+    #[into_iterator(owned, ref, ref_mut)]
     pub entries: Vec<UserGuideEntry>,
 }
 
