@@ -166,6 +166,12 @@ impl Display for Format<'_, Comparison> {
                     }
                 }
 
+                (GeneralTerm::SymbolicTerm(lhs), GeneralTerm::SymbolicTerm(rhs))
+                    if matches!(g.relation, Relation::Equal | Relation::NotEqual) =>
+                {
+                    write!(f, "{} {} {}", Format(lhs), Format(&g.relation), Format(rhs))
+                }
+
                 (lhs, rhs) => match g.relation {
                     Relation::Equal | Relation::NotEqual => {
                         write!(f, "{} {} {}", Format(lhs), Format(&g.relation), Format(rhs))
@@ -530,6 +536,18 @@ mod tests {
             })
             .to_string(),
             "$less(1, N$i)"
+        );
+        assert_eq!(
+            Format(&Comparison {
+                term: GeneralTerm::SymbolicTerm(SymbolicTerm::Symbol("a".to_string())),
+                guards: vec![Guard {
+                    relation: Relation::Equal,
+                    term: GeneralTerm::SymbolicTerm(SymbolicTerm::Variable("B".to_string())),
+                },]
+            })
+            .to_string(),
+            // "f__symbolic__(a) = f__symbolic__(B$s)"
+            "a = B$s"
         );
         assert_eq!(
             Format(&Comparison {
