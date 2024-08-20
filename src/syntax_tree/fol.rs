@@ -772,6 +772,14 @@ pub struct Theory {
 
 impl_node!(Theory, Format, TheoryParser);
 
+impl FromIterator<Formula> for Theory {
+    fn from_iter<T: IntoIterator<Item = Formula>>(iter: T) -> Self {
+        Theory {
+            formulas: iter.into_iter().collect(),
+        }
+    }
+}
+
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 pub enum Role {
     Assumption,
@@ -843,6 +851,14 @@ impl Specification {
     }
 }
 
+impl FromIterator<AnnotatedFormula> for Specification {
+    fn from_iter<T: IntoIterator<Item = AnnotatedFormula>>(iter: T) -> Self {
+        Specification {
+            formulas: iter.into_iter().collect(),
+        }
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub enum UserGuideEntry {
     InputPredicate(Predicate),
@@ -906,6 +922,14 @@ impl UserGuide {
             }
         }
         result
+    }
+}
+
+impl FromIterator<UserGuideEntry> for UserGuide {
+    fn from_iter<T: IntoIterator<Item = UserGuideEntry>>(iter: T) -> Self {
+        UserGuide {
+            entries: iter.into_iter().collect(),
+        }
     }
 }
 
