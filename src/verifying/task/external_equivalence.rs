@@ -1,6 +1,7 @@
 use {
     crate::{
         analyzing::{private_recursion::PrivateRecursion, tightness::Tightness},
+        breaking::fol::ht::break_equivalences_annotated_formula,
         command_line::arguments::Decomposition,
         convenience::{
             apply::Apply as _,
@@ -888,10 +889,12 @@ impl Task for ValidatedExternalEquivalenceTask {
                     }
                     if matches!(formula.direction, Universal | Backward) {
                         if self.break_equivalences {
-                            // TODO: Apply symmetry breaking
-                            todo!("Symmetry breaking is not yet implemented")
+                            for formula in break_equivalences_annotated_formula(formula).formulas {
+                                backward_conclusions.push(formula.into_problem_formula(Conjecture))
+                            }
+                        } else {
+                            backward_conclusions.push(formula.into_problem_formula(Conjecture))
                         }
-                        backward_conclusions.push(formula.into_problem_formula(Conjecture))
                     }
                 }
                 Lemma | Definition => unreachable!(),
@@ -913,10 +916,12 @@ impl Task for ValidatedExternalEquivalenceTask {
                     }
                     if matches!(formula.direction, Universal | Forward) {
                         if self.break_equivalences {
-                            // TODO: Apply symmetry breaking
-                            todo!("Symmetry breaking is not yet implemented")
+                            for formula in break_equivalences_annotated_formula(formula).formulas {
+                                forward_conclusions.push(formula.into_problem_formula(Conjecture))
+                            }
+                        } else {
+                            forward_conclusions.push(formula.into_problem_formula(Conjecture))
                         }
-                        forward_conclusions.push(formula.into_problem_formula(Conjecture))
                     }
                 }
                 Lemma | Definition => unreachable!(),

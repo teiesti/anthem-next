@@ -1,9 +1,28 @@
 use crate::{
     convenience::unbox::{fol::UnboxedFormula, Unbox},
-    syntax_tree::fol::{BinaryConnective, Formula, Quantification, Quantifier, Theory},
+    syntax_tree::fol::{
+        AnnotatedFormula, BinaryConnective, Formula, Quantification, Quantifier, Specification,
+        Theory,
+    },
 };
 
-pub fn break_equivalences(formula: Formula) -> Theory {
+pub fn break_equivalences_annotated_formula(annotated_formula: AnnotatedFormula) -> Specification {
+    Specification {
+        formulas: break_equivalences_formula(annotated_formula.formula)
+            .formulas
+            .into_iter()
+            .enumerate()
+            .map(|(i, formula)| AnnotatedFormula {
+                role: annotated_formula.role,
+                direction: annotated_formula.direction,
+                name: format!("{}_{}", annotated_formula.name, i),
+                formula,
+            })
+            .collect(),
+    }
+}
+
+pub fn break_equivalences_formula(formula: Formula) -> Theory {
     match formula.unbox() {
         UnboxedFormula::BinaryFormula {
             connective: BinaryConnective::Equivalence,
@@ -31,7 +50,7 @@ pub fn break_equivalences(formula: Formula) -> Theory {
                 },
             formula,
         } => Theory {
-            formulas: break_equivalences(formula)
+            formulas: break_equivalences_formula(formula)
                 .formulas
                 .into_iter()
                 .map(|f| f.quantify(Quantifier::Forall, variables.clone()))
@@ -46,12 +65,12 @@ pub fn break_equivalences(formula: Formula) -> Theory {
 #[cfg(test)]
 mod tests {
     use {
-        super::break_equivalences,
+        super::break_equivalences_formula,
         crate::syntax_tree::fol::{Formula, Theory},
     };
 
     #[test]
-    fn test_break_equivalences() {
+    fn test_break_equivalences_formula() {
         for (src, target) in [
             ("p <-> q", "p -> q. p <- q."),
             ("p(X) <-> q(X)", "p(X) -> q(X). p(X) <- q(X)."),
@@ -60,7 +79,7 @@ mod tests {
         ] {
             let src: Formula = src.parse().unwrap();
             let target: Theory = target.parse().unwrap();
-            assert_eq!(break_equivalences(src), target)
+            assert_eq!(break_equivalences_formula(src), target)
         }
     }
 }
