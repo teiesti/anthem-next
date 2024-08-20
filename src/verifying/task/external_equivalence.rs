@@ -889,7 +889,7 @@ impl Task for ValidatedExternalEquivalenceTask {
                     }
                     if matches!(formula.direction, Universal | Backward) {
                         if self.break_equivalences {
-                            for formula in break_equivalences_annotated_formula(formula).formulas {
+                            for formula in break_equivalences_annotated_formula(formula) {
                                 backward_conclusions.push(formula.into_problem_formula(Conjecture))
                             }
                         } else {
@@ -916,7 +916,7 @@ impl Task for ValidatedExternalEquivalenceTask {
                     }
                     if matches!(formula.direction, Universal | Forward) {
                         if self.break_equivalences {
-                            for formula in break_equivalences_annotated_formula(formula).formulas {
+                            for formula in break_equivalences_annotated_formula(formula) {
                                 forward_conclusions.push(formula.into_problem_formula(Conjecture))
                             }
                         } else {
