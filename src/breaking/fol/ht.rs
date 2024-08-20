@@ -22,6 +22,10 @@ pub fn break_equivalences_annotated_formula(annotated_formula: AnnotatedFormula)
     }
 }
 
+pub fn break_equivalences_theory(theory: Theory) -> Theory {
+    theory.into_iter().flat_map(break_equivalences_formula).collect()
+}
+
 pub fn break_equivalences_formula(formula: Formula) -> Theory {
     match formula.unbox() {
         UnboxedFormula::BinaryFormula {
