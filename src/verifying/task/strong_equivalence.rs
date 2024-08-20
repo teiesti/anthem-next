@@ -78,7 +78,10 @@ impl Task for StrongEquivalenceTask {
             right = crate::simplifying::fol::classic::simplify(right);
         }
 
-        // TODO: Break equivalences, if requested
+        if self.break_equivalences {
+            left = crate::breaking::fol::ht::break_equivalences_theory(left);
+            right = crate::breaking::fol::ht::break_equivalences_theory(right);
+        }
 
         let mut problems = Vec::new();
         if matches!(
