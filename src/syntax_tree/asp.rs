@@ -9,6 +9,7 @@ use {
         },
         syntax_tree::{impl_node, Node},
     },
+    derive_more::derive::IntoIterator,
     indexmap::IndexSet,
 };
 
@@ -310,8 +311,9 @@ impl Head {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash, IntoIterator)]
 pub struct Body {
+    #[into_iterator(owned, ref, ref_mut)]
     pub formulas: Vec<AtomicFormula>,
 }
 
@@ -382,8 +384,9 @@ impl Rule {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash, IntoIterator)]
 pub struct Program {
+    #[into_iterator(owned, ref, ref_mut)]
     pub rules: Vec<Rule>,
 }
 
