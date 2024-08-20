@@ -503,6 +503,45 @@ mod tests {
             // "p__less_equal__(f__integer__(5), f__integer__(3)) & p__less__(f__integer__(3), f__integer__(6)) & f__integer__(6) != f__integer__(5)"
             "$lesseq(5, 3) & $less(3, 6) & 6 != 5"
         );
+        assert_eq!(
+            Format(&Comparison {
+                term: GeneralTerm::IntegerTerm(IntegerTerm::Numeral(1)),
+                guards: vec![
+                    Guard {
+                        relation: Relation::Less,
+                        term: GeneralTerm::IntegerTerm(IntegerTerm::Numeral(2)),
+                    },
+                    Guard {
+                        relation: Relation::Less,
+                        term: GeneralTerm::Variable("X".to_string()),
+                    },
+                ]
+            })
+            .to_string(),
+            "$less(1, 2) & p__less__(f__integer__(2), X)"
+        );
+        assert_eq!(
+            Format(&Comparison {
+                term: GeneralTerm::IntegerTerm(IntegerTerm::Numeral(1)),
+                guards: vec![Guard {
+                    relation: Relation::Less,
+                    term: GeneralTerm::IntegerTerm(IntegerTerm::Variable("N".to_string())),
+                },]
+            })
+            .to_string(),
+            "$less(1, N$i)"
+        );
+        assert_eq!(
+            Format(&Comparison {
+                term: GeneralTerm::SymbolicTerm(SymbolicTerm::Symbol("a".to_string())),
+                guards: vec![Guard {
+                    relation: Relation::Less,
+                    term: GeneralTerm::SymbolicTerm(SymbolicTerm::Variable("B".to_string())),
+                },]
+            })
+            .to_string(),
+            "p__less__(f__symbolic__(a), f__symbolic__(B$s))"
+        );
     }
 
     #[test]
