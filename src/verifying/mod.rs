@@ -1,4 +1,4 @@
 pub mod outline;
 pub mod problem;
-pub mod proof;
+pub mod prover;
 pub mod task;

@@ -8,7 +8,7 @@ use {
         syntax_tree::{asp, fol, Node as _},
         translating::{completion::completion, gamma::gamma, tau_star::tau_star},
         verifying::{
-            proof::{vampire::Vampire, Prover, Report, Status, Success},
+            prover::{vampire::Vampire, Prover, Report, Status, Success},
             task::{
                 external_equivalence::ExternalEquivalenceTask,
                 strong_equivalence::StrongEquivalenceTask, Task,

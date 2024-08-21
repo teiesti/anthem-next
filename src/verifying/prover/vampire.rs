@@ -1,7 +1,7 @@
 use {
     crate::verifying::{
         problem::Problem,
-        proof::{Prover, Report, Status, StatusExtractionError},
+        prover::{Prover, Report, Status, StatusExtractionError},
     },
     std::{
         fmt::{self, Display},
