@@ -15,6 +15,6 @@
   - [Program (.lp)]()
   - [Specification (.spec)]()
   - [User Guide (.ug)]()
-  - [Proof Outline (.help.spec)]()
+  - [Proof Outline (.po)]()
 - [Output File Format]()
   - [TPTP Problem (.p)]()
