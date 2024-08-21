@@ -23,7 +23,7 @@ pub struct GeneralLemma {
 }
 
 impl TryFrom<fol::AnnotatedFormula> for GeneralLemma {
-    type Error = fol::AnnotatedFormula;
+    type Error = ProofOutlineError;
 
     fn try_from(
         annotated_formula: fol::AnnotatedFormula,
@@ -35,10 +35,33 @@ impl TryFrom<fol::AnnotatedFormula> for GeneralLemma {
                     .into_problem_formula(problem::Role::Conjecture)],
                 consequences: vec![annotated_formula.into_problem_formula(problem::Role::Axiom)],
             }),
-            // TODO: Add inductive lemmas!
-            fol::Role::Assumption | fol::Role::Spec | fol::Role::Definition => {
-                Err(annotated_formula)
+            fol::Role::InductiveLemma => {
+                let induction_formulas = annotated_formula.formula.clone().inductive_lemma()?;
+                let (base, step) = induction_formulas.data;
+                // TODO handle warnings
+                let base_annotated = fol::AnnotatedFormula {
+                    role: fol::Role::Lemma,
+                    direction: annotated_formula.direction,
+                    name: format!("{}_base_case", annotated_formula.name),
+                    formula: base,
+                };
+                let step_annotated = fol::AnnotatedFormula {
+                    role: fol::Role::Lemma,
+                    direction: annotated_formula.direction,
+                    name: format!("{}_inductive_step", annotated_formula.name),
+                    formula: step,
+                };
+                Ok(GeneralLemma {
+                    conjectures: vec![
+                        base_annotated.into_problem_formula(problem::Role::Conjecture),
+                        step_annotated.into_problem_formula(problem::Role::Conjecture),
+                    ],
+                    consequences: vec![annotated_formula.into_problem_formula(problem::Role::Axiom)],
+                })
             }
+            fol::Role::Assumption | fol::Role::Spec | fol::Role::Definition => Err(
+                ProofOutlineError::InvalidRoleForGeneralLemma(annotated_formula),
+            ),
         }
     }
 }
@@ -50,6 +73,11 @@ trait CheckInternal {
         &self,
         taken_predicates: &IndexSet<fol::Predicate>,
     ) -> Result<fol::Predicate, ProofOutlineWarning, ProofOutlineError>;
+
+    // Returns the base case and inductive step formulas if the formula is a valid inductive lemma, else returns an error
+    fn inductive_lemma(
+        self,
+    ) -> Result<(fol::Formula, fol::Formula), ProofOutlineWarning, ProofOutlineError>;
 }
 
 impl CheckInternal for fol::Formula {
@@ -116,6 +144,95 @@ impl CheckInternal for fol::Formula {
             _ => Err(ProofOutlineError::MalformedDefinition(self.clone())),
         }
     }
+
+    fn inductive_lemma(
+        self,
+    ) -> Result<(fol::Formula, fol::Formula), ProofOutlineWarning, ProofOutlineError> {
+        let original = self.clone();
+        match self.unbox() {
+            UnboxedFormula::QuantifiedFormula {
+                quantification:
+                    fol::Quantification {
+                        quantifier: fol::Quantifier::Forall,
+                        variables,
+                    },
+                formula:
+                    fol::Formula::BinaryFormula {
+                        connective: fol::BinaryConnective::Implication,
+                        lhs,
+                        rhs,
+                    },
+            } => match lhs.clone().unbox() {
+                UnboxedFormula::AtomicFormula(fol::AtomicFormula::Comparison(
+                    fol::Comparison { term, guards },
+                )) => {
+                    if guards.len() != 1 {
+                        return Err(ProofOutlineError::MalformedInductiveAntecedent(original));
+                    }
+                    let varset: IndexSet<fol::Variable> = IndexSet::from_iter(variables.clone());
+                    if varset != rhs.free_variables() {
+                        return Err(ProofOutlineError::MalformedInductiveVariables(original));
+                    }
+
+                    let induction_variable = match term {
+                        fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::Variable(ref v)) => {
+                            fol::Variable {
+                                name: v.to_string(),
+                                sort: fol::Sort::Integer,
+                            }
+                        }
+                        _ => return Err(ProofOutlineError::MalformedInductiveTerm(original)),
+                    };
+
+                    let guard = guards[0].clone();
+
+                    match term {
+                        fol::GeneralTerm::IntegerTerm(induction_term) => match guard {
+                            fol::Guard {
+                                relation: fol::Relation::GreaterEqual,
+                                term: fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::Numeral(n)),
+                            } => {
+                                let least_term =
+                                    fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::Numeral(n));
+                                let base_case = rhs
+                                    .clone()
+                                    .substitute(induction_variable.clone(), least_term)
+                                    .universal_closure();
+                                let inductive_step_antecedent = fol::Formula::BinaryFormula {
+                                    connective: fol::BinaryConnective::Conjunction,
+                                    lhs: lhs.clone(),
+                                    rhs: rhs.clone(),
+                                };
+
+                                let successor = fol::GeneralTerm::IntegerTerm(
+                                    fol::IntegerTerm::BinaryOperation {
+                                        op: fol::BinaryOperator::Add,
+                                        lhs: induction_term.clone().into(),
+                                        rhs: fol::IntegerTerm::Numeral(1).into(),
+                                    },
+                                );
+
+                                let inductive_step_consequent =
+                                    rhs.substitute(induction_variable.clone(), successor);
+                                let inductive_step = fol::Formula::BinaryFormula {
+                                    connective: fol::BinaryConnective::Implication,
+                                    lhs: inductive_step_antecedent.into(),
+                                    rhs: inductive_step_consequent.into(),
+                                }
+                                .universal_closure();
+
+                                Ok(WithWarnings::flawless((base_case, inductive_step)))
+                            }
+                            _ => Err(ProofOutlineError::MalformedInductiveLemma(original)),
+                        },
+                        _ => Err(ProofOutlineError::MalformedInductiveLemma(original)),
+                    }
+                }
+                _ => Err(ProofOutlineError::MalformedInductiveLemma(original)),
+            },
+            _ => Err(ProofOutlineError::MalformedInductiveLemma(original)),
+        }
+    }
 }
 
 #[derive(Error, Debug, PartialEq)]
@@ -135,8 +252,18 @@ pub enum ProofOutlineError {
         definition: fol::Formula,
         predicate: fol::Predicate,
     },
-    #[error("the follwing definition is malformed: {0}")]
+    #[error("the inductive lemma `{0}` is malformed")]
+    MalformedInductiveLemma(fol::Formula),
+    #[error("the antecedent of inductive lemma `{0}` is malformed")]
+    MalformedInductiveAntecedent(fol::Formula),
+    #[error("the universally quantified variables in inductive lemma `{0}` do not match the RHS free variables")]
+    MalformedInductiveVariables(fol::Formula),
+    #[error("the inductive term in `{0}` is not an integer variable")]
+    MalformedInductiveTerm(fol::Formula),
+    #[error("the following definition is malformed: {0}")]
     MalformedDefinition(fol::Formula),
+    #[error("the following annoated formula cannot be converted to a general lemma: `{0}`")]
+    InvalidRoleForGeneralLemma(fol::AnnotatedFormula),
 }
 
 pub struct ProofOutline {
@@ -175,15 +302,23 @@ impl ProofOutline {
 
         for anf in specification.formulas {
             match anf.role {
-                fol::Role::Lemma => match anf.direction {
-                    // TODO: Revisit the unwraps when implementing inductive lemmas
-                    fol::Direction::Universal => {
-                        forward_lemmas.push(anf.clone().try_into().unwrap());
-                        backward_lemmas.push(anf.try_into().unwrap());
+                fol::Role::Lemma | fol::Role::InductiveLemma => {
+                    let general_lemma: GeneralLemma = fol::AnnotatedFormula {
+                        role: anf.role,
+                        direction: anf.direction,
+                        name: anf.name,
+                        formula: anf.formula.universal_closure(),
                     }
-                    fol::Direction::Forward => forward_lemmas.push(anf.try_into().unwrap()),
-                    fol::Direction::Backward => backward_lemmas.push(anf.try_into().unwrap()),
-                },
+                    .try_into()?;
+                    match anf.direction {
+                        fol::Direction::Universal => {
+                            forward_lemmas.push(general_lemma.clone());
+                            backward_lemmas.push(general_lemma);
+                        }
+                        fol::Direction::Forward => forward_lemmas.push(general_lemma),
+                        fol::Direction::Backward => backward_lemmas.push(general_lemma),
+                    }
+                }
                 fol::Role::Definition => {
                     let predicate = anf.formula.definition(&taken_predicates)?;
                     taken_predicates.insert(predicate.data);
@@ -297,6 +432,74 @@ mod tests {
                 }]);
             let formula: fol::Formula = src.parse().unwrap();
             assert_eq!(formula.definition(&taken_predicates), Err(target))
+        }
+    }
+
+    #[test]
+    fn test_correct_inductive_lemma() {
+        for (src, base, step) in [
+            (
+                "forall I$i ( I$i >= 5 -> p(I$i) )",
+                "p(5)",
+                "forall I$i ( (I$i >= 5 and p(I$i)) -> p(I$i+1) )",
+            ),
+            (
+                "forall N$i ( N$i >= 1 -> squareLEb(N$i) )",
+                "squareLEb(1)",
+                "forall N$i ( (N$i >= 1 and squareLEb(N$i)) -> squareLEb(N$i+1) )",
+            ),
+            (
+                "forall I$ ( I$ >= 5 -> (p(I$) and not q(I$,5)) )",
+                "p(5) and not q(5,5)",
+                "forall I$ ( ( I$ >= 5 and (p(I$) and not q(I$,5)) ) -> ( p(I$+1) and not q(I$+1,5) ) )",
+            ),
+            (
+                "forall N$i X ( N$i >= 0 -> (p(N$i,X) -> X = N$i) )",
+                "forall X ( p(0,X) -> X = 0 )",
+                "forall N$i X ( N$i >= 0 and (p(N$i,X) -> X = N$i) -> (p(N$i+1,X) -> X = N$i+1) )",
+            ),
+            (
+                "forall M$i N$i ( N$i >= 0 -> N$i + M$i >= M$i )",
+                "forall M$i ( 0 + M$i >= M$i )",
+                "forall N$i M$i ( N$i >= 0 and N$i + M$i >= M$i -> (N$i+1 + M$i >= M$i) )",
+            ),
+            ] {
+                let formula: fol::Formula = src.parse().unwrap();
+                let (base_result, step_result) = formula.inductive_lemma().unwrap().data;
+                let (base_target, step_target): (fol::Formula, fol::Formula) =
+                    (base.parse().unwrap(), step.parse().unwrap());
+                assert_eq!(
+                    (base_result.clone(), step_result.clone()),
+                    (base_target.clone(), step_target.clone()),
+                    "\n({base_result},{step_result})\n != \n({base_target},{step_target})"
+                )
+            }
+    }
+
+    #[test]
+    fn check_incorrect_inductive_lemma() {
+        for (src, target) in [
+            (
+                "forall X ( X >= 0 -> p(X) )",
+                ProofOutlineError::MalformedInductiveTerm(
+                    "forall X ( X >= 0 -> p(X) )".parse().unwrap(),
+                ),
+            ),
+            (
+                "forall X$i ( X$i > 0 -> p(X$i) )",
+                ProofOutlineError::MalformedInductiveLemma(
+                    "forall X$i ( X$i > 0 -> p(X$i) )".parse().unwrap(),
+                ),
+            ),
+            (
+                "forall X$i ( X$i >= 0 -> p(X$i, Y$i) )",
+                ProofOutlineError::MalformedInductiveVariables(
+                    "forall X$i ( X$i >= 0 -> p(X$i, Y$i) )".parse().unwrap(),
+                ),
+            ),
+        ] {
+            let formula: fol::Formula = src.parse().unwrap();
+            assert_eq!(formula.inductive_lemma(), Err(target))
         }
     }
 }
