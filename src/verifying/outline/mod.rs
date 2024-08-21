@@ -252,17 +252,19 @@ pub enum ProofOutlineError {
         definition: fol::Formula,
         predicate: fol::Predicate,
     },
-    #[error("the inductive lemma `{0}` is malformed")]
+    #[error("the following inductive lemma is malformed: `{0}`")]
     MalformedInductiveLemma(fol::Formula),
-    #[error("the antecedent of inductive lemma `{0}` is malformed")]
+    #[error("the antecedent of the following inductive lemma is malformed: `{0}`")]
     MalformedInductiveAntecedent(fol::Formula),
-    #[error("the universally quantified variables in inductive lemma `{0}` do not match the RHS free variables")]
+    #[error("the universally quantified variables in the following inductive lemma do not match the RHS free variables: `{0}`")]
     MalformedInductiveVariables(fol::Formula),
-    #[error("the inductive term in `{0}` is not an integer variable")]
+    #[error(
+        "the inductive term in the following inductive lemma is not an integer variable: `{0}`"
+    )]
     MalformedInductiveTerm(fol::Formula),
     #[error("the following definition is malformed: {0}")]
     MalformedDefinition(fol::Formula),
-    #[error("the following annoated formula cannot be converted to a general lemma: `{0}`")]
+    #[error("the following annotated formula cannot be converted to a general lemma: `{0}`")]
     InvalidRoleForGeneralLemma(fol::AnnotatedFormula),
 }
 
@@ -303,13 +305,7 @@ impl ProofOutline {
         for anf in specification.formulas {
             match anf.role {
                 fol::Role::Lemma | fol::Role::InductiveLemma => {
-                    let general_lemma: GeneralLemma = fol::AnnotatedFormula {
-                        role: anf.role,
-                        direction: anf.direction,
-                        name: anf.name,
-                        formula: anf.formula.universal_closure(),
-                    }
-                    .try_into()?;
+                    let general_lemma: GeneralLemma = anf.universal_closure().try_into()?;
                     match anf.direction {
                         fol::Direction::Universal => {
                             forward_lemmas.push(general_lemma.clone());

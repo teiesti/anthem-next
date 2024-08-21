@@ -828,6 +828,15 @@ impl AnnotatedFormula {
     pub fn predicates(&self) -> IndexSet<Predicate> {
         self.formula.predicates()
     }
+
+    pub fn universal_closure(&self) -> Self {
+        AnnotatedFormula {
+            role: self.role,
+            direction: self.direction,
+            name: self.name.clone(),
+            formula: self.formula.clone().universal_closure(),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash, IntoIterator)]
