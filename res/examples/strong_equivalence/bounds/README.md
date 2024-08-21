@@ -2,8 +2,7 @@
 
 ## Usage
 ```
-mkdir out
-anthem verify --equivalence=strong --out-dir out bounds.1.lp bounds.2.lp
+anthem verify --equivalence strong bounds.1.lp bounds.2.lp
 ```
 
 ## Origin

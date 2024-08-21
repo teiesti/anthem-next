@@ -2,8 +2,7 @@
 
 ## Usage
 ```
-mkdir out
-anthem verify --equivalence=strong --out-dir out successor.1.lp successor.2.lp
+anthem verify --equivalence strong successor.1.lp successor.2.lp
 ```
 
 ## Origin

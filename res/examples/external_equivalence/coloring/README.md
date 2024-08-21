@@ -2,6 +2,5 @@
 
 ## Usage
 ```
-mkdir out
-anthem verify --equivalence external --out-dir out coloring.spec coloring.lp coloring.ug
+anthem verify --equivalence external coloring.spec coloring.lp coloring.ug
 ```
