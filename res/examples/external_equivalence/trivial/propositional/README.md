@@ -2,8 +2,7 @@
 
 ## Usage
 ```
-mkdir out
-anthem verify --equivalence=external --out-dir out propositional.spec propositional.lp propositional.ug
+anthem verify --equivalence external propositional.spec propositional.lp propositional.ug
 ```
 
 ## Origin

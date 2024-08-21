@@ -2,8 +2,7 @@
 
 ## Usage
 ```
-mkdir out
-anthem verify --equivalence=external --out-dir out first_order.spec first_order.lp first_order.ug
+anthem verify --equivalence external first_order.spec first_order.lp first_order.ug
 ```
 
 ## Origin
