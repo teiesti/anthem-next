@@ -1,4 +1,8 @@
-use {either::Either, std::path::PathBuf, walkdir::WalkDir};
+use {
+    either::Either,
+    std::{ffi::OsStr, path::PathBuf},
+    walkdir::WalkDir,
+};
 
 #[derive(Debug)]
 pub struct Files {
@@ -31,22 +35,12 @@ impl Files {
             let entry = entry?;
             if entry.file_type().is_file() {
                 let path = entry.into_path();
-                let name = path
-                    .file_name()
-                    .expect("a file should have a name")
-                    .to_str()
-                    .expect("the name of a file should be UTF-8");
-
-                if name.ends_with(".lp") {
-                    &mut result.programs
-                } else if name.ends_with(".help.spec") {
-                    &mut result.proof_outlines
-                } else if name.ends_with(".spec") {
-                    &mut result.specifications
-                } else if name.ends_with(".ug") {
-                    &mut result.user_guides
-                } else {
-                    &mut result.other
+                match path.extension().and_then(OsStr::to_str) {
+                    Some("lp") => &mut result.programs,
+                    Some("spec") => &mut result.specifications,
+                    Some("ug") => &mut result.user_guides,
+                    Some("po") => &mut result.proof_outlines,
+                    None | Some(_) => &mut result.other,
                 }
                 .push(path);
             }
