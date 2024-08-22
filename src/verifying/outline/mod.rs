@@ -304,6 +304,7 @@ impl ProofOutline {
         let mut backward_definitions = Vec::new();
 
         for anf in specification.formulas {
+            let anf = anf.replace_placeholders(placeholders);
             match anf.role {
                 fol::Role::Lemma | fol::Role::InductiveLemma => {
                     let general_lemma: GeneralLemma = anf
