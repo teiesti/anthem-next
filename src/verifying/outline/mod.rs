@@ -146,13 +146,12 @@ impl CheckInternal for fol::Formula {
                         }
                     }
 
+                    // Check variables in quantifications are the same as the terms in the atom
                     if uniques != terms_as_vars {
                         return Err(ProofOutlineError::DefinedPredicateVariableListMismatch(
                             self.clone(),
                         ));
                     }
-
-                    // TODO: Check variables in quantifications are the same as the terms in the atom
 
                     // check predicate is totally fresh
                     let predicate = a.predicate();
