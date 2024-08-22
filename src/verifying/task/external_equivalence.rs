@@ -360,7 +360,7 @@ impl ExternalEquivalenceTask {
                     let predicates = formula.formula.predicates();
                     let inputs = self.user_guide.input_predicates();
                     match predicates.difference(&inputs).next() {
-                        Some(p) => {
+                        Some(_) => {
                             return Err(
                                 ExternalEquivalenceTaskError::AssumptionContainsNonInputSymbols(
                                     formula.clone(),

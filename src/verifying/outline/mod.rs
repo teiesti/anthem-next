@@ -12,6 +12,28 @@ use {
     thiserror::Error,
 };
 
+impl TryFrom<fol::GeneralTerm> for fol::Variable {
+    type Error = fol::GeneralTerm;
+
+    fn try_from(term: fol::GeneralTerm) -> std::result::Result<Self, Self::Error> {
+        match term {
+            fol::GeneralTerm::Variable(v) => Ok(fol::Variable {
+                name: v,
+                sort: fol::Sort::General,
+            }),
+            fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::Variable(v)) => Ok(fol::Variable {
+                name: v,
+                sort: fol::Sort::Integer,
+            }),
+            fol::GeneralTerm::SymbolicTerm(fol::SymbolicTerm::Variable(v)) => Ok(fol::Variable {
+                name: v,
+                sort: fol::Sort::Symbol,
+            }),
+            x => Err(x),
+        }
+    }
+}
+
 // If all the conjectures are proven,
 // then all consequences can be added as axioms to the next proof step
 // A basic lemma F has conjectures [F] and consequences [F]
@@ -107,6 +129,27 @@ impl CheckInternal for fol::Formula {
                     let uniques: IndexSet<fol::Variable> = IndexSet::from_iter(variables);
                     if uniques.len() < len {
                         return Err(ProofOutlineError::DuplicatedVariables(self.clone()));
+                    }
+
+                    let mut terms_as_vars = IndexSet::new();
+                    for t in a.terms.iter() {
+                        match fol::Variable::try_from(t.clone()) {
+                            Ok(v) => {
+                                terms_as_vars.insert(v);
+                            }
+                            Err(e) => {
+                                return Err(ProofOutlineError::TermsInDefinition {
+                                    term: e,
+                                    formula: self.clone(),
+                                });
+                            }
+                        }
+                    }
+
+                    if uniques != terms_as_vars {
+                        return Err(ProofOutlineError::DefinedPredicateVariableListMismatch(
+                            self.clone(),
+                        ));
                     }
 
                     // TODO: Check variables in quantifications are the same as the terms in the atom
@@ -251,6 +294,15 @@ pub enum ProofOutlineError {
     UndefinedRhsPredicate {
         definition: fol::Formula,
         predicate: fol::Predicate,
+    },
+    #[error("the following definition has different variables in the LHS than the universal quantification: `{0}`")]
+    DefinedPredicateVariableListMismatch(fol::Formula),
+    #[error(
+        "the LHS of the following definition contains the non-variable term `{term}` : `{formula}`"
+    )]
+    TermsInDefinition {
+        term: fol::GeneralTerm,
+        formula: fol::Formula,
     },
     #[error("the following inductive lemma is malformed: `{0}`")]
     MalformedInductiveLemma(fol::Formula),
