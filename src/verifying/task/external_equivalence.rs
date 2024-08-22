@@ -119,6 +119,7 @@ pub enum ExternalEquivalenceTaskError {
     InputPredicateInRuleHead(Vec<fol::Predicate>),
     OutputPredicateInUserGuideAssumption(Vec<fol::Predicate>),
     OutputPredicateInSpecificationAssumption(Vec<fol::Predicate>),
+    PlaceholdersWithIdenticalNamesDifferentSorts(String),
     ProofOutlineError(#[from] ProofOutlineError),
 }
 
@@ -193,6 +194,9 @@ impl Display for ExternalEquivalenceTaskError {
                 }
 
                 writeln!(f)
+            }
+            ExternalEquivalenceTaskError::PlaceholdersWithIdenticalNamesDifferentSorts(s) => {
+                writeln!(f, "The following placeholder is given conflicting sorts within the user guide: {s}")
             }
             ExternalEquivalenceTaskError::ProofOutlineError(_) => {
                 writeln!(f, "the given proof outline contains errors")
@@ -321,6 +325,26 @@ impl ExternalEquivalenceTask {
 
         Ok(WithWarnings::flawless(()))
     }
+
+    fn ensure_placeholder_name_uniqueness(
+        &self,
+    ) -> Result<(), ExternalEquivalenceTaskWarning, ExternalEquivalenceTaskError> {
+        let placeholders = self.user_guide.placeholders();
+        let mut names = IndexSet::new();
+        for p in placeholders {
+            if names.contains(&p.name) {
+                return Err(
+                    ExternalEquivalenceTaskError::PlaceholdersWithIdenticalNamesDifferentSorts(
+                        p.name,
+                    ),
+                );
+            } else {
+                names.insert(p.name);
+            }
+        }
+
+        Ok(WithWarnings::flawless(()))
+    }
 }
 
 impl Task for ExternalEquivalenceTask {
@@ -365,6 +389,7 @@ impl Task for ExternalEquivalenceTask {
         warnings.extend(self.ensure_program_tightness(&self.program)?.warnings);
         self.ensure_absence_of_private_recursion(&self.program, &program_private_predicates)?;
         self.ensure_rule_heads_do_not_contain_input_predicates(&self.program)?;
+        self.ensure_placeholder_name_uniqueness()?;
 
         match self.specification {
             Either::Left(ref program) => {
@@ -383,7 +408,6 @@ impl Task for ExternalEquivalenceTask {
         }
 
         // TODO: Ensure assumption in user guides and first-order specification only contain input symbols
-        // TODO: Ensure placeholder name uniqueness?
         // TODO: Add more error handing
 
         fn head_predicate(formula: &fol::Formula) -> Option<fol::Predicate> {
