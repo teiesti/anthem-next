@@ -95,5 +95,5 @@ pub trait Prover {
     type Report: Report;
     type Error;
 
-    fn prove(&self, problem: Problem) -> Result<Self::Report, Self::Error>;
+    fn prove(&self, problem: Problem, time_limit: u16) -> Result<Self::Report, Self::Error>;
 }

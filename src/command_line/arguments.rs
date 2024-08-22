@@ -73,6 +73,10 @@ pub enum Command {
         ///   - additional knowledge used to construct the claim (e.g., user guide, proof outline).
         #[arg(verbatim_doc_comment)]
         files: Vec<PathBuf>,
+
+        /// The time limit in seconds to prove each conjecture passed to Vampire
+        #[arg(long, short, default_value_t = 30)]
+        time_limit: u16,
     },
 }
 

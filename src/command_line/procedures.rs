@@ -73,6 +73,7 @@ pub fn main() -> Result<()> {
             no_proof_search,
             save_problems: out_dir,
             files,
+            time_limit,
         } => {
             let files =
                 Files::sort(files).context("unable to sort the given files by their function")?;
@@ -140,7 +141,7 @@ pub fn main() -> Result<()> {
                 let mut success = true;
                 for problem in problems {
                     // TODO: Handle the error cases properly
-                    let report = Vampire.prove(problem)?;
+                    let report = Vampire.prove(problem, time_limit)?;
                     if !matches!(report.status()?, Status::Success(Success::Theorem)) {
                         success = false;
                     }

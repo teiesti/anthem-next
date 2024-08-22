@@ -83,9 +83,9 @@ impl Prover for Vampire {
     type Error = VampireError;
     type Report = VampireReport;
 
-    fn prove(&self, problem: Problem) -> Result<Self::Report, Self::Error> {
+    fn prove(&self, problem: Problem, time_limit: u16) -> Result<Self::Report, Self::Error> {
         let mut child = Command::new("vampire")
-            .args(["--mode", "casc"])
+            .args(["--mode", "casc", "--time_limit", &time_limit.to_string()])
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
