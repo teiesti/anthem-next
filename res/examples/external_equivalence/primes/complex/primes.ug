@@ -1,6 +1,6 @@
-input: a$i.
-input: b$i.
+input: a -> integer.
+input: b -> integer.
 
-assumption: a$i > 1.
+assumption: a > 1.
 
 output: prime/1.
