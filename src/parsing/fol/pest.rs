@@ -731,9 +731,9 @@ impl PestParser for PlaceholderDeclarationParser {
 
         let sort = match pairs.next() {
             Some(pair) => match pair.as_rule() {
-                internal::Rule::general => Sort::General,
-                internal::Rule::symbol => Sort::Symbol,
-                internal::Rule::integer => Sort::Integer,
+                internal::Rule::general_sort => Sort::General,
+                internal::Rule::symbolic_sort => Sort::Symbol,
+                internal::Rule::integer_sort => Sort::Integer,
                 _ => Self::report_unexpected_pair(pair),
             },
             None => Sort::General,
@@ -812,7 +812,7 @@ mod tests {
             parsing::TestedParser,
             syntax_tree::fol::{
                 AnnotatedFormula, Atom, AtomicFormula, BinaryConnective, BinaryOperator,
-                Comparison, Direction, Formula, FunctionConstant, GeneralTerm, Guard, IntegerTerm,
+                Comparison, Direction, Formula, GeneralTerm, Guard, IntegerTerm,
                 PlaceholderDeclaration, Predicate, Quantification, Quantifier, Relation, Role,
                 Sort, Specification, SymbolicTerm, Theory, UnaryConnective, UnaryOperator,
                 UserGuide, UserGuideEntry, Variable,
