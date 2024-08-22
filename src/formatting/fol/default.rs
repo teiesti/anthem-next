@@ -195,14 +195,7 @@ impl Display for Format<'_, Quantifier> {
 
 impl Display for Format<'_, FunctionConstant> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let name = &self.0.name;
-        let sort = &self.0.sort;
-
-        match sort {
-            Sort::General => write!(f, "{name}$g"),
-            Sort::Integer => write!(f, "{name}$i"),
-            Sort::Symbol => write!(f, "{name}$s"),
-        }
+        write!(f, "{}${}", self.0.name, Format(&self.0.sort))
     }
 }
 
@@ -215,6 +208,16 @@ impl Display for Format<'_, Variable> {
             Sort::General => write!(f, "{name}"),
             Sort::Integer => write!(f, "{name}$i"),
             Sort::Symbol => write!(f, "{name}$s"),
+        }
+    }
+}
+
+impl Display for Format<'_, Sort> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self.0 {
+            Sort::General => write!(f, "g"),
+            Sort::Integer => write!(f, "i"),
+            Sort::Symbol => write!(f, "s"),
         }
     }
 }
