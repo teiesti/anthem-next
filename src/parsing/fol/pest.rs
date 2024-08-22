@@ -2,9 +2,10 @@ use crate::{
     parsing::PestParser,
     syntax_tree::fol::{
         AnnotatedFormula, Atom, AtomicFormula, BinaryConnective, BinaryOperator, Comparison,
-        Direction, Formula, FunctionConstant, GeneralTerm, Guard, IntegerTerm, Predicate,
-        Quantification, Quantifier, Relation, Role, Sort, Specification, SymbolicTerm, Theory,
-        UnaryConnective, UnaryOperator, UserGuide, UserGuideEntry, Variable,
+        Direction, Formula, FunctionConstant, GeneralTerm, Guard, IntegerTerm,
+        PlaceholderDeclaration, Predicate, Quantification, Quantifier, Relation, Role, Sort,
+        Specification, SymbolicTerm, Theory, UnaryConnective, UnaryOperator, UserGuide,
+        UserGuideEntry, Variable,
     },
 };
 
@@ -706,6 +707,41 @@ impl PestParser for SpecificationParser {
     }
 }
 
+pub struct PlaceholderDeclarationParser;
+
+impl PestParser for PlaceholderDeclarationParser {
+    type Node = PlaceholderDeclaration;
+
+    type InternalParser = internal::Parser;
+    type Rule = internal::Rule;
+    const RULE: internal::Rule = internal::Rule::placeholder_declaration;
+
+    fn translate_pair(pair: pest::iterators::Pair<'_, Self::Rule>) -> Self::Node {
+        if pair.as_rule() != internal::Rule::placeholder_declaration {
+            Self::report_unexpected_pair(pair)
+        }
+
+        let mut pairs = pair.clone().into_inner();
+        let name = pairs
+            .next()
+            .unwrap_or_else(|| Self::report_missing_pair())
+            .as_str()
+            .into();
+
+        let sort = match pairs.next() {
+            Some(r) => match r.as_rule() {
+                internal::Rule::general => Sort::General,
+                internal::Rule::symbol => Sort::Symbol,
+                internal::Rule::integer => Sort::Integer,
+                _ => Self::report_unexpected_pair(pair),
+            },
+            None => Sort::General,
+        };
+
+        PlaceholderDeclaration { name, sort }
+    }
+}
+
 pub struct UserGuideEntryParser;
 
 impl PestParser for UserGuideEntryParser {
@@ -725,7 +761,7 @@ impl PestParser for UserGuideEntryParser {
                 UserGuideEntry::OutputPredicate(PredicateParser::translate_pairs(pair.into_inner()))
             }
             internal::Rule::placeholder_declaration => UserGuideEntry::PlaceholderDeclaration(
-                FunctionConstantParser::translate_pairs(pair.into_inner()),
+                PlaceholderDeclarationParser::translate_pair(pair),
             ),
             internal::Rule::annotated_formula => {
                 UserGuideEntry::AnnotatedFormula(AnnotatedFormulaParser::translate_pair(pair))
@@ -772,9 +808,9 @@ mod tests {
             syntax_tree::fol::{
                 AnnotatedFormula, Atom, AtomicFormula, BinaryConnective, BinaryOperator,
                 Comparison, Direction, Formula, FunctionConstant, GeneralTerm, Guard, IntegerTerm,
-                Predicate, Quantification, Quantifier, Relation, Role, Sort, Specification,
-                SymbolicTerm, Theory, UnaryConnective, UnaryOperator, UserGuide, UserGuideEntry,
-                Variable,
+                PlaceholderDeclaration, Predicate, Quantification, Quantifier, Relation, Role,
+                Sort, Specification, SymbolicTerm, Theory, UnaryConnective, UnaryOperator,
+                UserGuide, UserGuideEntry, Variable,
             },
         },
         std::vec,
@@ -1643,10 +1679,10 @@ mod tests {
             .should_parse_into([
                 ("", UserGuide { entries: vec![] }),
                 (
-                    "input: n$i.\nassumption: p(5).",
+                    "input: n -> integer.\nassumption: p(5).",
                     UserGuide {
                         entries: vec![
-                            UserGuideEntry::PlaceholderDeclaration(FunctionConstant {
+                            UserGuideEntry::PlaceholderDeclaration(PlaceholderDeclaration {
                                 name: "n".to_string(),
                                 sort: Sort::Integer,
                             }),

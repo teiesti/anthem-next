@@ -5,9 +5,9 @@ use {
             fol::{
                 AnnotatedFormula, Atom, AtomicFormula, BinaryConnective, BinaryOperator,
                 Comparison, Direction, Formula, FunctionConstant, GeneralTerm, Guard, IntegerTerm,
-                Predicate, Quantification, Quantifier, Relation, Role, Sort, Specification,
-                SymbolicTerm, Theory, UnaryConnective, UnaryOperator, UserGuide, UserGuideEntry,
-                Variable,
+                PlaceholderDeclaration, Predicate, Quantification, Quantifier, Relation, Role,
+                Sort, Specification, SymbolicTerm, Theory, UnaryConnective, UnaryOperator,
+                UserGuide, UserGuideEntry, Variable,
             },
             Node,
         },
@@ -399,6 +399,12 @@ impl Display for Format<'_, Specification> {
             writeln!(f, "{formula}.")?;
         }
         Ok(())
+    }
+}
+
+impl Display for Format<'_, PlaceholderDeclaration> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        todo!()
     }
 }
 

@@ -5,9 +5,10 @@ use {
             AnnotatedFormulaParser, AtomParser, AtomicFormulaParser, BinaryConnectiveParser,
             BinaryOperatorParser, ComparisonParser, DirectionParser, FormulaParser,
             FunctionConstantParser, GeneralTermParser, GuardParser, IntegerTermParser,
-            PredicateParser, QuantificationParser, QuantifierParser, RelationParser, RoleParser,
-            SpecificationParser, SymbolicTermParser, TheoryParser, UnaryConnectiveParser,
-            UnaryOperatorParser, UserGuideEntryParser, UserGuideParser, VariableParser,
+            PlaceholderDeclarationParser, PredicateParser, QuantificationParser, QuantifierParser,
+            RelationParser, RoleParser, SpecificationParser, SymbolicTermParser, TheoryParser,
+            UnaryConnectiveParser, UnaryOperatorParser, UserGuideEntryParser, UserGuideParser,
+            VariableParser,
         },
         syntax_tree::{impl_node, Node},
         verifying::problem,
@@ -511,6 +512,15 @@ pub struct FunctionConstant {
 
 impl_node!(FunctionConstant, Format, FunctionConstantParser);
 
+impl From<PlaceholderDeclaration> for FunctionConstant {
+    fn from(value: PlaceholderDeclaration) -> Self {
+        FunctionConstant {
+            name: value.name,
+            sort: value.sort,
+        }
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, Hash, Ord, PartialOrd)]
 pub struct Variable {
     pub name: String,
@@ -870,10 +880,18 @@ impl FromIterator<AnnotatedFormula> for Specification {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
+pub struct PlaceholderDeclaration {
+    pub name: String,
+    pub sort: Sort,
+}
+
+impl_node!(PlaceholderDeclaration, Format, PlaceholderDeclarationParser);
+
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub enum UserGuideEntry {
     InputPredicate(Predicate),
     OutputPredicate(Predicate),
-    PlaceholderDeclaration(FunctionConstant),
+    PlaceholderDeclaration(PlaceholderDeclaration),
     AnnotatedFormula(AnnotatedFormula),
 }
 
@@ -918,7 +936,8 @@ impl UserGuide {
         let mut result = IndexSet::new();
         for entry in &self.entries {
             if let UserGuideEntry::PlaceholderDeclaration(p) = entry {
-                result.insert(p.clone());
+                let fc = FunctionConstant::from(p.clone());
+                result.insert(fc);
             }
         }
         result
