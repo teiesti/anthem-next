@@ -1,6 +1,6 @@
-input: n$i.
+input: n -> integer.
 input: s/2.
 
 output: in_cover/1.
 
-assumption: n$i >= 0.
+assumption: n >= 0.
