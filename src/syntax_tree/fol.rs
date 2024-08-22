@@ -1,5 +1,6 @@
 use {
     crate::{
+        convenience::apply::Apply as _,
         formatting::fol::default::Format,
         parsing::fol::pest::{
             AnnotatedFormulaParser, AtomParser, AtomicFormulaParser, BinaryConnectiveParser,
@@ -15,7 +16,7 @@ use {
     },
     clap::ValueEnum,
     derive_more::derive::IntoIterator,
-    indexmap::IndexSet,
+    indexmap::{IndexMap, IndexSet},
     std::hash::Hash,
 };
 
@@ -221,6 +222,25 @@ impl GeneralTerm {
             x => x,
         }
     }
+
+    fn replace_placeholders(self, mapping: &IndexMap<String, FunctionConstant>) -> Self {
+        match self {
+            GeneralTerm::SymbolicTerm(SymbolicTerm::Symbol(s)) => {
+                if let Some(fc) = mapping.get(&s) {
+                    match fc.sort {
+                        Sort::General => GeneralTerm::FunctionConstant(s),
+                        Sort::Integer => GeneralTerm::IntegerTerm(IntegerTerm::FunctionConstant(s)),
+                        Sort::Symbol => {
+                            GeneralTerm::SymbolicTerm(SymbolicTerm::FunctionConstant(s))
+                        }
+                    }
+                } else {
+                    GeneralTerm::SymbolicTerm(SymbolicTerm::Symbol(s))
+                }
+            }
+            x => x,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
@@ -272,6 +292,17 @@ impl Atom {
                 .terms
                 .into_iter()
                 .map(|t| t.rename_conflicting_symbols(possible_conflicts))
+                .collect(),
+        }
+    }
+
+    pub fn replace_placeholders(self, mapping: &IndexMap<String, FunctionConstant>) -> Self {
+        Atom {
+            predicate_symbol: self.predicate_symbol,
+            terms: self
+                .terms
+                .into_iter()
+                .map(|t| t.replace_placeholders(mapping))
                 .collect(),
         }
     }
@@ -327,6 +358,13 @@ impl Guard {
     pub fn function_constants(&self) -> IndexSet<FunctionConstant> {
         self.term.function_constants()
     }
+
+    pub fn replace_placeholders(self, mapping: &IndexMap<String, FunctionConstant>) -> Self {
+        Guard {
+            relation: self.relation,
+            term: self.term.replace_placeholders(mapping),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
@@ -368,6 +406,17 @@ impl Comparison {
         }
 
         Comparison { term, guards }
+    }
+
+    pub fn replace_placeholders(self, mapping: &IndexMap<String, FunctionConstant>) -> Self {
+        Comparison {
+            term: self.term.replace_placeholders(mapping),
+            guards: self
+                .guards
+                .into_iter()
+                .map(|g| g.replace_placeholders(mapping))
+                .collect(),
+        }
     }
 }
 
@@ -466,6 +515,16 @@ impl AtomicFormula {
             }
             AtomicFormula::Comparison(c) => {
                 AtomicFormula::Comparison(c.rename_conflicting_symbols(possible_conflicts))
+            }
+            x => x,
+        }
+    }
+
+    pub fn replace_placeholders(self, mapping: &IndexMap<String, FunctionConstant>) -> Self {
+        match self {
+            AtomicFormula::Atom(a) => AtomicFormula::Atom(a.replace_placeholders(mapping)),
+            AtomicFormula::Comparison(c) => {
+                AtomicFormula::Comparison(c.replace_placeholders(mapping))
             }
             x => x,
         }
@@ -772,6 +831,13 @@ impl Formula {
             },
         }
     }
+
+    pub fn replace_placeholders(self, mapping: &IndexMap<String, FunctionConstant>) -> Self {
+        self.apply(&mut |formula| match formula {
+            Formula::AtomicFormula(a) => Formula::AtomicFormula(a.replace_placeholders(mapping)),
+            x => x,
+        })
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash, IntoIterator)]
@@ -781,6 +847,14 @@ pub struct Theory {
 }
 
 impl_node!(Theory, Format, TheoryParser);
+
+impl Theory {
+    pub fn replace_placeholders(self, mapping: &IndexMap<String, FunctionConstant>) -> Self {
+        self.into_iter()
+            .map(|f| f.replace_placeholders(mapping))
+            .collect()
+    }
+}
 
 impl FromIterator<Formula> for Theory {
     fn from_iter<T: IntoIterator<Item = Formula>>(iter: T) -> Self {
@@ -847,6 +921,11 @@ impl AnnotatedFormula {
             formula: self.formula.clone().universal_closure(),
         }
     }
+
+    pub fn replace_placeholders(mut self, mapping: &IndexMap<String, FunctionConstant>) -> Self {
+        self.formula = self.formula.replace_placeholders(mapping);
+        self
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash, IntoIterator)]
@@ -868,6 +947,12 @@ impl Specification {
             predicates.extend(formula.predicates())
         }
         predicates
+    }
+
+    pub fn replace_placeholders(self, mapping: &IndexMap<String, FunctionConstant>) -> Self {
+        self.into_iter()
+            .map(|f| f.replace_placeholders(mapping))
+            .collect()
     }
 }
 
