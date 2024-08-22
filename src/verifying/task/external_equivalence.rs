@@ -120,6 +120,7 @@ pub enum ExternalEquivalenceTaskError {
     OutputPredicateInUserGuideAssumption(Vec<fol::Predicate>),
     OutputPredicateInSpecificationAssumption(Vec<fol::Predicate>),
     PlaceholdersWithIdenticalNamesDifferentSorts(String),
+    AssumptionContainsNonInputSymbols(fol::AnnotatedFormula),
     ProofOutlineError(#[from] ProofOutlineError),
 }
 
@@ -196,7 +197,10 @@ impl Display for ExternalEquivalenceTaskError {
                 writeln!(f)
             }
             ExternalEquivalenceTaskError::PlaceholdersWithIdenticalNamesDifferentSorts(s) => {
-                writeln!(f, "The following placeholder is given conflicting sorts within the user guide: {s}")
+                writeln!(f, "the following placeholder is given conflicting sorts within the user guide: {s}")
+            }
+            ExternalEquivalenceTaskError::AssumptionContainsNonInputSymbols(formula) => {
+                writeln!(f, "the following assumption contains a predicate that is not an input symbol: {formula}")
             }
             ExternalEquivalenceTaskError::ProofOutlineError(_) => {
                 writeln!(f, "the given proof outline contains errors")
@@ -345,6 +349,33 @@ impl ExternalEquivalenceTask {
 
         Ok(WithWarnings::flawless(()))
     }
+
+    fn ensure_assumptions_only_contain_input_symbols(
+        &self,
+        formulas: &Vec<fol::AnnotatedFormula>,
+    ) -> Result<(), ExternalEquivalenceTaskWarning, ExternalEquivalenceTaskError> {
+        for formula in formulas {
+            match formula.role {
+                fol::Role::Assumption => {
+                    let predicates = formula.formula.predicates();
+                    let inputs = self.user_guide.input_predicates();
+                    match predicates.difference(&inputs).next() {
+                        Some(p) => {
+                            return Err(
+                                ExternalEquivalenceTaskError::AssumptionContainsNonInputSymbols(
+                                    formula.clone(),
+                                ),
+                            )
+                        }
+                        None => (),
+                    }
+                }
+                _ => (),
+            }
+        }
+
+        Ok(WithWarnings::flawless(()))
+    }
 }
 
 impl Task for ExternalEquivalenceTask {
@@ -390,6 +421,7 @@ impl Task for ExternalEquivalenceTask {
         self.ensure_absence_of_private_recursion(&self.program, &program_private_predicates)?;
         self.ensure_rule_heads_do_not_contain_input_predicates(&self.program)?;
         self.ensure_placeholder_name_uniqueness()?;
+        self.ensure_assumptions_only_contain_input_symbols(&self.user_guide.formulas())?;
 
         match self.specification {
             Either::Left(ref program) => {
@@ -404,11 +436,9 @@ impl Task for ExternalEquivalenceTask {
                 self.ensure_specification_assumptions_do_not_contain_output_predicates(
                     specification,
                 )?;
+                self.ensure_assumptions_only_contain_input_symbols(&specification.formulas)?;
             }
         }
-
-        // TODO: Ensure assumption in user guides and first-order specification only contain input symbols
-        // TODO: Add more error handing
 
         fn head_predicate(formula: &fol::Formula) -> Option<fol::Predicate> {
             match formula {
