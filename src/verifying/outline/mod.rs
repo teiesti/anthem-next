@@ -5,7 +5,7 @@ use {
             with_warnings::{Result, WithWarnings},
         },
         syntax_tree::fol,
-        verifying::{problem, task::external_equivalence::ReplacePlaceholders},
+        verifying::problem,
     },
     indexmap::{IndexMap, IndexSet},
     std::fmt::Display,
