@@ -22,7 +22,7 @@ use {
 };
 
 // TODO: The following could be much easier with an enum over all types of nodes which implements the apply trait
-trait ReplacePlaceholders {
+pub(crate) trait ReplacePlaceholders {
     fn replace_placeholders(self, mapping: &IndexMap<String, fol::FunctionConstant>) -> Self;
 }
 
@@ -614,7 +614,7 @@ impl Task for ExternalEquivalenceTask {
         }
 
         let proof_outline_construction =
-            ProofOutline::from_specification(self.proof_outline, taken_predicates)?;
+            ProofOutline::from_specification(self.proof_outline, taken_predicates, &placeholders)?;
         warnings.extend(
             proof_outline_construction
                 .warnings

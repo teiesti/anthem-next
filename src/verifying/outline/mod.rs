@@ -5,9 +5,9 @@ use {
             with_warnings::{Result, WithWarnings},
         },
         syntax_tree::fol,
-        verifying::problem,
+        verifying::{problem, task::external_equivalence::ReplacePlaceholders},
     },
-    indexmap::IndexSet,
+    indexmap::{IndexMap, IndexSet},
     std::fmt::Display,
     thiserror::Error,
 };
@@ -294,6 +294,7 @@ impl ProofOutline {
     pub fn from_specification(
         specification: fol::Specification,
         mut taken_predicates: IndexSet<fol::Predicate>,
+        placeholders: &IndexMap<String, fol::FunctionConstant>,
     ) -> Result<Self, ProofOutlineWarning, ProofOutlineError> {
         let mut warnings = Vec::new();
 
@@ -305,7 +306,10 @@ impl ProofOutline {
         for anf in specification.formulas {
             match anf.role {
                 fol::Role::Lemma | fol::Role::InductiveLemma => {
-                    let general_lemma: GeneralLemma = anf.universal_closure().try_into()?;
+                    let general_lemma: GeneralLemma = anf
+                        .universal_closure()
+                        .replace_placeholders(placeholders)
+                        .try_into()?;
                     match anf.direction {
                         fol::Direction::Universal => {
                             forward_lemmas.push(general_lemma.clone());
