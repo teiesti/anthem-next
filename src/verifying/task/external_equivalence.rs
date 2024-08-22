@@ -355,22 +355,16 @@ impl ExternalEquivalenceTask {
         formulas: &Vec<fol::AnnotatedFormula>,
     ) -> Result<(), ExternalEquivalenceTaskWarning, ExternalEquivalenceTaskError> {
         for formula in formulas {
-            match formula.role {
-                fol::Role::Assumption => {
-                    let predicates = formula.formula.predicates();
-                    let inputs = self.user_guide.input_predicates();
-                    match predicates.difference(&inputs).next() {
-                        Some(_) => {
-                            return Err(
-                                ExternalEquivalenceTaskError::AssumptionContainsNonInputSymbols(
-                                    formula.clone(),
-                                ),
-                            )
-                        }
-                        None => (),
-                    }
+            if matches!(formula.role, fol::Role::Assumption) {
+                let predicates = formula.formula.predicates();
+                let inputs = self.user_guide.input_predicates();
+                if predicates.difference(&inputs).next().is_some() {
+                    return Err(
+                        ExternalEquivalenceTaskError::AssumptionContainsNonInputSymbols(
+                            formula.clone(),
+                        ),
+                    );
                 }
-                _ => (),
             }
         }
 
