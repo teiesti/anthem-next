@@ -2,8 +2,7 @@
 
 ## Usage
 ```
-mkdir out
-anthem verify --equivalence=strong --out-dir out trivial.1.lp trivial.2.lp
+anthem verify --equivalence=strong trivial.1.lp trivial.2.lp
 ```
 
 ## Origin

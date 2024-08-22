@@ -4,15 +4,13 @@
 To run the original program-to-specification verification task, use
 
 ```
-mkdir -p out/p2s
-anthem verify --equivalence=external --out-dir out/p2s cover.spec cover.lp cover.ug
+anthem verify --equivalence external cover.spec cover.lp cover.ug
 ```
 
 To run the program-to-program verification task against a new program with a symmetry breaking constraint, use
 
 ```
-mkdir -p out/p2p
-anthem verify --equivalence=external --out-dir out/p2p cover.lp cover_sym_break.lp cover.ug
+anthem verify --equivalence external cover.lp cover_sym_break.lp cover.ug
 ```
 
 ## Origin

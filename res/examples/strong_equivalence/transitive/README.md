@@ -2,8 +2,7 @@
 
 ## Usage
 ```
-mkdir out
-anthem verify --equivalence=strong --out-dir out transitive.1.lp transitive.2.lp
+anthem verify --equivalence strong transitive.1.lp transitive.2.lp
 ```
 
 ## Origin

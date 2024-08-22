@@ -3,7 +3,7 @@
 ## Usage
 ```
 mkdir out
-anthem verify --equivalence=strong --out-dir out choice.1.lp choice.2.lp
+anthem verify --equivalence strong choice.1.lp choice.2.lp
 ```
 
 ## Origin
