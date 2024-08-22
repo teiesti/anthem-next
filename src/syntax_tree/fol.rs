@@ -6,9 +6,9 @@ use {
             BinaryOperatorParser, ComparisonParser, DirectionParser, FormulaParser,
             FunctionConstantParser, GeneralTermParser, GuardParser, IntegerTermParser,
             PlaceholderDeclarationParser, PredicateParser, QuantificationParser, QuantifierParser,
-            RelationParser, RoleParser, SpecificationParser, SymbolicTermParser, TheoryParser,
-            UnaryConnectiveParser, UnaryOperatorParser, UserGuideEntryParser, UserGuideParser,
-            VariableParser,
+            RelationParser, RoleParser, SortParser, SpecificationParser, SymbolicTermParser,
+            TheoryParser, UnaryConnectiveParser, UnaryOperatorParser, UserGuideEntryParser,
+            UserGuideParser, VariableParser,
         },
         syntax_tree::{impl_node, Node},
         verifying::problem,
@@ -502,7 +502,7 @@ pub enum Sort {
     Symbol,
 }
 
-// TODO: Should Sort be a Node?
+impl_node!(Sort, Format, SortParser);
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash, Ord, PartialOrd)]
 pub struct FunctionConstant {

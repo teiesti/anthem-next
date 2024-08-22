@@ -7,6 +7,7 @@ keyword = _{ primitive | binary_connective | unary_connective | quantifier }
         supremum = { "#sup" }
 
 sort = { general_sort | integer_sort | symbolic_sort }
+sort_eoi = _{ sort ~ EOI }
     general_sort = @{ "g" ~ "eneral"? }
     integer_sort = @{ "i" ~ "nteger"? }
     symbolic_sort = @{ "s" ~ "ymbol"? }

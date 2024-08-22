@@ -493,6 +493,26 @@ impl PestParser for QuantificationParser {
     }
 }
 
+pub struct SortParser;
+
+impl PestParser for SortParser {
+    type Node = Sort;
+
+    type InternalParser = internal::Parser;
+    type Rule = internal::Rule;
+    const RULE: internal::Rule = internal::Rule::sort_eoi;
+
+    fn translate_pair(pair: pest::iterators::Pair<'_, Self::Rule>) -> Self::Node {
+        match pair.as_rule() {
+            internal::Rule::sort => Self::translate_pairs(pair.into_inner()),
+            internal::Rule::general_sort => Sort::General,
+            internal::Rule::symbolic_sort => Sort::Symbol,
+            internal::Rule::integer_sort => Sort::Integer,
+            _ => Self::report_unexpected_pair(pair),
+        }
+    }
+}
+
 pub struct UnaryConnectiveParser;
 
 impl PestParser for UnaryConnectiveParser {
@@ -729,15 +749,10 @@ impl PestParser for PlaceholderDeclarationParser {
             .as_str()
             .into();
 
-        let sort = match pairs.next() {
-            Some(pair) => match pair.as_rule() {
-                internal::Rule::general_sort => Sort::General,
-                internal::Rule::symbolic_sort => Sort::Symbol,
-                internal::Rule::integer_sort => Sort::Integer,
-                _ => Self::report_unexpected_pair(pair),
-            },
-            None => Sort::General,
-        };
+        let sort = pairs
+            .next()
+            .map(SortParser::translate_pair)
+            .unwrap_or_else(|| Sort::General);
 
         if let Some(pair) = pairs.next() {
             Self::report_unexpected_pair(pair)
@@ -805,7 +820,7 @@ mod tests {
             AnnotatedFormulaParser, AtomParser, AtomicFormulaParser, BinaryConnectiveParser,
             BinaryOperatorParser, ComparisonParser, FormulaParser, GeneralTermParser, GuardParser,
             IntegerTermParser, PredicateParser, QuantificationParser, QuantifierParser,
-            RelationParser, SpecificationParser, SymbolicTermParser, TheoryParser,
+            RelationParser, SortParser, SpecificationParser, SymbolicTermParser, TheoryParser,
             UnaryConnectiveParser, UnaryOperatorParser, UserGuideParser, VariableParser,
         },
         crate::{
@@ -1227,6 +1242,20 @@ mod tests {
                 ),
             ])
             .should_reject(["p and b"]);
+    }
+
+    #[test]
+    fn parse_sort() {
+        SortParser
+            .should_parse_into([
+                ("i", Sort::Integer),
+                ("integer", Sort::Integer),
+                ("s", Sort::Symbol),
+                ("symbol", Sort::Symbol),
+                ("g", Sort::General),
+                ("general", Sort::General),
+            ])
+            .should_reject(["int", "sym", "gen"]);
     }
 
     #[test]
