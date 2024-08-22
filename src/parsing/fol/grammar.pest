@@ -7,9 +7,9 @@ keyword = _{ primitive | binary_connective | unary_connective | quantifier }
         supremum = { "#sup" }
 
 sort = { general_sort | integer_sort | symbolic_sort }
-    general_sort = { "g" }
-    integer_sort = { "i" }
-    symbolic_sort = { "s" }
+    general_sort = @{ "g" ~ "eneral"? }
+    integer_sort = @{ "i" ~ "nteger"? }
+    symbolic_sort = @{ "s" ~ "ymbol"? }
 
 basic_integer_term = _{ numeral | integer_function_constant | integer_variable }
     numeral           = @{ ("0") | ("-"? ~ ASCII_NONZERO_DIGIT ~ ASCII_DIGIT*) }
@@ -126,16 +126,11 @@ annotated_formula_eoi = _{ annotated_formula ~ EOI }
 specification = { (annotated_formula ~ ".")* }
 specification_eoi = _{ specification ~ EOI }
 
-placeholder_sort = _{ general | symbol | integer }
-    general = { "general" }
-    symbol  = { "symbol" }
-    integer = { "integer" }
-
 user_guide_entry = { input_predicate | output_predicate | placeholder_declaration | annotated_formula }
 user_guide_entry_eoi = _{ user_guide_entry ~ EOI }
     input_predicate         = { "input" ~ ":" ~ predicate}
     output_predicate        = { "output" ~ ":" ~ predicate}
-    placeholder_declaration = { "input" ~ ":" ~ symbolic_constant ~ ("->" ~ placeholder_sort)? }
+    placeholder_declaration = { "input" ~ ":" ~ symbolic_constant ~ ("->" ~ sort)? }
 
 user_guide = { (user_guide_entry ~ ".")* }
 user_guide_eoi = _{ user_guide ~ EOI }
