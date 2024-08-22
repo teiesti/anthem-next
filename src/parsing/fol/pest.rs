@@ -721,7 +721,8 @@ impl PestParser for PlaceholderDeclarationParser {
             Self::report_unexpected_pair(pair)
         }
 
-        let mut pairs = pair.clone().into_inner();
+        let mut pairs = pair.into_inner();
+
         let name = pairs
             .next()
             .unwrap_or_else(|| Self::report_missing_pair())
@@ -729,7 +730,7 @@ impl PestParser for PlaceholderDeclarationParser {
             .into();
 
         let sort = match pairs.next() {
-            Some(r) => match r.as_rule() {
+            Some(pair) => match pair.as_rule() {
                 internal::Rule::general => Sort::General,
                 internal::Rule::symbol => Sort::Symbol,
                 internal::Rule::integer => Sort::Integer,
@@ -737,6 +738,10 @@ impl PestParser for PlaceholderDeclarationParser {
             },
             None => Sort::General,
         };
+
+        if let Some(pair) = pairs.next() {
+            Self::report_unexpected_pair(pair)
+        }
 
         PlaceholderDeclaration { name, sort }
     }
