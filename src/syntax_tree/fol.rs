@@ -786,6 +786,7 @@ pub enum Role {
     Spec,
     Lemma,
     Definition,
+    InductiveLemma,
 }
 
 impl_node!(Role, Format, RoleParser);
@@ -826,6 +827,15 @@ impl AnnotatedFormula {
 
     pub fn predicates(&self) -> IndexSet<Predicate> {
         self.formula.predicates()
+    }
+
+    pub fn universal_closure(&self) -> Self {
+        AnnotatedFormula {
+            role: self.role,
+            direction: self.direction,
+            name: self.name.clone(),
+            formula: self.formula.clone().universal_closure(),
+        }
     }
 }
 

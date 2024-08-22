@@ -607,6 +607,7 @@ impl PestParser for RoleParser {
             internal::Rule::spec => Role::Spec,
             internal::Rule::lemma => Role::Lemma,
             internal::Rule::definition => Role::Definition,
+            internal::Rule::inductive_lemma => Role::InductiveLemma,
             _ => Self::report_unexpected_pair(pair),
         }
     }
@@ -1671,7 +1672,7 @@ mod tests {
             .should_parse_into([
                 ("", Specification { formulas: vec![] }),
                 (
-                    "spec(forward)[about_p_0]: not p(0).\nassumption: p(5).",
+                    "spec(forward)[about_p_0]: not p(0).\nassumption: p(5).\ninductive-lemma: forall N$ (N$ >= 0 -> p(N$)).",
                     Specification {
                         formulas: vec![
                             AnnotatedFormula {
@@ -1697,6 +1698,22 @@ mod tests {
                                     predicate_symbol: "p".into(),
                                     terms: vec![GeneralTerm::IntegerTerm(IntegerTerm::Numeral(5))],
                                 })),
+                            },
+                            AnnotatedFormula {
+                                role: Role::InductiveLemma,
+                                direction: Direction::Universal,
+                                name: String::default(),
+                                formula: Formula::QuantifiedFormula {
+                                    quantification: Quantification { quantifier: Quantifier::Forall, variables: vec![Variable {name: "N".to_string(), sort: Sort::Integer}] },
+                                    formula: Formula::BinaryFormula {
+                                        connective: BinaryConnective::Implication,
+                                        lhs: Formula::AtomicFormula(AtomicFormula::Comparison(Comparison { term: GeneralTerm::IntegerTerm(IntegerTerm::Variable("N".to_string())), guards: vec![Guard { relation: Relation::GreaterEqual, term: GeneralTerm::IntegerTerm(IntegerTerm::Numeral(0)) }] })).into(),
+                                        rhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                                            predicate_symbol: "p".into(),
+                                            terms: vec![GeneralTerm::IntegerTerm(IntegerTerm::Variable("N".to_string()))],
+                                        })).into(),
+                                    }.into()
+                                },
                             },
                         ],
                     },

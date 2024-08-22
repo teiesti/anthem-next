@@ -692,7 +692,7 @@ impl Task for ValidatedExternalEquivalenceTask {
                         }
                     }
                 }
-                Lemma | Definition => unreachable!(),
+                Lemma | Definition | InductiveLemma => unreachable!(),
             }
         }
 
@@ -719,7 +719,7 @@ impl Task for ValidatedExternalEquivalenceTask {
                         }
                     }
                 }
-                Lemma | Definition => unreachable!(),
+                Lemma | Definition | InductiveLemma => unreachable!(),
             }
         }
 
