@@ -71,6 +71,7 @@ pub fn main() -> Result<()> {
             no_simplify,
             no_eq_break,
             no_proof_search,
+            time_limit,
             save_problems: out_dir,
             files,
         } => {
@@ -140,7 +141,7 @@ pub fn main() -> Result<()> {
                 let mut success = true;
                 for problem in problems {
                     // TODO: Handle the error cases properly
-                    let report = Vampire.prove(problem)?;
+                    let report = Vampire { time_limit }.prove(problem)?;
                     if !matches!(report.status()?, Status::Success(Success::Theorem)) {
                         success = false;
                     }
