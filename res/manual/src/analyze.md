@@ -13,7 +13,10 @@ An edge `pq` is positive if `q` is not negated nor doubly negated.
 A program is tight if its predicate dependency graph has no cycles consisting of positive edges.
 External equivalence can only be verified automatically if the program(s) are tight.
 Anthem checks this condition automatically when `verify` is invoked.
-
+Users can check their programs for tightness with the command
+```
+    anthem analyze program.lp --property tightness
+```
 
 ## Private Recursion
 A program contains private recursion with respect to a user guide if
