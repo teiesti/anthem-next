@@ -954,7 +954,10 @@ impl AnnotatedFormula {
             role: self.role,
             direction: self.direction,
             name: self.name.clone(),
-            formula: self.formula.clone().universal_closure_with_quantifier_joining(),
+            formula: self
+                .formula
+                .clone()
+                .universal_closure_with_quantifier_joining(),
         }
     }
 
