@@ -77,7 +77,9 @@ impl Display for VampireReport {
     }
 }
 
-pub struct Vampire;
+pub struct Vampire {
+    pub time_limit: usize,
+}
 
 impl Prover for Vampire {
     type Error = VampireError;
@@ -85,7 +87,12 @@ impl Prover for Vampire {
 
     fn prove(&self, problem: Problem) -> Result<Self::Report, Self::Error> {
         let mut child = Command::new("vampire")
-            .args(["--mode", "casc"])
+            .args([
+                "--mode",
+                "casc",
+                "--time_limit",
+                &self.time_limit.to_string(),
+            ])
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
