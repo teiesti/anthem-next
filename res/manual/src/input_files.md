@@ -38,4 +38,10 @@ An annotated formula is a first-order formula from the target language annotated
 
 Valid roles are `assumption`, `spec`, `definition`, `lemma`, `inductive-lemma`.
 Valid directions are `forward`, `backward`, `universal`.
-Names are alphanumeric strings.
+In the task of proving the equivalence of a program `Π` to a specification `S`, we must derive
+1. `Π` from `S` (the `forward` direction)
+2. `S` from `Π` (the `backward` direction)
+
+Thus, a formula annotated with the `universal` direction will be used in both directions.
+Finally, names are alphanumeric strings.
+Omitting a direction defaults to `universal`, whereas omitting a name defaults to `unnamed_formula`.

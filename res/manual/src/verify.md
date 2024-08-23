@@ -19,6 +19,14 @@ Such a program represents a class of programs
 
 TODO
 
+Renaming private predicates.
+Replacing placeholders
+
+
+Verifying P amounts to confirming
+that the program implements the specification under the assumptions of the user guide, (universal direction)
+
+To verify that P posesses a certain property expressed by S, set the direction to backward
 
 ### Answer Set Equivalence
 Answer set equivalence (which asserts two programs have the same answer sets) is a special case of external equivalence.
