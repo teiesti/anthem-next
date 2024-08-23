@@ -62,7 +62,7 @@ pub enum Command {
         #[arg(long, action)]
         no_proof_search: bool,
 
-        /// The time limit in seconds to prove each conjecture passed to an ATP
+        /// The time limit in seconds to prove each problem passed to a prover
         #[arg(long, short, default_value_t = 60)]
         time_limit: usize,
 
