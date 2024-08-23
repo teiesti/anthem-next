@@ -66,6 +66,14 @@ pub enum Command {
         #[arg(long, short, default_value_t = 60)]
         time_limit: usize,
 
+        /// The number of prover instances to spawn
+        #[arg(long, short = 'n', default_value_t = 1)]
+        prover_instances: usize,
+
+        /// The number of threads each prover may use
+        #[arg(long, short = 'm', default_value_t = 1)]
+        prover_cores: usize,
+
         /// The destination directory for the problem files
         #[arg(long)]
         save_problems: Option<PathBuf>,

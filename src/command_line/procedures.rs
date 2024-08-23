@@ -72,6 +72,8 @@ pub fn main() -> Result<()> {
             no_eq_break,
             no_proof_search,
             time_limit,
+            prover_instances,
+            prover_cores,
             save_problems: out_dir,
             files,
         } => {
