@@ -1,8 +1,5 @@
 # Translation
 
-Anthem is primarily a translational tool - it transforms ASP programs into theories written in the syntax of first-order logic.
-Additional transformations within this syntax can sometimes produce theories whose classical models coincide with the stable models of the original program.
-
 ## The mini-gringo Dialect
 The mini-gringo dialect is a subset of the language supported by the answer set solver clingo.
 It has been extensively studied within the ASP literature as a theoretical language whose semantics can be formally defined via transformations into first-order theories interpreted under the semantics of here-and-there (with arithmetic).
@@ -11,7 +8,7 @@ A mini-gringo program consists of three types of rules: choice, basic, and const
 
 ```
     {H} :- B1, ..., Bn.
-    H   :- B1, ..., Bn.
+     H  :- B1, ..., Bn.
         :- B1, ..., Bn.
 ```
 
@@ -48,10 +45,58 @@ The tau* transformation is fundamental to Anthem.
 For a mini-gringo program `Π`, the HTA (here-and-there with arithmetic) models of the formula representation `τ*Π` correspond to the stable models of `Π`.
 Furthermore, additional transformations can, in certain cases, produce formula representations within the same language whose classical models capture the behavior of `Π`.
 
+Access the `τ*` transformation via the `translate` command, e.g.
+```
+    anthem translate program.lp --with tau-star
+```
 
 ## Transformations Within the Target Language
 
+The following transformations translate theories (typically) obtained from applying the `τ*` transformation to a mini-gringo program `Π` into theories whose classical models coincide with the stable models of `Π`.
+
 #### Gamma
+The gamma (`γ`) transformation (introduced by Pearce ???) and renamed Heuer's Procedure in recent literature (??) was implemented in an (unpublished?) Anthem prototype in 20?? (?).
+The implementation of this system follows the description of ??
+For a predicate `p`, a new predicate representing satisfaction in the "here" world named `hp` is introduced.
+Similarly, predicate `tp` represents satisfaction of `p` in the "there" world.
+Thus, for a theory
+```
+    forall X ( exists I$ (X = I$ and 3 < I$ < 5) -> p(X) ).
+```
+`gamma` produces
+```
+    forall X ((exists I$i (X = I$i and 3 < I$i < 5) -> hp(X)) and (exists I$i (X = I$i and 3 < I$i < 5) -> tp(X))).
+```
+Access the `gamma` transformation via the `translate` command, e.g.
+```
+    anthem translate theory.spec --with gamma
+```
+or stack it with the `τ*` command, e.g.
+```
+    anthem translate program.lp --with tau-star,gamma
+```
 
 
 #### Completion
+
+This is an implementation of an extension of Clark's Completion published in ???
+It accepts a completable theory (such as those produced by `τ*`) and produces the (first-order) completion.
+For example, the completion of the theory
+```
+    forall X ( X = 1 -> p(X) ).
+    forall X Y ( q(X,Y) -> p(X) ).
+```
+is
+```
+    forall X ( p(X) <-> X = 1 or exists Y q(X,Y) ).
+```
+
+Access the `completion` transformation via the `translate` command, e.g.
+```
+    anthem translate theory.spec --with completion
+```
+or stack it with the `τ*` command, e.g.
+```
+    anthem translate program.lp --with tau-star,completion
+```
+However, keep in mind that the original program must be tight for the models of the completion to coincide with the stable models of the program!
