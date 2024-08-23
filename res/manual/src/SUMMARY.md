@@ -8,12 +8,12 @@
 
 # Reference Guide
 - [Command Line Tool](cli.md)
-  - [translate]()
-  - [verify]()
-  - [analyze]()
+  - [translate](translate.md)
+  - [verify](verify.md)
+  - [analyze](analyze.md)
 - [Input File Format](input_files.md)
   - [Program (.lp)](program.md)
-  - [Specification (.spec)]()
+  - [Specification (.spec)](specification.md)
   - [User Guide (.ug)](guide.md)
   - [Proof Outline (.po)](outline.md)
 - [Output File Format]()
