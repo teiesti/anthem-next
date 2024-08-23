@@ -12,28 +12,6 @@ use {
     thiserror::Error,
 };
 
-impl TryFrom<fol::GeneralTerm> for fol::Variable {
-    type Error = fol::GeneralTerm;
-
-    fn try_from(term: fol::GeneralTerm) -> std::result::Result<Self, Self::Error> {
-        match term {
-            fol::GeneralTerm::Variable(v) => Ok(fol::Variable {
-                name: v,
-                sort: fol::Sort::General,
-            }),
-            fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::Variable(v)) => Ok(fol::Variable {
-                name: v,
-                sort: fol::Sort::Integer,
-            }),
-            fol::GeneralTerm::SymbolicTerm(fol::SymbolicTerm::Variable(v)) => Ok(fol::Variable {
-                name: v,
-                sort: fol::Sort::Symbol,
-            }),
-            x => Err(x),
-        }
-    }
-}
-
 // If all the conjectures are proven,
 // then all consequences can be added as axioms to the next proof step
 // A basic lemma F has conjectures [F] and consequences [F]
