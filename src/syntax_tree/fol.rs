@@ -588,6 +588,28 @@ pub struct Variable {
 
 impl_node!(Variable, Format, VariableParser);
 
+impl TryFrom<GeneralTerm> for Variable {
+    type Error = GeneralTerm;
+
+    fn try_from(term: GeneralTerm) -> std::result::Result<Self, Self::Error> {
+        match term {
+            GeneralTerm::Variable(v) => Ok(Variable {
+                name: v,
+                sort: Sort::General,
+            }),
+            GeneralTerm::IntegerTerm(IntegerTerm::Variable(v)) => Ok(Variable {
+                name: v,
+                sort: Sort::Integer,
+            }),
+            GeneralTerm::SymbolicTerm(SymbolicTerm::Variable(v)) => Ok(Variable {
+                name: v,
+                sort: Sort::Symbol,
+            }),
+            x => Err(x),
+        }
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub enum BinaryConnective {
     Conjunction,
