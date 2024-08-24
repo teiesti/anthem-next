@@ -93,7 +93,23 @@ impl Problem {
         mut self,
         annotated_formulas: impl IntoIterator<Item = AnnotatedFormula>,
     ) -> Self {
-        self.formulas.extend(annotated_formulas);
+        for anf in annotated_formulas {
+            if anf.name.is_empty() {
+                self.formulas.push(AnnotatedFormula {
+                    name: "unnamed_formula".to_string(),
+                    role: anf.role,
+                    formula: anf.formula,
+                });
+            } else if anf.name.starts_with('_') {
+                self.formulas.push(AnnotatedFormula {
+                    name: format!("f{}", anf.name),
+                    role: anf.role,
+                    formula: anf.formula,
+                });
+            } else {
+                self.formulas.push(anf);
+            }
+        }
         self
     }
 
