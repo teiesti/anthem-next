@@ -14,7 +14,12 @@ The property can be automatically verified with the command
 
 
 ## External Equivalence
+Strong equivalence is sometimes too strong of a condition.
+Sometimes we are interested in the behavior of only certain program predicates when the program is paired
+
 A mini-gringo program can contain "placeholders" which are symbolic constants that may be treated in a non-Herbrand way.
+
+
 Such a program represents a class of programs
 
 TODO
