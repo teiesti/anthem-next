@@ -1,7 +1,7 @@
 # Translation
 
 ## The mini-gringo Dialect
-The mini-gringo dialect is a subset of the language supported by the answer set solver clingo.
+The [mini-gringo](https://doi.org/10.1017/S1471068420000344) dialect is a subset of the language supported by the answer set solver [clingo](https://potassco.org/clingo/).
 It has been extensively studied within the ASP literature as a theoretical language whose semantics can be formally defined via transformations into first-order theories interpreted under the semantics of here-and-there (with arithmetic).
 
 A mini-gringo program consists of three types of rules: choice, basic, and constraint:
@@ -39,7 +39,7 @@ These lines represent equivalent ways of writing a general variable named `V`, a
 
 The transformation referred to in the literature as `tau*` (`τ*`) is a collection of transformations from mini-gringo programs into the syntax of first-order logic, taking special consideration for the fact that while an ASP term can have 0, 1, or many values, a first-order term can have only one.
 In the presence of arithmetic terms or intervals, such as `1/0` or `0..9`, this introduces translational complexities.
-Interested readers should refer to ??? for details.
+Interested readers should refer [here](https://doi.org/10.1017/S1471068420000344) for details.
 
 The tau* transformation is fundamental to Anthem.
 For a mini-gringo program `Π`, the HTA (here-and-there with arithmetic) models of the formula representation `τ*Π` correspond to the stable models of `Π`.
@@ -55,8 +55,8 @@ Access the `τ*` transformation via the `translate` command, e.g.
 The following transformations translate theories (typically) obtained from applying the `τ*` transformation to a mini-gringo program `Π` into theories whose classical models coincide with the stable models of `Π`.
 
 #### Gamma
-The gamma (`γ`) transformation (introduced by Pearce ???) and renamed Heuer's Procedure in recent literature (??) was implemented in an (unpublished?) Anthem prototype in 20?? (?).
-The implementation of this system follows the description of ??
+The gamma (`γ`) transformation ([introduced](https://doi.org/10.1017/S147106840999010X) by Pearce for propositional programs) and extended to first-order programs as [Heuer's Procedure](https://doi.org/10.1007/978-3-031-43619-2_18) was implemented in an unpublished Anthem prototype in ??.
+The implementation of this system follows the description found [here](https://doi.org/10.1007/978-3-031-43619-2_18).
 For a predicate `p`, a new predicate representing satisfaction in the "here" world named `hp` is introduced.
 Similarly, predicate `tp` represents satisfaction of `p` in the "there" world.
 Thus, for a theory
@@ -79,7 +79,7 @@ or stack it with the `τ*` command, e.g.
 
 #### Completion
 
-This is an implementation of an extension of Clark's Completion published in ???
+This is an implementation of an [extension](https://doi.org/10.1017/S147106842300039X) of [Clark's Completion](https://doi.org/10.1007/978-1-4684-3384-5_11).
 It accepts a completable theory (such as those produced by `τ*`) and produces the (first-order) completion.
 For example, the completion of the theory
 ```
