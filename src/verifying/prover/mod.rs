@@ -5,8 +5,10 @@ use {
     std::{
         fmt::{Debug, Display},
         str::FromStr,
+        sync::mpsc::channel,
     },
     thiserror::Error,
+    threadpool::ThreadPool,
 };
 
 pub mod vampire;
@@ -91,9 +93,42 @@ pub trait Report: Display + Debug + Clone {
     fn status(&self) -> Result<Status, StatusExtractionError>;
 }
 
-pub trait Prover {
-    type Report: Report;
-    type Error;
+pub trait Prover: Debug + Clone + Send + 'static {
+    type Report: Report + Send;
+    type Error: Send;
+
+    fn instances(&self) -> usize;
+
+    fn cores(&self) -> usize;
 
     fn prove(&self, problem: Problem) -> Result<Self::Report, Self::Error>;
+
+    fn prove_all(
+        &self,
+        problems: impl IntoIterator<Item = Problem> + 'static,
+    ) -> Box<dyn Iterator<Item = Result<Self::Report, Self::Error>>> {
+        if self.instances() == 1 {
+            let prover = self.clone();
+            Box::new(
+                problems
+                    .into_iter()
+                    .map(move |problem| prover.prove(problem)),
+            )
+        } else {
+            let pool = ThreadPool::new(self.instances());
+            let (tx, rx) = channel();
+
+            for problem in problems {
+                let prover = self.clone();
+                let tx = tx.clone();
+
+                pool.execute(move || {
+                    let result = prover.prove(problem);
+                    tx.send(result).unwrap();
+                })
+            }
+
+            Box::new(rx.into_iter())
+        }
+    }
 }
