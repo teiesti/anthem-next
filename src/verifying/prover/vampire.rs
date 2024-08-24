@@ -79,6 +79,7 @@ impl Display for VampireReport {
 
 pub struct Vampire {
     pub time_limit: usize,
+    pub cores: usize,
 }
 
 impl Prover for Vampire {
@@ -92,6 +93,8 @@ impl Prover for Vampire {
                 "casc",
                 "--time_limit",
                 &self.time_limit.to_string(),
+                "--cores",
+                &self.cores.to_string(),
             ])
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
