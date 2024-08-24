@@ -96,4 +96,11 @@ pub trait Prover {
     type Error;
 
     fn prove(&self, problem: Problem) -> Result<Self::Report, Self::Error>;
+
+    fn prove_all(
+        &self,
+        problems: impl IntoIterator<Item = Problem>,
+    ) -> impl IntoIterator<Item = Result<Self::Report, Self::Error>> {
+        problems.into_iter().map(|problem| self.prove(problem))
+    }
 }
