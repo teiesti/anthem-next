@@ -17,7 +17,7 @@ Users can check their programs for tightness with the command
 ```
     anthem analyze program.lp --property tightness
 ```
-It may be that a non-tight program is locally tight (see ???).
+It may be that a non-tight program is [locally tight](https://doi.org/10.1017/S147106842300039X).
 If a user is certain that their program is locally tight, then the tightness check during verification can be bypassed by providing the flag `--bypass-tightness`.
 
 ## Private Recursion
