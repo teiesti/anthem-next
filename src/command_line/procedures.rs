@@ -142,6 +142,7 @@ pub fn main() -> Result<()> {
             if !no_proof_search {
                 let prover = Vampire {
                     time_limit,
+                    instances: prover_instances,
                     cores: prover_cores,
                 };
 

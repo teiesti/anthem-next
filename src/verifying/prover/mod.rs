@@ -95,6 +95,10 @@ pub trait Prover {
     type Report: Report;
     type Error;
 
+    fn instances(&self) -> usize;
+
+    fn cores(&self) -> usize;
+
     fn prove(&self, problem: Problem) -> Result<Self::Report, Self::Error>;
 
     fn prove_all(

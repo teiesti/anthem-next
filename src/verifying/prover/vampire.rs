@@ -79,12 +79,29 @@ impl Display for VampireReport {
 
 pub struct Vampire {
     pub time_limit: usize,
+    pub instances: usize,
     pub cores: usize,
 }
 
 impl Prover for Vampire {
     type Error = VampireError;
     type Report = VampireReport;
+
+    fn instances(&self) -> usize {
+        if self.instances == 0 {
+            std::cmp::max(num_cpus::get() / self.cores(), 1)
+        } else {
+            self.instances
+        }
+    }
+
+    fn cores(&self) -> usize {
+        if self.cores == 0 {
+            num_cpus::get()
+        } else {
+            self.cores
+        }
+    }
 
     fn prove(&self, problem: Problem) -> Result<Self::Report, Self::Error> {
         let mut child = Command::new("vampire")
@@ -94,7 +111,7 @@ impl Prover for Vampire {
                 "--time_limit",
                 &self.time_limit.to_string(),
                 "--cores",
-                &self.cores.to_string(),
+                &self.cores().to_string(),
             ])
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
