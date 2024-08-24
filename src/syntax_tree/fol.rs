@@ -11,6 +11,7 @@ use {
             TheoryParser, UnaryConnectiveParser, UnaryOperatorParser, UserGuideEntryParser,
             UserGuideParser, VariableParser,
         },
+        simplifying::fol::ht::join_nested_quantifiers,
         syntax_tree::{impl_node, Node},
         verifying::problem,
     },
@@ -819,6 +820,10 @@ impl Formula {
         self.quantify(Quantifier::Forall, variables)
     }
 
+    pub fn universal_closure_with_quantifier_joining(self) -> Formula {
+        join_nested_quantifiers(self.universal_closure())
+    }
+
     pub fn rename_conflicting_symbols(self, possible_conflicts: &IndexSet<Predicate>) -> Formula {
         match self {
             Formula::AtomicFormula(a) => {
@@ -941,6 +946,18 @@ impl AnnotatedFormula {
             direction: self.direction,
             name: self.name.clone(),
             formula: self.formula.clone().universal_closure(),
+        }
+    }
+
+    pub fn universal_closure_with_quantifier_joining(&self) -> Self {
+        AnnotatedFormula {
+            role: self.role,
+            direction: self.direction,
+            name: self.name.clone(),
+            formula: self
+                .formula
+                .clone()
+                .universal_closure_with_quantifier_joining(),
         }
     }
 
