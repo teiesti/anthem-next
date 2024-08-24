@@ -337,7 +337,7 @@ impl ProofOutline {
             match anf.role {
                 fol::Role::Lemma | fol::Role::InductiveLemma => {
                     let general_lemma: GeneralLemma = anf
-                        .universal_closure()
+                        .universal_closure_with_quantifier_joining()
                         .replace_placeholders(placeholders)
                         .try_into()?;
                     match anf.direction {

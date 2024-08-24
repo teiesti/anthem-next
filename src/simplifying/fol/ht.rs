@@ -112,7 +112,7 @@ fn remove_idempotences(formula: Formula) -> Formula {
     }
 }
 
-fn join_nested_quantifiers(formula: Formula) -> Formula {
+pub(crate) fn join_nested_quantifiers(formula: Formula) -> Formula {
     // Remove nested quantifiers
     // e.g. q X ( q Y F(X,Y) ) => q X Y F(X,Y)
 
