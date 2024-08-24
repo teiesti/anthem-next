@@ -140,25 +140,65 @@ pub fn main() -> Result<()> {
             }
 
             if !no_proof_search {
+                let prover = Vampire {
+                    time_limit,
+                    cores: prover_cores,
+                };
+
+                let problems = problems.into_iter().inspect(|problem| {
+                    println!("> Proving {}...", problem.name);
+                    println!("Axioms:");
+                    for axiom in problem.axioms() {
+                        println!("    {}", axiom.formula);
+                    }
+                    println!();
+                    println!("Conjectures:");
+                    for conjecture in problem.conjectures() {
+                        println!("    {}", conjecture.formula);
+                    }
+                    println!();
+                });
+
                 let mut success = true;
-                for problem in problems {
-                    // TODO: Handle the error cases properly
-                    let report = Vampire {
-                        time_limit,
-                        cores: prover_cores,
+                for result in prover.prove_all(problems) {
+                    match result {
+                        Ok(report) => match report.status() {
+                            Ok(status) => {
+                                println!(
+                                    "> Proving {} ended with a SZS status",
+                                    report.problem.name
+                                );
+                                println!("Status: {status}");
+                                if !matches!(status, Status::Success(Success::Theorem)) {
+                                    success = false;
+                                }
+                            }
+                            Err(error) => {
+                                println!(
+                                    "> Proving {} ended without a SZS status",
+                                    report.problem.name
+                                );
+                                println!("Output/stdout:");
+                                println!("{}", report.output.stdout);
+                                println!("Output/stderr:");
+                                println!("{}", report.output.stderr);
+                                println!("Error: {error}");
+                                success = false;
+                            }
+                        },
+                        Err(error) => {
+                            println!("> Proving {} ended with an error", "<a problem>"); // TODO: Get the name of the problem
+                            println!("Error: {error}");
+                            success = false;
+                        }
                     }
-                    .prove(problem)?;
-                    if !matches!(report.status()?, Status::Success(Success::Theorem)) {
-                        success = false;
-                    }
-                    println!("{report}");
+                    println!();
                 }
 
-                println!("--- Summary ---");
                 if success {
-                    println!("Success! Anthem found a proof of equivalence.");
+                    println!("> Success! Anthem found a proof of equivalence.")
                 } else {
-                    println!("Failure! Anthem was unable to find a proof of equivalence.");
+                    println!("> Failure! Anthem was unable to find a proof of equivalence.")
                 }
             }
 
