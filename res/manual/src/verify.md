@@ -1,6 +1,8 @@
 # Verification
 The `verify` command uses the ATP `vampire` to automatically verify that some form of equivalence holds between two programs, or between a program and a target language specification.
 These equivalence types are described below.
+By default, Anthem verifies equivalence - this can also be specified by adding the `--direction universal` flag.
+To verify one implication of the equivalence (e.g. `->`) add the `--direction forward` flag (conversely, the `--direction backward` flag for `<-`).
 
 
 ## Strong Equivalence
@@ -15,23 +17,50 @@ The property can be automatically verified with the command
 
 ## External Equivalence
 Strong equivalence is sometimes too strong of a condition.
-Sometimes we are interested in the behavior of only certain program predicates when the program is paired
+Sometimes we are interested in the behavior of only certain program predicates when the program is paired with a user guide defining the context in which the program should be used.
+This is referred to as "external behavior."
+A precise definition of external behavior equivalence can be found in ???
 
-A mini-gringo program can contain "placeholders" which are symbolic constants that may be treated in a non-Herbrand way.
+As an example, consider the programs
+```
+    composite(I*J) :- I > 1, J > 1.
+    prime(I) :- I = 2..n, not composite(I).
+```
+and
+```
+    composite(I*J) :- I = 2..n, J = 2..n.
+    prime(I) :- I = 2..n, not composite(I).
+```
+paired with the user guide
+```
+    input: n -> integer.
+    output: prime/1.
+```
+This user guide indicates that `n` is a placeholder - that is, `n` is a symbolic constant that may be treated in a non-Herbrand way.
+Specifically, `n` is to be interpreted as an integer.
+The second line of the user guide declares that the external behavior of these programs is defined by the extent of the `prime/1` predicate.
+If these extents coincide for all interpretations that interpret `n` as an integer, then we consider the programs externally equivalent.
 
+Anthem can verify this claim automatically with the command
+```
+    anthem verify --equivalence external <SPECIFICATION> <PROGRAM> <USER GUIDE> --direction universal
+```
+This amounts to confirming that the program implements the specification under the assumptions of the user guide.
 
-Such a program represents a class of programs
+Note that the `universal` direction is the default, and may be dropped.
+To verify that the program posesses a certain property expressed by the specification, set the direction to backward (`--direction backward`).
+To verify that the program's external behavior is a consequence of the specification, set the direction to forward (`--direction forward`).
 
-TODO
+##### Renaming Private Predicates
+In the example above, `prime/1` is a public predicate, and both definitions of `composite/1` are private predicates.
+The predicates named `composite/1` are two different predicates, but they have conflicting names.
+In such a case, the conflicting predicate from the program is renamed with an `_p`, e.g. `composite_p/1`.
 
-Renaming private predicates.
-Replacing placeholders
+##### Replacing Placeholders
+Syntactically, `n` is a symbolic constant, but it has been paired with a user specifying that it should be interpreted as an integer.
+However, the standard interpretations of interest interpret symbolic constants and numerals as themselves.
+Thus
 
-
-Verifying P amounts to confirming
-that the program implements the specification under the assumptions of the user guide, (universal direction)
-
-To verify that P posesses a certain property expressed by S, set the direction to backward
 
 ### Answer Set Equivalence
 Answer set equivalence (which asserts two programs have the same answer sets) is a special case of external equivalence.
