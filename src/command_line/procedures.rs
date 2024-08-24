@@ -143,7 +143,11 @@ pub fn main() -> Result<()> {
                 let mut success = true;
                 for problem in problems {
                     // TODO: Handle the error cases properly
-                    let report = Vampire { time_limit }.prove(problem)?;
+                    let report = Vampire {
+                        time_limit,
+                        cores: prover_cores,
+                    }
+                    .prove(problem)?;
                     if !matches!(report.status()?, Status::Success(Success::Theorem)) {
                         success = false;
                     }
