@@ -188,7 +188,7 @@ pub fn main() -> Result<()> {
                             }
                         },
                         Err(error) => {
-                            println!("> Proving {} ended with an error", "<a problem>"); // TODO: Get the name of the problem
+                            println!("> Proving <a problem> ended with an error"); // TODO: Get the name of the problem
                             println!("Error: {error}");
                             success = false;
                         }
