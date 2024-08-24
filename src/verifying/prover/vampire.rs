@@ -77,6 +77,7 @@ impl Display for VampireReport {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct Vampire {
     pub time_limit: usize,
     pub instances: usize,
