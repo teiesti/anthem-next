@@ -103,3 +103,5 @@ When equivalence breaking is enabled, Anthem turns every conjecture of the form
 into a pair of conjectures
 \\[\forall X F(X) \rightarrow G(X), \forall X G(X) \rightarrow F(X)\\]
 which are passed to `vampire` separately.
+
+TODO: cores, instances, time limits

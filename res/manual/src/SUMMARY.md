@@ -16,5 +16,5 @@
   - [Specification (.spec)](specification.md)
   - [User Guide (.ug)](guide.md)
   - [Proof Outline (.po)](outline.md)
-- [Output File Format]()
-  - [TPTP Problem (.p)]()
+- [Output File Format](output.md)
+  - [TPTP Problem (.p)](tptp.md)
