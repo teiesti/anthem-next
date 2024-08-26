@@ -82,4 +82,29 @@ The remaining relations are defined in terms of less or equal:
     tff(axiom, axiom, ![S: symbol]: p__less__(f__symbolic__(S), c__supremum__)).
 ```
 
+## Axioms Supporting External Equivalence
+The standard preamble is part of every verification task.
+Additional axioms are added to this partial axiomatization based on the problem at hand.
+
+Let `P` denote the set of problem types consisting of function constants for each placeholder in the user guide.
+Let `F` denote the set of symbolic constants (excluding placeholders) occurring anywhere in the problem.
+To ensure that each `f` in `F` satisfies the unique name assumption of Herbrand interpretations, we need a set of axioms `O` defining a total order on `F`.
+For instance, if `F` is `{a, b, c}`, then `O` is `{a < b, b < c}`.
+Note that `a < c` is a consequence of the transitivity axiom of the preamble.
+Additionally, we need a type declaration for every predicate in the problem (denote this set of declarations as `R`).
+We extend the standard preamble with \\(P \cup F \cup O \cup R\\).
+For example, for a problem containing an integer placeholder `k$`, symbolic constants `a` and `c`, and predicates `p/2` and `q/1`, we add the axioms
+```
+    tff(type, type, k$i: $int).
+    tff(type, type, a: symbol).
+    tff(type, type, c: symbol).
+    tff(symbolic_constant_order, axiom, p__less__(f__symbolic__(a), f__symbolic__(c))).
+    tff(predicate_0, type, p: (general * general) > $o).
+    tff(predicate_1, type, q: (general) > $o).
+```
+
 ## Axioms Supporting Strong Equivalence
+Since strong equivalence does not support user guides or placeholders, the standard preamble is extended with \\(F \cup O \cup R\\) instead.
+Additionally, we need axioms representing the ordering between the `here` and `there` worlds.
+Thus, for a pair of predicates `(hp, tp)` we add the axiom
+\\[hp \rightarrow tp\\]
