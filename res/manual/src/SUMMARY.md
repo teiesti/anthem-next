@@ -18,3 +18,5 @@
   - [Proof Outline (.po)](outline.md)
 - [Output File Format](output.md)
   - [TPTP Problem (.p)](tptp.md)
+- [Additional Help](help.md)
+  - [Absolute Lemmas](lemmas.md)

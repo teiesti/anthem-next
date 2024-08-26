@@ -63,8 +63,22 @@ Thus, in an external equivalence verification task, we replace every occurrence 
 This applies to all files involved: programs, specifications, user guides, and proof outlines.
 Thus, while running the example above, you could expect to see such output as
 ```
-tbd
+> Proving forward_problem_0...
+Axioms:
+    forall V1 (composite(V1) <-> exists I J (exists I1$i J1$i (V1 = I1$i * J1$i and I1$i = I and J1$i = J) and (exists Z Z1 (Z = I and Z1 = 1 and Z > Z1) and exists Z Z1 (Z = J and Z1 = 1 and Z > Z1))))
+    forall V1 (composite_p(V1) <-> exists I J (exists I1$i J1$i (V1 = I1$i * J1$i and I1$i = I and J1$i = J) and (exists Z Z1 (Z = I and exists I$i J$i K$i (I$i = 2 and J$i = n$i and Z1 = K$i and I$i <= K$i <= J$i) and Z = Z1) and exists Z Z1 (Z = J and exists I$i J$i K$i (I$i = 2 and J$i = n$i and Z1 = K$i and I$i <= K$i <= J$i) and Z = Z1))))
+    forall V1 (prime(V1) <-> exists I (V1 = I and (exists Z Z1 (Z = I and exists I$i J$i K$i (I$i = 2 and J$i = n$i and Z1 = K$i and I$i <= K$i <= J$i) and Z = Z1) and exists Z (Z = I and not composite(Z)))))
+
+Conjectures:
+    forall V1 (prime(V1) -> exists I (V1 = I and (exists Z Z1 (Z = I and exists I$i J$i K$i (I$i = 2 and J$i = n$i and Z1 = K$i and I$i <= K$i <= J$i) and Z = Z1) and exists Z (Z = I and not composite_p(Z)))))
+> Status:
+    Theorem
 ```
+
+for each problem.
+The (problem name, axioms, conjecture) triple is printed as soon as the ATP is invoked, and the status (indicating if the ATP proved the conjecture from the axioms successfully) is printed once the ATP invocation returns.
+If all the problems are proven (Theorem status) then Anthem reports success on the verification task.
+
 
 
 ### Answer Set Equivalence
@@ -104,4 +118,7 @@ into a pair of conjectures
 \\[\forall X F(X) \rightarrow G(X), \forall X G(X) \rightarrow F(X)\\]
 which are passed to `vampire` separately.
 
-TODO: cores, instances, time limits
+Anthem can parallelize at the problem level with the `--prover-instances` (`-n`) argument - this determines how many instances of the backend ATP are invoked.
+It can also pass parallelism arguments to the ATP.
+`--prover-cores` (`-m`) determines how many threads each ATP instance can use.
+The `--time-limt` flag (`-t`) is the time limit in seconds to prove each problem passed to an ATP.
