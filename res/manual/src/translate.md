@@ -55,7 +55,7 @@ Access the `τ*` transformation via the `translate` command, e.g.
 The following transformations translate theories (typically) obtained from applying the `τ*` transformation to a mini-gringo program `Π` into theories whose classical models coincide with the stable models of `Π`.
 
 #### Gamma
-The gamma (`γ`) transformation ([introduced](https://doi.org/10.1017/S147106840999010X) by Pearce for propositional programs) and extended to first-order programs as [Heuer's Procedure](https://doi.org/10.1007/978-3-031-43619-2_18) was implemented in an unpublished Anthem prototype in ??.
+The gamma (`γ`) transformation ([introduced](https://doi.org/10.1017/S147106840999010X) by Pearce for propositional programs) and extended to first-order programs in [Heuer's Procedure](https://doi.org/10.1007/978-3-031-43619-2_18) was implemented in an unpublished Anthem prototype.
 The implementation of this system follows the description found [here](https://doi.org/10.1007/978-3-031-43619-2_18).
 For a predicate `p`, a new predicate representing satisfaction in the "here" world named `hp` is introduced.
 Similarly, predicate `tp` represents satisfaction of `p` in the "there" world.
