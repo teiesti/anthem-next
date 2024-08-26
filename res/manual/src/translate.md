@@ -71,10 +71,10 @@ Access the `gamma` transformation via the `translate` command, e.g.
 ```
     anthem translate theory.spec --with gamma
 ```
-or stack it with the `τ*` command, e.g.
+<!-- or stack it with the `τ*` command, e.g.
 ```
     anthem translate program.lp --with tau-star,gamma
-```
+``` -->
 
 
 #### Completion
@@ -95,8 +95,8 @@ Access the `completion` transformation via the `translate` command, e.g.
 ```
     anthem translate theory.spec --with completion
 ```
-or stack it with the `τ*` command, e.g.
+<!-- or stack it with the `τ*` command, e.g.
 ```
     anthem translate program.lp --with tau-star,completion
-```
+``` -->
 However, keep in mind that the original program must be tight for the models of the completion to coincide with the stable models of the program!
