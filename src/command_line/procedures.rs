@@ -205,5 +205,14 @@ pub fn main() -> Result<()> {
 
             Ok(())
         }
+
+        Command::Tighten { input } => {
+            let program = input.map_or_else(asp::Program::from_stdin, asp::Program::from_file)?;
+            let tightened = program.tighten();
+
+            println!("{tightened}");
+
+            Ok(())
+        }
     }
 }

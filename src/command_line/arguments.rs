@@ -22,6 +22,12 @@ pub enum Command {
         input: Option<PathBuf>,
     },
 
+    /// Tighten a logic program
+    Tighten {
+        /// The program to tighten
+        input: Option<PathBuf>,
+    },
+
     /// Translate a given answer set program or first-order theory
     Translate {
         /// The translation to use
