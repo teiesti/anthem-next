@@ -40,7 +40,7 @@ would be
 
 ### Input & Output Predicates
 
-Input and output predicates are public predicates - all other predicates are considered private to the program.
+Input and output predicates are public predicates -- all other predicates are considered private to the program.
 Input predicates are those predicates by which input data for the program are encoded.
 For example, the graph coloring program expects a set of `edge/2` and `vertex/1` facts encoding a graph and a set of colors (`color/1` facts) thus we pair that program with the user guide
 

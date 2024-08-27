@@ -12,7 +12,7 @@ A mini-gringo program consists of three types of rules: choice, basic, and const
         :- B1, ..., Bn.
 ```
 
-where H is an atom and each Bi is a singly, doubly, or non-negated atom or comparison.
+where `H` is an atom and each `Bi` is a singly, doubly, or non-negated atom or comparison.
 
 
 ## The Target Language
@@ -100,3 +100,4 @@ Access the `completion` transformation via the `translate` command, e.g.
     anthem translate program.lp --with tau-star,completion
 ``` -->
 However, keep in mind that the original program must be tight for the models of the completion to coincide with the stable models of the program!
+This property is not checked automatically during translation.

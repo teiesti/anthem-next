@@ -107,4 +107,4 @@ For example, for a problem containing an integer placeholder `k$`, symbolic cons
 Since strong equivalence does not support user guides or placeholders, the standard preamble is extended with \\(F \cup O \cup R\\) instead.
 Additionally, we need axioms representing the ordering between the `here` and `there` worlds.
 Thus, for a pair of predicates `(hp, tp)` we add the axiom
-\\[hp \rightarrow tp\\]
+\\[\widetilde{\forall} (hp \rightarrow tp) \\]

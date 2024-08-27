@@ -16,7 +16,7 @@ For example,
     inductive-lemma: forall N$i (N$i >= 0 -> q(N$i)).
 ```
 
-These formulas can be annotated with any direction - it is the responsibility of the programmer to ensure that the claims they formulate make sense.
+These formulas can be annotated with any direction -- it is the responsibility of the programmer to ensure that the claims they formulate make sense.
 In the example above, the universal definition of `p/1` will be used as an axiom for deriving the program from the specification, and for deriving the specification from the program.
 The inductive lemma will be proved first in both directions of the proof, and used as an axiom in subsequent steps.
 The lemma will only be used in the forward direction: first, the lemma will be derived from the specification, then the lemma and the specification will be used as axioms for deriving the program.
