@@ -964,7 +964,8 @@ mod tests {
             ("{p}.", "#true and not not p -> p."),
             ("{p(5)}.", "forall V1 (V1 = 5 and #true and not not p(V1) -> p(V1))."),
             ("p. q.", "#true -> p. #true -> q."),
-            ("{ra(X,a)} :- ta(X). ra(5,a).", "forall V1 V2 X (V1 = X and V2 = a and exists Z (Z = X and ta(Z)) and not not ra(V1, V2) -> ra(V1, V2)). forall V1 V2 (V1 = 5 and V2 = a and #true -> ra(V1, V2)).")
+            ("{ra(X,a)} :- ta(X). ra(5,a).", "forall V1 V2 X (V1 = X and V2 = a and exists Z (Z = X and ta(Z)) and not not ra(V1, V2) -> ra(V1, V2)). forall V1 V2 (V1 = 5 and V2 = a and #true -> ra(V1, V2))."),
+            ("p(X/2) :- X=4.", "forall V1 X (exists I$i J$i Q$i R$i (I$i = J$i * Q$i + R$i and (I$i = X and J$i = 2) and (J$i != 0 and R$i >= 0 and R$i < J$i) and V1 = Q$i) and exists Z Z1 (Z = X and Z1 = 4 and Z = Z1) -> p(V1))."),
         ] {
             let left = tau_star(src.parse().unwrap());
             let right = target.parse().unwrap();
