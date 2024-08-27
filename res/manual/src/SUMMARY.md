@@ -20,3 +20,5 @@
   - [TPTP Problem (.p)](tptp.md)
 - [Additional Help](help.md)
   - [Absolute Lemmas](lemmas.md)
+  - [Reporting Bugs](reporting.md)
+  - [Contributors](contributors.md)

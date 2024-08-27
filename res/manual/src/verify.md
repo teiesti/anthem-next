@@ -1,8 +1,8 @@
 # Verification
 The `verify` command uses the ATP [vampire](https://vprover.github.io/) to automatically verify that some form of equivalence holds between two programs, or between a program and a target language specification.
 These equivalence types are described below.
-By default, Anthem verifies equivalence - this can also be specified by adding the `--direction universal` flag.
-To verify one implication of the equivalence (e.g. `->`) add the `--direction forward` flag (conversely, the `--direction backward` flag for `<-`).
+By default, Anthem verifies equivalence -- this can also be specified by adding the `--direction universal` flag.
+To verify one implication of the equivalence (e.g. \\(\rightarrow\\)) add the `--direction forward` flag (conversely, the `--direction backward` flag for \\(\leftarrow\\)).
 
 
 ## Strong Equivalence
@@ -35,7 +35,7 @@ paired with the user guide
     input: n -> integer.
     output: prime/1.
 ```
-This user guide indicates that `n` is a placeholder - that is, `n` is a symbolic constant that may be treated in a non-Herbrand way.
+This user guide indicates that `n` is a placeholder -- that is, `n` is a symbolic constant that may be treated in a non-Herbrand way.
 Specifically, `n` is to be interpreted as an integer.
 The second line of the user guide declares that the external behavior of these programs is defined by the extent of the `prime/1` predicate.
 If these extents coincide for all interpretations that interpret `n` as an integer, then we consider the programs externally equivalent.
@@ -51,12 +51,24 @@ Note that the `universal` direction is the default, and may be dropped.
 To verify that the program posesses a certain property expressed by the specification, set the direction to backward (`--direction backward`).
 To verify that the program's external behavior is a consequence of the specification, set the direction to forward (`--direction forward`).
 
-##### Renaming Private Predicates
+#### Tightness and Private Recursion
+External equivalence can only be verified automatically if the program(s) are tight.
+Anthem checks this condition by default when `verify` is invoked.
+It may be that a non-tight program is [locally tight](https://doi.org/10.1017/S147106842300039X).
+If a user is certain that their program is locally tight, then the tightness check can be bypassed by providing the flag `--bypass-tightness`.
+
+A program contains private recursion with respect to a user guide if
+* its predicate dependency graph has a cycle such that every vertex in it is a private symbol or
+* it includes a choice rule with a private symbol in the head.
+During external equivalence verification, any logic program is subjected to a test for private recursion and rejected if it occurs.
+This step cannot be bypassed.
+
+#### Renaming Private Predicates
 In the example above, `prime/1` is a public predicate, and both definitions of `composite/1` are private predicates.
 The predicates named `composite/1` are two different predicates, but they have conflicting names.
 In such a case, the conflicting predicate from the program is renamed with an `_p`, e.g. `composite_p/1`.
 
-##### Replacing Placeholders
+#### Replacing Placeholders
 Syntactically, `n` is a symbolic constant, but it has been paired with a user guide specifying that it should be interpreted as an integer.
 However, the standard interpretations of interest interpret symbolic constants and numerals as themselves.
 Thus, in an external equivalence verification task, we replace every occurrence of a symbolic constant `n` with an integer-sorted function constant named `n`, e.g. `n$i`.
@@ -118,7 +130,7 @@ into a pair of conjectures
 \\[\forall X F(X) \rightarrow G(X), \forall X G(X) \rightarrow F(X)\\]
 which are passed to `vampire` separately.
 
-Anthem can parallelize at the problem level with the `--prover-instances` (`-n`) argument - this determines how many instances of the backend ATP are invoked.
+Anthem can parallelize at the problem level with the `--prover-instances` (`-n`) argument -- this determines how many instances of the backend ATP are invoked.
 It can also pass parallelism arguments to the ATP.
 `--prover-cores` (`-m`) determines how many threads each ATP instance can use.
-The `--time-limt` flag (`-t`) is the time limit in seconds to prove each problem passed to an ATP.
+The `--time-limit` flag (`-t`) is the time limit in seconds to prove each problem passed to an ATP.
