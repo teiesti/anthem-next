@@ -8,6 +8,14 @@ Check out the [Manual](https://potassco.org/anthem/) to learn how to install and
 If you want to use `anthem` as a library to build your own application, you can do so.
 Check out the [API documentation](https://docs.rs/anthem/) for the available functionalities.
 
+## Where's anthem 1?
+
+You're currently looking at version 2 of `anthem`, which is the latest version and the only one that is actively developed.
+This is a complete reimplementation crafted by Zach Hansen and Tobias Stolzmann.
+
+Until recently, you would have found Patrick Lühne's version 1 here, which was discontinued and therefore moved to [anthem-1](https://github.com/potassco/anthem-1).
+We'd like to thank Patrick for the effort he put into his implementation and the kindness of resolving the naming conflict with us.
+
 ## License
 
 `anthem` is distributed under the terms of the MIT license.
