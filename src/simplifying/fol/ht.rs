@@ -24,6 +24,7 @@ pub fn simplify_formula(formula: Formula) -> Formula {
         Box::new(remove_idempotences),
         Box::new(join_nested_quantifiers),
         Box::new(extend_quantifier_scope),
+        Box::new(restrict_quantifier_domain),
         Box::new(simplify_variable_lists),
         Box::new(simplify_empty_quantifiers),
     ])
