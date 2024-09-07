@@ -419,6 +419,12 @@ impl Comparison {
                 .collect(),
         }
     }
+
+    pub fn equality_comparison(&self) -> bool {
+        let guards = &self.guards;
+        let first = &guards[0];
+        guards.len() == 1 && first.relation == Relation::Equal
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
@@ -666,6 +672,24 @@ impl Formula {
                 rhs: e.into(),
             })
             .unwrap_or_else(|| Formula::AtomicFormula(AtomicFormula::Truth))
+    }
+
+    /// Inverse function to conjoin
+    pub fn conjoin_invert(formula: Formula) -> Vec<Formula> {
+        match formula {
+            Formula::BinaryFormula {
+                connective: BinaryConnective::Conjunction,
+                lhs,
+                rhs,
+            } => {
+                let mut formulas = Self::conjoin_invert(*lhs);
+                formulas.append(&mut Self::conjoin_invert(*rhs));
+                formulas
+            }
+            _ => {
+                vec![formula]
+            }
+        }
     }
 
     /// Recursively turn a list of formulas into a tree of disjunctions
