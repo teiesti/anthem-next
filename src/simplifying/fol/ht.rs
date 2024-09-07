@@ -1,12 +1,13 @@
 use {
-    super::{replacement_helper, simplify_conjunction_tree_with_equality},
+    super::{replacement_helper, simplify_conjunction_tree_with_equality, transitive_equality},
     crate::{
         convenience::{
             apply::Apply as _,
             unbox::{fol::UnboxedFormula, Unbox as _},
         },
         syntax_tree::fol::{
-            AtomicFormula, BinaryConnective, Formula, Quantification, Quantifier, Sort, Theory,
+            AtomicFormula, BinaryConnective, Formula, GeneralTerm, IntegerTerm, Quantification,
+            Quantifier, Sort, SymbolicTerm, Theory,
         },
     },
 };
@@ -25,6 +26,11 @@ pub fn simplify_formula(formula: Formula) -> Formula {
         Box::new(join_nested_quantifiers),
         Box::new(extend_quantifier_scope),
         Box::new(restrict_quantifier_domain),
+        // cleanup
+        Box::new(simplify_variable_lists),
+        Box::new(simplify_empty_quantifiers),
+        Box::new(simplify_transitive_equality),
+        // cleanup
         Box::new(simplify_variable_lists),
         Box::new(simplify_empty_quantifiers),
     ])
@@ -501,13 +507,102 @@ pub fn eliminate_redundant_quantifiers(formula: Formula) -> Formula {
     }
 }
 
+pub fn simplify_transitive_equality(formula: Formula) -> Formula {
+    match formula.clone().unbox() {
+        // When X is a subsort of Y (or sort(X) = sort(Y)) and t is a term:
+        // exists X Y (X = t and Y = t and F)
+        // =>
+        // exists X (X = t and F(X))
+        // Replace Y with X within F
+        UnboxedFormula::QuantifiedFormula {
+            quantification:
+                Quantification {
+                    quantifier: Quantifier::Exists,
+                    mut variables,
+                },
+            formula: f,
+        } => match f.clone().unbox() {
+            UnboxedFormula::BinaryFormula {
+                connective: BinaryConnective::Conjunction,
+                ..
+            } => {
+                let mut simplified = formula.clone();
+                let mut simplify = false;
+                let conjunctive_terms = Formula::conjoin_invert(f.clone());
+                let mut ct_copy = conjunctive_terms.clone();
+                for (i, ct1) in conjunctive_terms.iter().enumerate() {
+                    // Search for an equality formula
+                    if let Formula::AtomicFormula(AtomicFormula::Comparison(c1)) = ct1 {
+                        if c1.equality_comparison() {
+                            for (j, ct2) in conjunctive_terms.iter().enumerate() {
+                                // Search for a second equality formula
+                                if let Formula::AtomicFormula(AtomicFormula::Comparison(c2)) = ct2 {
+                                    if c2.equality_comparison() && i != j {
+                                        if let Some((keep_var, drop_var, drop_term)) =
+                                            transitive_equality(
+                                                c1.clone(),
+                                                c2.clone(),
+                                                variables.clone(),
+                                            )
+                                        {
+                                            variables.retain(|x| x != &drop_var);
+                                            ct_copy.retain(|t| {
+                                                t != &Formula::AtomicFormula(
+                                                    AtomicFormula::Comparison(drop_term.clone()),
+                                                )
+                                            });
+                                            let keep = match keep_var.sort {
+                                                Sort::General => {
+                                                    GeneralTerm::Variable(keep_var.name)
+                                                }
+                                                Sort::Integer => GeneralTerm::IntegerTerm(
+                                                    IntegerTerm::Variable(keep_var.name),
+                                                ),
+                                                Sort::Symbol => GeneralTerm::SymbolicTerm(
+                                                    SymbolicTerm::Variable(keep_var.name),
+                                                ),
+                                            };
+                                            let inner = Formula::conjoin(ct_copy.clone())
+                                                .substitute(drop_var, keep);
+                                            simplified = Formula::QuantifiedFormula {
+                                                quantification: Quantification {
+                                                    quantifier: Quantifier::Exists,
+                                                    variables: variables.clone(),
+                                                },
+                                                formula: inner.into(),
+                                            };
+                                            simplify = true;
+                                        }
+                                    }
+                                }
+                                if simplify {
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    if simplify {
+                        break;
+                    }
+                }
+                simplified
+            }
+
+            _ => formula,
+        },
+
+        x => x.rebox(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use {
         super::{
             eliminate_redundant_quantifiers, extend_quantifier_scope, join_nested_quantifiers,
             remove_annihilations, remove_idempotences, remove_identities,
-            simplify_empty_quantifiers, simplify_formula, simplify_variable_lists,
+            simplify_empty_quantifiers, simplify_formula, simplify_transitive_equality,
+            simplify_variable_lists,
         },
         crate::{
             convenience::apply::Apply as _, simplifying::fol::ht::restrict_quantifier_domain,
@@ -729,6 +824,18 @@ mod tests {
         ] {
             let src =
                 simplify_empty_quantifiers(eliminate_redundant_quantifiers(src.parse().unwrap()));
+            let target = target.parse().unwrap();
+            assert_eq!(src, target, "{src} != {target}")
+        }
+    }
+
+    #[test]
+    fn test_simplify_transitive_equality() {
+        for (src, target) in [(
+            "exists X Y Z ( X = 5 and Y = 5 and not p(X,Y))",
+            "exists X Z ( X = 5 and not p(X,X))",
+        )] {
+            let src = simplify_transitive_equality(src.parse().unwrap());
             let target = target.parse().unwrap();
             assert_eq!(src, target, "{src} != {target}")
         }

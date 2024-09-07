@@ -4,6 +4,24 @@ pub mod with_warnings;
 
 use {crate::syntax_tree::fol, indexmap::IndexSet};
 
+/// True if v1 is subsorteq to v2 and False otherwise
+pub fn subsort(v1: &fol::Variable, v2: &fol::Variable) -> bool {
+    match v1.sort {
+        fol::Sort::General => match v2.sort {
+            fol::Sort::General => true,
+            fol::Sort::Integer | fol::Sort::Symbol => false,
+        },
+        fol::Sort::Integer => match v2.sort {
+            fol::Sort::General | fol::Sort::Integer => true,
+            fol::Sort::Symbol => false,
+        },
+        fol::Sort::Symbol => match v2.sort {
+            fol::Sort::General | fol::Sort::Symbol => true,
+            fol::Sort::Integer => false,
+        },
+    }
+}
+
 /// Choose `arity` variable names by incrementing `variant`, disjoint from `variables`
 pub fn choose_fresh_variable_names(
     variables: &IndexSet<fol::Variable>,
