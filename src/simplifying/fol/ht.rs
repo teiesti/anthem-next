@@ -12,7 +12,7 @@ pub fn simplify(theory: Theory) -> Theory {
     }
 }
 
-fn simplify_formula(formula: Formula) -> Formula {
+pub fn simplify_formula(formula: Formula) -> Formula {
     formula.apply_all(&mut vec![
         Box::new(remove_identities),
         Box::new(remove_annihilations),
@@ -21,7 +21,7 @@ fn simplify_formula(formula: Formula) -> Formula {
     ])
 }
 
-fn remove_identities(formula: Formula) -> Formula {
+pub fn remove_identities(formula: Formula) -> Formula {
     // Remove identities
     // e.g. F op E => F
 
@@ -58,7 +58,7 @@ fn remove_identities(formula: Formula) -> Formula {
     }
 }
 
-fn remove_annihilations(formula: Formula) -> Formula {
+pub fn remove_annihilations(formula: Formula) -> Formula {
     // Remove annihilations
     // e.g. F op E => E
 
@@ -95,7 +95,7 @@ fn remove_annihilations(formula: Formula) -> Formula {
     }
 }
 
-fn remove_idempotences(formula: Formula) -> Formula {
+pub fn remove_idempotences(formula: Formula) -> Formula {
     // Remove idempotences
     // e.g. F op F => F
 
@@ -112,7 +112,7 @@ fn remove_idempotences(formula: Formula) -> Formula {
     }
 }
 
-pub(crate) fn join_nested_quantifiers(formula: Formula) -> Formula {
+pub fn join_nested_quantifiers(formula: Formula) -> Formula {
     // Remove nested quantifiers
     // e.g. q X ( q Y F(X,Y) ) => q X Y F(X,Y)
 
