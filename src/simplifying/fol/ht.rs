@@ -19,6 +19,8 @@ pub fn simplify_formula(formula: Formula) -> Formula {
         Box::new(remove_idempotences),
         Box::new(join_nested_quantifiers),
         Box::new(extend_quantifier_scope),
+        Box::new(simplify_variable_lists),
+        Box::new(simplify_empty_quantifiers),
     ])
 }
 
@@ -230,12 +232,59 @@ pub fn extend_quantifier_scope(formula: Formula) -> Formula {
     }
 }
 
+pub fn simplify_variable_lists(formula: Formula) -> Formula {
+    match formula.clone().unbox() {
+        // Removes variables from quantifiers when they do not occur in the quantified formula
+        // e.g. exists X Y ( q(Y) ) => exists Y ( q(Y) )
+        UnboxedFormula::QuantifiedFormula {
+            quantification:
+                Quantification {
+                    mut variables,
+                    quantifier,
+                },
+            formula,
+        } => {
+            let fvars = formula.variables();
+            variables.retain(|x| fvars.contains(x));
+            Formula::QuantifiedFormula {
+                quantification: Quantification {
+                    variables,
+                    quantifier,
+                },
+                formula: formula.into(),
+            }
+        }
+
+        x => x.rebox(),
+    }
+}
+
+pub fn simplify_empty_quantifiers(formula: Formula) -> Formula {
+    match formula.clone().unbox() {
+        // Remove quantifiers with no variables
+        // e.g. exists ( F ) => F
+        UnboxedFormula::QuantifiedFormula {
+            quantification: Quantification { variables, .. },
+            formula: f,
+        } => {
+            if variables.is_empty() {
+                f
+            } else {
+                formula
+            }
+        }
+
+        x => x.rebox(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use {
         super::{
             extend_quantifier_scope, join_nested_quantifiers, remove_annihilations,
-            remove_idempotences, remove_identities, simplify_formula,
+            remove_idempotences, remove_identities, simplify_empty_quantifiers, simplify_formula,
+            simplify_variable_lists,
         },
         crate::{convenience::apply::Apply as _, syntax_tree::fol::Formula},
     };
@@ -356,6 +405,35 @@ mod tests {
             let result = extend_quantifier_scope(src.parse().unwrap());
             let target = target.parse().unwrap();
             assert_eq!(result, target, "{result} != {target}")
+        }
+    }
+
+    #[test]
+    fn test_simplify_variable_lists() {
+        for (src, target) in [
+            (
+                "exists X Y ( q or (t and q(Y)))",
+                "exists Y ( q or (t and q(Y)))",
+            ),
+            (
+                "exists Y V ( q or forall X (t(Y) and q(X)))",
+                "exists Y ( q or forall X (t(Y) and q(X)))",
+            ),
+        ] {
+            assert_eq!(
+                simplify_variable_lists(src.parse().unwrap()),
+                target.parse().unwrap()
+            )
+        }
+    }
+
+    #[test]
+    fn test_simplify_empty_quantifiers() {
+        for (src, target) in [("exists Y (1 < 2)", "1 < 2"), ("forall Z #true", "#true")] {
+            assert_eq!(
+                simplify_empty_quantifiers(simplify_variable_lists(src.parse().unwrap())),
+                target.parse().unwrap()
+            )
         }
     }
 }
