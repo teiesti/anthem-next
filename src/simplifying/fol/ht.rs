@@ -3,7 +3,7 @@ use crate::{
         apply::Apply as _,
         unbox::{fol::UnboxedFormula, Unbox as _},
     },
-    syntax_tree::fol::{AtomicFormula, BinaryConnective, Formula, Theory},
+    syntax_tree::fol::{AtomicFormula, BinaryConnective, Formula, Quantification, Theory},
 };
 
 pub fn simplify(theory: Theory) -> Theory {
@@ -18,6 +18,7 @@ pub fn simplify_formula(formula: Formula) -> Formula {
         Box::new(remove_annihilations),
         Box::new(remove_idempotences),
         Box::new(join_nested_quantifiers),
+        Box::new(extend_quantifier_scope),
     ])
 }
 
@@ -138,12 +139,103 @@ pub fn join_nested_quantifiers(formula: Formula) -> Formula {
     }
 }
 
+pub fn extend_quantifier_scope(formula: Formula) -> Formula {
+    match formula.clone().unbox() {
+        // Bring a conjunctive or disjunctive term into the scope of a quantifer
+        // e.g. exists X ( F(X) ) & G => exists X ( F(X) & G )
+        // where X does not occur free in G
+        UnboxedFormula::BinaryFormula {
+            connective,
+            lhs:
+                Formula::QuantifiedFormula {
+                    quantification:
+                        Quantification {
+                            quantifier,
+                            variables,
+                        },
+                    formula: f,
+                },
+            rhs,
+        } => match connective {
+            BinaryConnective::Conjunction | BinaryConnective::Disjunction => {
+                let mut collision = false;
+                for var in variables.iter() {
+                    if rhs.free_variables().contains(var) {
+                        collision = true;
+                        break;
+                    }
+                }
+
+                match collision {
+                    true => formula,
+                    false => Formula::QuantifiedFormula {
+                        quantification: Quantification {
+                            quantifier,
+                            variables,
+                        },
+                        formula: Formula::BinaryFormula {
+                            connective,
+                            lhs: f,
+                            rhs: rhs.into(),
+                        }
+                        .into(),
+                    },
+                }
+            }
+            _ => formula,
+        },
+
+        UnboxedFormula::BinaryFormula {
+            connective,
+            lhs,
+            rhs:
+                Formula::QuantifiedFormula {
+                    quantification:
+                        Quantification {
+                            quantifier,
+                            variables,
+                        },
+                    formula: f,
+                },
+        } => match connective {
+            BinaryConnective::Conjunction | BinaryConnective::Disjunction => {
+                let mut collision = false;
+                for var in variables.iter() {
+                    if lhs.free_variables().contains(var) {
+                        collision = true;
+                        break;
+                    }
+                }
+
+                match collision {
+                    true => formula,
+                    false => Formula::QuantifiedFormula {
+                        quantification: Quantification {
+                            quantifier,
+                            variables,
+                        },
+                        formula: Formula::BinaryFormula {
+                            connective,
+                            lhs: lhs.into(),
+                            rhs: f,
+                        }
+                        .into(),
+                    },
+                }
+            }
+            _ => formula,
+        },
+
+        x => x.rebox(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use {
         super::{
-            join_nested_quantifiers, remove_annihilations, remove_idempotences, remove_identities,
-            simplify_formula,
+            extend_quantifier_scope, join_nested_quantifiers, remove_annihilations,
+            remove_idempotences, remove_identities, simplify_formula,
         },
         crate::{convenience::apply::Apply as _, syntax_tree::fol::Formula},
     };
@@ -238,6 +330,32 @@ mod tests {
                     .apply(&mut join_nested_quantifiers),
                 target.parse().unwrap()
             )
+        }
+    }
+
+    #[test]
+    fn test_extend_quantification_scope() {
+        for (src, target) in [
+            (
+                "exists X (q(X) and 1 < 3) and p(Z)",
+                "exists X (q(X) and 1 < 3 and p(Z))",
+            ),
+            (
+                "exists X (q(X) and 1 < 3) and p(X)",
+                "exists X (q(X) and 1 < 3) and p(X)",
+            ),
+            (
+                "forall Z X (q(X) and 1 < Z) or p(Y,Z$)",
+                "forall Z X (q(X) and 1 < Z or p(Y,Z$))",
+            ),
+            (
+                "p(Z) and exists X (q(X) and 1 < 3)",
+                "exists X (p(Z) and (q(X) and 1 < 3))",
+            ),
+        ] {
+            let result = extend_quantifier_scope(src.parse().unwrap());
+            let target = target.parse().unwrap();
+            assert_eq!(result, target, "{result} != {target}")
         }
     }
 }
