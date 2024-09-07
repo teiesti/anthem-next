@@ -1,5 +1,5 @@
 use {
-    super::replacement_helper,
+    super::{replacement_helper, simplify_conjunction_tree_with_equality},
     crate::{
         convenience::{
             apply::Apply as _,
@@ -414,13 +414,100 @@ pub fn restrict_quantifier_domain(formula: Formula) -> Formula {
     simplified_formula
 }
 
+pub fn eliminate_redundant_quantifiers(formula: Formula) -> Formula {
+    match formula.clone().unbox() {
+        // Remove redundant existentials
+        // e.g. exists Z$g (Z$g = X$g and F(Z$g)) => F(X$g)
+        UnboxedFormula::QuantifiedFormula {
+            quantification:
+                Quantification {
+                    quantifier: Quantifier::Exists,
+                    mut variables,
+                },
+            formula: f,
+        } => match f.clone().unbox() {
+            UnboxedFormula::BinaryFormula {
+                connective: BinaryConnective::Conjunction,
+                ..
+            } => {
+                let simplification_result =
+                    simplify_conjunction_tree_with_equality(f, variables.clone());
+                match simplification_result.1 {
+                    Some(sub_pair) => {
+                        variables.retain(|v| v != &sub_pair.0);
+                        Formula::QuantifiedFormula {
+                            quantification: Quantification {
+                                quantifier: Quantifier::Exists,
+                                variables,
+                            },
+                            formula: simplification_result.0.into(),
+                        }
+                    }
+                    None => formula,
+                }
+            }
+            _ => formula,
+        },
+
+        // A universally quantified implication can sometimes be simplified
+        // e.g. forall X1 .. Xj .. Xn  (F1 and .. Fi .. and Fm -> G), where Fi is Xj=t, and Xj doesn’t occur in t, and free variables occurring in t are not bound by quantifiers in F1, F2, ..
+        // becomes forall X1 .. Xn  (F1 and .. and Fm -> G)
+        UnboxedFormula::QuantifiedFormula {
+            quantification:
+                Quantification {
+                    quantifier: Quantifier::Forall,
+                    mut variables,
+                },
+            formula:
+                Formula::BinaryFormula {
+                    connective: BinaryConnective::Implication,
+                    lhs,
+                    rhs,
+                },
+        } => match lhs.clone().unbox() {
+            UnboxedFormula::BinaryFormula {
+                connective: BinaryConnective::Conjunction,
+                ..
+            } => {
+                let mut f = formula;
+                let lhs_simplify = simplify_conjunction_tree_with_equality(*lhs, variables.clone());
+                match lhs_simplify.1 {
+                    Some(sub_pair) => {
+                        if !rhs.clone().unsafe_substitution(&sub_pair.0, &sub_pair.1) {
+                            variables.retain(|v| v != &sub_pair.0);
+                            f = Formula::QuantifiedFormula {
+                                quantification: Quantification {
+                                    quantifier: Quantifier::Forall,
+                                    variables,
+                                },
+                                formula: Formula::BinaryFormula {
+                                    connective: BinaryConnective::Implication,
+                                    lhs: lhs_simplify.0.into(),
+                                    rhs: rhs.substitute(sub_pair.0, sub_pair.1).into(),
+                                }
+                                .into(),
+                            };
+                        }
+                        f
+                    }
+                    None => f,
+                }
+            }
+
+            _ => formula,
+        },
+
+        _ => formula,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use {
         super::{
-            extend_quantifier_scope, join_nested_quantifiers, remove_annihilations,
-            remove_idempotences, remove_identities, simplify_empty_quantifiers, simplify_formula,
-            simplify_variable_lists,
+            eliminate_redundant_quantifiers, extend_quantifier_scope, join_nested_quantifiers,
+            remove_annihilations, remove_idempotences, remove_identities,
+            simplify_empty_quantifiers, simplify_formula, simplify_variable_lists,
         },
         crate::{
             convenience::apply::Apply as _, simplifying::fol::ht::restrict_quantifier_domain,
@@ -618,6 +705,30 @@ mod tests {
         ] {
             let src =
                 restrict_quantifier_domain(src.parse().unwrap());
+            let target = target.parse().unwrap();
+            assert_eq!(src, target, "{src} != {target}")
+        }
+    }
+
+    #[test]
+    fn test_eliminate_redundant_quantifiers() {
+        for (src, target) in [
+            ("exists X ( X = Z and not q(X) )", "not q(Z)"),
+            (
+                "exists Y ( Y = X and forall V (p(Y,V) -> q(X)) )",
+                "forall V (p(X,V) -> q(X))",
+            ),
+            (
+                "exists Z Z1 ( Z = I and (exists K$i (K$i = I) and Z = Z1) )",
+                "exists Z1 ( exists K$i (K$i = I) and I = Z1)",
+            ),
+            (
+                "forall X V (p(X) and X = V -> q(V))",
+                "forall V (p(V) -> q(V))",
+            ),
+        ] {
+            let src =
+                simplify_empty_quantifiers(eliminate_redundant_quantifiers(src.parse().unwrap()));
             let target = target.parse().unwrap();
             assert_eq!(src, target, "{src} != {target}")
         }
