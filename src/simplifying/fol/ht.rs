@@ -362,15 +362,16 @@ pub fn restrict_quantifier_domain(formula: Formula) -> Formula {
                     lhs,
                     rhs,
                 },
-        } => match lhs.unbox() {
-            UnboxedFormula::QuantifiedFormula {
+        } => {
+            if let UnboxedFormula::QuantifiedFormula {
                 quantification:
                     Quantification {
                         quantifier: Quantifier::Exists,
                         variables: inner_vars,
                     },
                 formula: inner_formula,
-            } => {
+            } = lhs.unbox()
+            {
                 let mut replaced = false;
                 let conjunctive_terms = Formula::conjoin_invert(inner_formula);
                 for ct in conjunctive_terms.iter() {
@@ -405,9 +406,7 @@ pub fn restrict_quantifier_domain(formula: Formula) -> Formula {
                     }
                 }
             }
-
-            _ => (),
-        },
+        }
 
         _ => (),
     }
@@ -422,7 +421,10 @@ mod tests {
             remove_idempotences, remove_identities, simplify_empty_quantifiers, simplify_formula,
             simplify_variable_lists,
         },
-        crate::{convenience::apply::Apply as _, simplifying::fol::ht::restrict_quantifier_domain, syntax_tree::fol::Formula},
+        crate::{
+            convenience::apply::Apply as _, simplifying::fol::ht::restrict_quantifier_domain,
+            syntax_tree::fol::Formula,
+        },
     };
 
     #[test]
