@@ -1,8 +1,9 @@
 name: Build the manual with mdBook
 
 on:
-  push:
-    branches: [ "master" ]
+  # This is done in mdbook_deploy.yml
+  # push:
+  #   branches: [ "master" ]
   pull_request:
     branches: [ "master" ]
 
