@@ -93,10 +93,9 @@ pub fn main() -> Result<()> {
                 Translation::Gamma => {
                     let theory =
                         input.map_or_else(fol::Theory::from_stdin, fol::Theory::from_file)?;
-                    let mut transition_axioms = Theory { formulas: vec![] };
-                    for p in theory.prediates() {
-                        transition_axioms.formulas.push(transition(p));
-                    }
+                    let transition_axioms = Theory {
+                        formulas: theory.prediates().into_iter().map(transition).collect(),
+                    };
                     let gamma_theory = gamma(theory);
                     output_theory(gamma_theory, Some(transition_axioms), format, role)
                 }
