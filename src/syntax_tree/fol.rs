@@ -695,7 +695,7 @@ impl Formula {
                 lhs: acc.into(),
                 rhs: e.into(),
             })
-            .unwrap_or_else(|| Formula::AtomicFormula(AtomicFormula::Truth))
+            .unwrap_or(Formula::AtomicFormula(AtomicFormula::Truth))
     }
 
     /// Recursively turn a list of formulas into a tree of disjunctions
@@ -720,7 +720,7 @@ impl Formula {
                 lhs: acc.into(),
                 rhs: e.into(),
             })
-            .unwrap_or_else(|| Formula::AtomicFormula(AtomicFormula::Falsity))
+            .unwrap_or(Formula::AtomicFormula(AtomicFormula::Falsity))
     }
 
     pub fn variables(&self) -> IndexSet<Variable> {
