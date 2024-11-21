@@ -18,7 +18,4 @@ RUN mv vampire /usr/bin/
 RUN chmod +x /usr/bin/vampire
 
 # Install Anthem
-RUN git clone https://github.com/potassco/anthem.git
-RUN cd anthem && . "$HOME/.cargo/env" && cargo build --release
-RUN cp anthem/target/release/anthem /usr/bin/
-RUN chmod +x /usr/bin/anthem
+RUN cargo install anthem
