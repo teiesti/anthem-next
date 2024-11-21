@@ -138,55 +138,42 @@ impl Display for Format<'_, Relation> {
 
 impl Display for Format<'_, Comparison> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let guards = &self.0.guards;
-
-        let mut previous_term = &self.0.term;
-        for (counter, g) in guards.iter().enumerate() {
+        for (counter, (lhs, relation, rhs)) in self.0.individuals().enumerate() {
             if counter > 0 {
                 write!(f, " & ")?;
             }
 
-            match (previous_term, &g.term) {
-                (GeneralTerm::IntegerTerm(lhs), GeneralTerm::IntegerTerm(rhs)) => {
-                    match g.relation {
-                        Relation::Equal | Relation::NotEqual => write!(
-                            f,
-                            "{} {} {}",
-                            Format(lhs),
-                            Format(&g.relation).repr_integer(),
-                            Format(rhs)
-                        ),
-                        _ => write!(
-                            f,
-                            "{}({}, {})",
-                            Format(&g.relation).repr_integer(),
-                            Format(lhs),
-                            Format(rhs)
-                        ),
-                    }
-                }
-
-                (GeneralTerm::SymbolicTerm(lhs), GeneralTerm::SymbolicTerm(rhs))
-                    if matches!(g.relation, Relation::Equal | Relation::NotEqual) =>
-                {
-                    write!(f, "{} {} {}", Format(lhs), Format(&g.relation), Format(rhs))
-                }
-
-                (lhs, rhs) => match g.relation {
-                    Relation::Equal | Relation::NotEqual => {
-                        write!(f, "{} {} {}", Format(lhs), Format(&g.relation), Format(rhs))
-                    }
+            match (lhs, rhs) {
+                (GeneralTerm::IntegerTerm(lhs), GeneralTerm::IntegerTerm(rhs)) => match relation {
+                    Relation::Equal | Relation::NotEqual => write!(
+                        f,
+                        "{} {} {}",
+                        Format(lhs),
+                        Format(relation).repr_integer(),
+                        Format(rhs)
+                    ),
                     _ => write!(
                         f,
                         "{}({}, {})",
-                        Format(&g.relation),
+                        Format(relation).repr_integer(),
                         Format(lhs),
                         Format(rhs)
                     ),
                 },
-            }?;
 
-            previous_term = &g.term;
+                (GeneralTerm::SymbolicTerm(lhs), GeneralTerm::SymbolicTerm(rhs))
+                    if matches!(relation, Relation::Equal | Relation::NotEqual) =>
+                {
+                    write!(f, "{} {} {}", Format(lhs), Format(relation), Format(rhs))
+                }
+
+                (lhs, rhs) => match relation {
+                    Relation::Equal | Relation::NotEqual => {
+                        write!(f, "{} {} {}", Format(lhs), Format(relation), Format(rhs))
+                    }
+                    _ => write!(f, "{}({}, {})", Format(relation), Format(lhs), Format(rhs)),
+                },
+            }?;
         }
 
         Ok(())
