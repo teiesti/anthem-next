@@ -61,7 +61,7 @@ fn heads(definitions: &Definitions) -> IndexMap<fol::Predicate, Vec<&fol::Atomic
     result
 }
 
-fn components(theory: fol::Theory) -> Option<(Definitions, Constraints)> {
+pub(crate) fn components(theory: fol::Theory) -> Option<(Definitions, Constraints)> {
     let mut definitions: Definitions = IndexMap::new();
     let mut constraints = Vec::new();
 
