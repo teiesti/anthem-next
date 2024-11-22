@@ -1,7 +1,7 @@
 WHITESPACE = _{ " " | NEWLINE }
 COMMENT = _{ "%" ~ (!NEWLINE ~ ANY)* ~ (NEWLINE | EOI) }
 
-keyword = _{ primitive | binary_connective | unary_connective | quantifier }
+keyword = _{ (primitive | binary_connective | unary_connective | quantifier) ~ !ANY }
     primitive = _{ infimum | supremum }
         infimum  = { "#inf" }
         supremum = { "#sup" }

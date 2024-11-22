@@ -1380,200 +1380,231 @@ mod tests {
 
     #[test]
     fn parse_formula() {
-        FormulaParser.should_parse_into([
-            (
-                "not p",
-                Formula::UnaryFormula {
-                    connective: UnaryConnective::Negation,
-                    formula: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
-                        predicate_symbol: "p".into(),
+        FormulaParser
+            .should_parse_into([
+                (
+                    "order",
+                    Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                        predicate_symbol: "order".into(),
                         terms: vec![],
-                    }))
-                    .into(),
-                },
-            ),
-            (
-                "forall A p(A) -> q",
-                Formula::BinaryFormula {
-                    connective: BinaryConnective::Implication,
-                    lhs: Formula::QuantifiedFormula {
-                        quantification: Quantification {
-                            quantifier: Quantifier::Forall,
-                            variables: vec![Variable {
-                                name: "A".into(),
-                                sort: Sort::General,
-                            }],
-                        },
-                        formula: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
-                            predicate_symbol: "p".into(),
-                            terms: vec![GeneralTerm::Variable("A".into())],
-                        }))
-                        .into(),
-                    }
-                    .into(),
-                    rhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
-                        predicate_symbol: "q".into(),
+                    })),
+                ),
+                (
+                    "andromeda",
+                    Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                        predicate_symbol: "andromeda".into(),
                         terms: vec![],
-                    }))
-                    .into(),
-                },
-            ),
-            (
-                "forall A (p(A)) -> #false",
-                Formula::BinaryFormula {
-                    connective: BinaryConnective::Implication,
-                    lhs: Formula::QuantifiedFormula {
-                        quantification: Quantification {
-                            quantifier: Quantifier::Forall,
-                            variables: vec![Variable {
-                                name: "A".into(),
-                                sort: Sort::General,
-                            }],
-                        },
+                    })),
+                ),
+                (
+                    "exists_now",
+                    Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                        predicate_symbol: "exists_now".into(),
+                        terms: vec![],
+                    })),
+                ),
+                (
+                    "not p",
+                    Formula::UnaryFormula {
+                        connective: UnaryConnective::Negation,
                         formula: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
                             predicate_symbol: "p".into(),
-                            terms: vec![GeneralTerm::Variable("A".into())],
+                            terms: vec![],
                         }))
                         .into(),
-                    }
-                    .into(),
-                    rhs: Formula::AtomicFormula(AtomicFormula::Falsity).into(),
-                },
-            ),
-            (
-                "forall A (p(A)) -> #true",
-                Formula::BinaryFormula {
-                    connective: BinaryConnective::Implication,
-                    lhs: Formula::QuantifiedFormula {
-                        quantification: Quantification {
-                            quantifier: Quantifier::Forall,
-                            variables: vec![Variable {
-                                name: "A".into(),
-                                sort: Sort::General,
-                            }],
-                        },
-                        formula: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
-                            predicate_symbol: "p".into(),
-                            terms: vec![GeneralTerm::Variable("A".into())],
-                        }))
-                        .into(),
-                    }
-                    .into(),
-                    rhs: Formula::AtomicFormula(AtomicFormula::Truth).into(),
-                },
-            ),
-            (
-                "#true or #false",
-                Formula::BinaryFormula {
-                    connective: BinaryConnective::Disjunction,
-                    lhs: Formula::AtomicFormula(AtomicFormula::Truth).into(),
-                    rhs: Formula::AtomicFormula(AtomicFormula::Falsity).into(),
-                },
-            ),
-            (
-                "forall V1 V2 (not not ra(V1, V2) -> ra(V1, V2))",
-                Formula::QuantifiedFormula {
-                    quantification: Quantification {
-                        quantifier: Quantifier::Forall,
-                        variables: vec![
-                            Variable {
-                                name: "V1".into(),
-                                sort: Sort::General,
-                            },
-                            Variable {
-                                name: "V2".into(),
-                                sort: Sort::General,
-                            },
-                        ],
                     },
-                    formula: Formula::BinaryFormula {
+                ),
+                (
+                    "forall A p(A) -> q",
+                    Formula::BinaryFormula {
                         connective: BinaryConnective::Implication,
-                        lhs: Formula::UnaryFormula {
-                            connective: UnaryConnective::Negation,
-                            formula: Formula::UnaryFormula {
-                                connective: UnaryConnective::Negation,
-                                formula: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
-                                    predicate_symbol: "ra".to_string(),
-                                    terms: vec![
-                                        GeneralTerm::Variable("V1".into()),
-                                        GeneralTerm::Variable("V2".into()),
-                                    ],
-                                }))
-                                .into(),
-                            }
+                        lhs: Formula::QuantifiedFormula {
+                            quantification: Quantification {
+                                quantifier: Quantifier::Forall,
+                                variables: vec![Variable {
+                                    name: "A".into(),
+                                    sort: Sort::General,
+                                }],
+                            },
+                            formula: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                                predicate_symbol: "p".into(),
+                                terms: vec![GeneralTerm::Variable("A".into())],
+                            }))
                             .into(),
                         }
                         .into(),
                         rhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
-                            predicate_symbol: "ra".to_string(),
-                            terms: vec![
-                                GeneralTerm::Variable("V1".into()),
-                                GeneralTerm::Variable("V2".into()),
-                            ],
+                            predicate_symbol: "q".into(),
+                            terms: vec![],
                         }))
                         .into(),
-                    }
-                    .into(),
-                },
-            ),
-            (
-                "exists X$i G(p(G, X$i+30) <-> q or r and t)",
-                Formula::QuantifiedFormula {
-                    quantification: Quantification {
-                        quantifier: Quantifier::Exists,
-                        variables: vec![
-                            Variable {
-                                name: "X".into(),
-                                sort: Sort::Integer,
-                            },
-                            Variable {
-                                name: "G".into(),
-                                sort: Sort::General,
-                            },
-                        ],
                     },
-                    formula: Formula::BinaryFormula {
-                        connective: BinaryConnective::Equivalence,
-                        lhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
-                            predicate_symbol: "p".into(),
-                            terms: vec![
-                                GeneralTerm::Variable("G".into()),
-                                GeneralTerm::IntegerTerm(IntegerTerm::BinaryOperation {
-                                    op: BinaryOperator::Add,
-                                    lhs: IntegerTerm::Variable("X".into()).into(),
-                                    rhs: IntegerTerm::Numeral(30).into(),
-                                }),
-                            ],
-                        }))
+                ),
+                (
+                    "forall A (p(A)) -> #false",
+                    Formula::BinaryFormula {
+                        connective: BinaryConnective::Implication,
+                        lhs: Formula::QuantifiedFormula {
+                            quantification: Quantification {
+                                quantifier: Quantifier::Forall,
+                                variables: vec![Variable {
+                                    name: "A".into(),
+                                    sort: Sort::General,
+                                }],
+                            },
+                            formula: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                                predicate_symbol: "p".into(),
+                                terms: vec![GeneralTerm::Variable("A".into())],
+                            }))
+                            .into(),
+                        }
                         .into(),
-                        rhs: Formula::BinaryFormula {
-                            connective: BinaryConnective::Disjunction,
+                        rhs: Formula::AtomicFormula(AtomicFormula::Falsity).into(),
+                    },
+                ),
+                (
+                    "forall A (p(A)) -> #true",
+                    Formula::BinaryFormula {
+                        connective: BinaryConnective::Implication,
+                        lhs: Formula::QuantifiedFormula {
+                            quantification: Quantification {
+                                quantifier: Quantifier::Forall,
+                                variables: vec![Variable {
+                                    name: "A".into(),
+                                    sort: Sort::General,
+                                }],
+                            },
+                            formula: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                                predicate_symbol: "p".into(),
+                                terms: vec![GeneralTerm::Variable("A".into())],
+                            }))
+                            .into(),
+                        }
+                        .into(),
+                        rhs: Formula::AtomicFormula(AtomicFormula::Truth).into(),
+                    },
+                ),
+                (
+                    "#true or #false",
+                    Formula::BinaryFormula {
+                        connective: BinaryConnective::Disjunction,
+                        lhs: Formula::AtomicFormula(AtomicFormula::Truth).into(),
+                        rhs: Formula::AtomicFormula(AtomicFormula::Falsity).into(),
+                    },
+                ),
+                (
+                    "forall V1 V2 (not not ra(V1, V2) -> ra(V1, V2))",
+                    Formula::QuantifiedFormula {
+                        quantification: Quantification {
+                            quantifier: Quantifier::Forall,
+                            variables: vec![
+                                Variable {
+                                    name: "V1".into(),
+                                    sort: Sort::General,
+                                },
+                                Variable {
+                                    name: "V2".into(),
+                                    sort: Sort::General,
+                                },
+                            ],
+                        },
+                        formula: Formula::BinaryFormula {
+                            connective: BinaryConnective::Implication,
+                            lhs: Formula::UnaryFormula {
+                                connective: UnaryConnective::Negation,
+                                formula: Formula::UnaryFormula {
+                                    connective: UnaryConnective::Negation,
+                                    formula: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                                        predicate_symbol: "ra".to_string(),
+                                        terms: vec![
+                                            GeneralTerm::Variable("V1".into()),
+                                            GeneralTerm::Variable("V2".into()),
+                                        ],
+                                    }))
+                                    .into(),
+                                }
+                                .into(),
+                            }
+                            .into(),
+                            rhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                                predicate_symbol: "ra".to_string(),
+                                terms: vec![
+                                    GeneralTerm::Variable("V1".into()),
+                                    GeneralTerm::Variable("V2".into()),
+                                ],
+                            }))
+                            .into(),
+                        }
+                        .into(),
+                    },
+                ),
+                (
+                    "exists X$i G(p(G, X$i+30) <-> q or r and t)",
+                    Formula::QuantifiedFormula {
+                        quantification: Quantification {
+                            quantifier: Quantifier::Exists,
+                            variables: vec![
+                                Variable {
+                                    name: "X".into(),
+                                    sort: Sort::Integer,
+                                },
+                                Variable {
+                                    name: "G".into(),
+                                    sort: Sort::General,
+                                },
+                            ],
+                        },
+                        formula: Formula::BinaryFormula {
+                            connective: BinaryConnective::Equivalence,
                             lhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
-                                predicate_symbol: "q".into(),
-                                terms: vec![],
+                                predicate_symbol: "p".into(),
+                                terms: vec![
+                                    GeneralTerm::Variable("G".into()),
+                                    GeneralTerm::IntegerTerm(IntegerTerm::BinaryOperation {
+                                        op: BinaryOperator::Add,
+                                        lhs: IntegerTerm::Variable("X".into()).into(),
+                                        rhs: IntegerTerm::Numeral(30).into(),
+                                    }),
+                                ],
                             }))
                             .into(),
                             rhs: Formula::BinaryFormula {
-                                connective: BinaryConnective::Conjunction,
+                                connective: BinaryConnective::Disjunction,
                                 lhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
-                                    predicate_symbol: "r".into(),
+                                    predicate_symbol: "q".into(),
                                     terms: vec![],
                                 }))
                                 .into(),
-                                rhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
-                                    predicate_symbol: "t".into(),
-                                    terms: vec![],
-                                }))
+                                rhs: Formula::BinaryFormula {
+                                    connective: BinaryConnective::Conjunction,
+                                    lhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                                        predicate_symbol: "r".into(),
+                                        terms: vec![],
+                                    }))
+                                    .into(),
+                                    rhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                                        predicate_symbol: "t".into(),
+                                        terms: vec![],
+                                    }))
+                                    .into(),
+                                }
                                 .into(),
                             }
                             .into(),
                         }
                         .into(),
-                    }
-                    .into(),
-                },
-            ),
-        ]);
+                    },
+                ),
+            ])
+            .should_reject([
+                "not",
+                "or",
+                "and",
+                "exists",
+                "forall",
+                "or and or",
+                "and or and",
+            ]);
     }
 
     #[test]
