@@ -12,10 +12,8 @@ pub fn completion(theory: fol::Theory) -> Option<fol::Theory> {
     let (definitions, constraints) = components(theory)?;
 
     // Confirm there are no head mismatches
-    for (_, heads) in heads(&definitions) {
-        if !heads.iter().all_equal() {
-            return None;
-        }
+    if has_head_mismatches(&definitions) {
+        return None;
     }
 
     // Complete the definitions
@@ -42,6 +40,15 @@ pub fn completion(theory: fol::Theory) -> Option<fol::Theory> {
     Some(fol::Theory { formulas })
 }
 
+pub(crate) fn has_head_mismatches(definitions: &Definitions) -> bool {
+    for (_, heads) in heads(definitions) {
+        if !heads.iter().all_equal() {
+            return true;
+        }
+    }
+    false
+}
+
 fn heads(definitions: &Definitions) -> IndexMap<fol::Predicate, Vec<&fol::AtomicFormula>> {
     let mut result: IndexMap<_, Vec<_>> = IndexMap::new();
     for head in definitions.keys() {
@@ -61,7 +68,7 @@ fn heads(definitions: &Definitions) -> IndexMap<fol::Predicate, Vec<&fol::Atomic
     result
 }
 
-fn components(theory: fol::Theory) -> Option<(Definitions, Constraints)> {
+pub(crate) fn components(theory: fol::Theory) -> Option<(Definitions, Constraints)> {
     let mut definitions: Definitions = IndexMap::new();
     let mut constraints = Vec::new();
 
