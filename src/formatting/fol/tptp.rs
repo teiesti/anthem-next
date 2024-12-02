@@ -283,6 +283,13 @@ impl Precedence for Format<'_, Formula> {
         Associativity::Left
     }
 
+    fn mandatory_parentheses(&self) -> bool {
+        match self.0 {
+            Formula::AtomicFormula(_) | Formula::QuantifiedFormula { .. } => false,
+            Formula::UnaryFormula { .. } | Formula::BinaryFormula { .. } => true,
+        }
+    }
+
     fn fmt_operator(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self.0 {
             Formula::UnaryFormula { connective, .. } => write!(f, "{}", Format(connective)),
@@ -615,7 +622,7 @@ mod tests {
                 .into(),
             })
             .to_string(),
-            "p => q => r"
+            "(p => q) => r"
         );
         assert_eq!(
             Format(&Formula::QuantifiedFormula {
@@ -692,7 +699,7 @@ mod tests {
                 }.into()
             })
             .to_string(),
-            "![X_i_s: symbol, X_i: $int, Y1_g: general]: (p(f__integer__(X_i)) & q(Y1_g) & t(f__symbolic__(X_i_s)))"
+            "![X_i_s: symbol, X_i: $int, Y1_g: general]: ((p(f__integer__(X_i)) & q(Y1_g)) & t(f__symbolic__(X_i_s)))"
         );
     }
 }
