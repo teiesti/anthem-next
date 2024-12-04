@@ -202,6 +202,27 @@ fn remove_annihilations(formula: Formula) -> Formula {
             rhs: _,
         } => lhs,
 
+        // F -> #true => #true
+        UnboxedFormula::BinaryFormula {
+            connective: BinaryConnective::Implication,
+            lhs: _,
+            rhs: rhs @ Formula::AtomicFormula(AtomicFormula::Truth),
+        } => rhs,
+
+        // #false -> F => #true
+        UnboxedFormula::BinaryFormula {
+            connective: BinaryConnective::Implication,
+            lhs: Formula::AtomicFormula(AtomicFormula::Falsity),
+            rhs: _,
+        } => Formula::AtomicFormula(AtomicFormula::Truth),
+
+        // F -> F => #true
+        UnboxedFormula::BinaryFormula {
+            connective: BinaryConnective::Implication,
+            lhs,
+            rhs,
+        } if lhs == rhs => Formula::AtomicFormula(AtomicFormula::Truth),
+
         x => x.rebox(),
     }
 }
@@ -346,6 +367,9 @@ mod tests {
             ("a or #true", "#true"),
             ("#false and a", "#false"),
             ("a and #false", "#false"),
+            ("a -> #true", "#true"),
+            ("#false -> a", "#true"),
+            ("a -> a", "#true"),
         ] {
             assert_eq!(
                 src.parse::<Formula>()
