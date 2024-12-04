@@ -158,6 +158,13 @@ fn remove_identities(formula: Formula) -> Formula {
             rhs,
         } => rhs,
 
+        // #true -> F => F
+        UnboxedFormula::BinaryFormula {
+            connective: BinaryConnective::Implication,
+            lhs: Formula::AtomicFormula(AtomicFormula::Truth),
+            rhs,
+        } => rhs,
+
         x => x.rebox(),
     }
 }
@@ -321,6 +328,7 @@ mod tests {
             ("a and #true", "a"),
             ("#false or a", "a"),
             ("a or #false", "a"),
+            ("#true -> a", "a"),
         ] {
             assert_eq!(
                 src.parse::<Formula>()
