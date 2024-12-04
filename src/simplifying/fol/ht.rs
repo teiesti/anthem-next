@@ -23,6 +23,7 @@ fn simplify_formula(formula: Formula) -> Formula {
         Box::new(remove_annihilations),
         Box::new(remove_idempotences),
         Box::new(remove_orphaned_variables),
+        Box::new(remove_empty_quantifications),
         Box::new(join_nested_quantifiers),
     ])
 }
@@ -278,6 +279,21 @@ fn remove_orphaned_variables(formula: Formula) -> Formula {
     }
 }
 
+fn remove_empty_quantifications(formula: Formula) -> Formula {
+    // Remove empty quantifiers
+    // e.g. q F => F
+
+    match formula {
+        // forall F => F
+        // exists F => F
+        Formula::QuantifiedFormula {
+            quantification,
+            formula,
+        } if quantification.variables.is_empty() => *formula,
+        x => x,
+    }
+}
+
 pub(crate) fn join_nested_quantifiers(formula: Formula) -> Formula {
     // Remove nested quantifiers
     // e.g. q X ( q Y F(X,Y) ) => q X Y F(X,Y)
@@ -309,7 +325,8 @@ mod tests {
     use {
         super::{
             evaluate_comparisons, join_nested_quantifiers, remove_annihilations,
-            remove_idempotences, remove_identities, remove_orphaned_variables, simplify_formula,
+            remove_empty_quantifications, remove_idempotences, remove_identities,
+            remove_orphaned_variables, simplify_formula,
         },
         crate::{
             convenience::apply::Apply as _, simplifying::fol::ht::apply_definitions,
@@ -443,6 +460,29 @@ mod tests {
                 target.parse().unwrap()
             )
         }
+    }
+
+    #[test]
+    fn test_remove_empty_quantifications() {
+        use crate::syntax_tree::fol::{Atom, AtomicFormula, Quantification, Quantifier};
+
+        let src = Formula::QuantifiedFormula {
+            quantification: Quantification {
+                quantifier: Quantifier::Forall,
+                variables: vec![],
+            },
+            formula: Box::new(Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                predicate_symbol: "a".into(),
+                terms: vec![],
+            }))),
+        };
+
+        let target = Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+            predicate_symbol: "a".into(),
+            terms: vec![],
+        }));
+
+        assert_eq!(src.apply(&mut remove_empty_quantifications), target);
     }
 
     #[test]
