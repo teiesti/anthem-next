@@ -5,6 +5,7 @@ use crate::{
     },
     syntax_tree::fol::{
         AtomicFormula, BinaryConnective, Comparison, Formula, Guard, Relation, Theory,
+        UnaryConnective,
     },
 };
 
@@ -17,6 +18,7 @@ pub fn simplify(theory: Theory) -> Theory {
 fn simplify_formula(formula: Formula) -> Formula {
     formula.apply_all(&mut vec![
         Box::new(evaluate_comparisons),
+        Box::new(apply_definitions),
         Box::new(remove_identities),
         Box::new(remove_annihilations),
         Box::new(remove_idempotences),
@@ -71,6 +73,55 @@ fn evaluate_comparisons(formula: Formula) -> Formula {
             Formula::conjoin(formulas)
         }
         x => x,
+    }
+}
+
+fn apply_definitions(formula: Formula) -> Formula {
+    // Apply definitions
+    // e.g. not F => F -> #false
+    // e.g. F <- G => G -> F
+    // e.g. F <-> G => (F -> G) and (G -> F)
+
+    match formula.unbox() {
+        // not F => F -> #false
+        UnboxedFormula::UnaryFormula {
+            connective: UnaryConnective::Negation,
+            formula,
+        } => Formula::BinaryFormula {
+            connective: BinaryConnective::Implication,
+            lhs: formula.into(),
+            rhs: Formula::AtomicFormula(AtomicFormula::Falsity).into(),
+        },
+
+        // F <- G => G -> F
+        UnboxedFormula::BinaryFormula {
+            connective: BinaryConnective::ReverseImplication,
+            lhs,
+            rhs,
+        } => Formula::BinaryFormula {
+            connective: BinaryConnective::Implication,
+            lhs: rhs.into(),
+            rhs: lhs.into(),
+        },
+
+        // F <-> G => (F -> G) and (G -> F)
+        UnboxedFormula::BinaryFormula {
+            connective: BinaryConnective::Equivalence,
+            lhs,
+            rhs,
+        } => Formula::conjoin([
+            Formula::BinaryFormula {
+                connective: BinaryConnective::Implication,
+                lhs: lhs.clone().into(),
+                rhs: rhs.clone().into(),
+            },
+            Formula::BinaryFormula {
+                connective: BinaryConnective::Implication,
+                lhs: rhs.into(),
+                rhs: lhs.into(),
+            },
+        ]),
+        x => x.rebox(),
     }
 }
 
@@ -195,10 +246,13 @@ pub(crate) fn join_nested_quantifiers(formula: Formula) -> Formula {
 mod tests {
     use {
         super::{
-            evaluate_comparisons, join_nested_quantifiers,
-            remove_annihilations, remove_idempotences, remove_identities, simplify_formula,
+            evaluate_comparisons, join_nested_quantifiers, remove_annihilations,
+            remove_idempotences, remove_identities, simplify_formula,
         },
-        crate::{convenience::apply::Apply as _, syntax_tree::fol::Formula},
+        crate::{
+            convenience::apply::Apply as _, simplifying::fol::ht::apply_definitions,
+            syntax_tree::fol::Formula,
+        },
     };
 
     #[test]
@@ -239,6 +293,22 @@ mod tests {
                 src.parse::<Formula>()
                     .unwrap()
                     .apply(&mut evaluate_comparisons),
+                target.parse().unwrap()
+            )
+        }
+    }
+
+    #[test]
+    fn test_apply_definitions() {
+        for (src, target) in [
+            ("not f", "f -> #false"),
+            ("f <- g", "g -> f"),
+            ("f <-> g", "(f -> g) and (g -> f)"),
+        ] {
+            assert_eq!(
+                src.parse::<Formula>()
+                    .unwrap()
+                    .apply(&mut apply_definitions),
                 target.parse().unwrap()
             )
         }
