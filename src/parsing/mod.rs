@@ -48,7 +48,7 @@ impl<T: PestParser> Parser for T {
             input.as_ref(),
             "parts of the input where not parsed"
         );
-        pairs.next_back(); // remove EOI
+        // pairs.next_back(); // remove EOI
         Ok(Self::translate_pairs(pairs))
     }
 }
