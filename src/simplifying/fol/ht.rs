@@ -16,16 +16,17 @@ pub fn simplify(theory: Theory) -> Theory {
 }
 
 fn simplify_formula(formula: Formula) -> Formula {
-    formula.apply_all(&mut vec![
-        Box::new(substitute_defined_variables),
-        Box::new(evaluate_comparisons_between_equal_terms),
-        Box::new(remove_identities),
-        Box::new(remove_annihilations),
-        Box::new(remove_idempotences),
-        Box::new(remove_orphaned_variables),
-        Box::new(remove_empty_quantifications),
-        Box::new(join_nested_quantifiers),
-    ])
+    formula
+        .apply(&mut Box::new(substitute_defined_variables))
+        .apply_all(&mut vec![
+            Box::new(evaluate_comparisons_between_equal_terms),
+            Box::new(remove_identities),
+            Box::new(remove_annihilations),
+            Box::new(remove_idempotences),
+            Box::new(remove_orphaned_variables),
+            Box::new(remove_empty_quantifications),
+            Box::new(join_nested_quantifiers),
+        ])
 }
 
 fn substitute_defined_variables(formula: Formula) -> Formula {
@@ -379,6 +380,12 @@ mod tests {
             ("forall X a", "a"),
             ("X = X and a", "a"),
             ("forall X (X = X)", "#true"),
+            ("exists X (X = 1)", "#true"),
+            (
+                "exists X (X = 1 or exists Y (Y = 1 and Y != 1))",
+                "exists X (X = 1)",
+            ),
+            ("exists X (X = 1 or exists Y (Y = 1 and Y != 1))", "#true"),
         ] {
             assert_eq!(
                 simplify_formula(src.parse().unwrap()),
