@@ -2,21 +2,21 @@ WHITESPACE = _{ " " | NEWLINE }
 COMMENT = _{ "%" ~ (!NEWLINE ~ ANY)* ~ (NEWLINE | EOI) }
 
 precomputed_term = { infimum | integer | symbol | supremum }
-precomputed_term_eoi = _{ precomputed_term ~ EOI }
+precomputed_term_eoi = _{ precomputed_term ~ !ANY }
     infimum = @{ "#infimum" | "#inf" }
     integer = @{ "0" | "-"? ~ ASCII_NONZERO_DIGIT ~ ASCII_DIGIT* }
     symbol = @{ !negation ~ "_"? ~ ASCII_ALPHA_LOWER ~ (ASCII_ALPHANUMERIC | "_")* }
     supremum = @{ "#supremum" | "#sup" }
 
 variable = @{ ASCII_ALPHA_UPPER ~ ASCII_ALPHANUMERIC* }
-variable_eoi = _{ variable ~ EOI }
+variable_eoi = _{ variable ~ !ANY }
 
 unary_operator = _{ negative }
-unary_operator_eoi = _{ unary_operator ~ EOI }
+unary_operator_eoi = _{ unary_operator ~ !ANY }
     negative = { !integer ~ "-" }
 
 binary_operator = _{ add | subtract | multiply | divide | modulo | interval }
-binary_operator_eoi = _{ binary_operator ~ EOI }
+binary_operator_eoi = _{ binary_operator ~ !ANY }
     add = { "+" }
     subtract = { "-" }
     multiply = { "*" }
@@ -25,26 +25,26 @@ binary_operator_eoi = _{ binary_operator ~ EOI }
     interval = { ".." }
 
 term = { unary_operator* ~ primary_term ~ (binary_operator ~ unary_operator* ~ primary_term)* }
-term_eoi = _{ term ~ EOI }
+term_eoi = _{ term ~ !ANY }
     primary_term = _{ precomputed_term | variable | "(" ~ term ~ ")"}
 
 predicate = { symbol ~ "/" ~ arity }
-predicate_eoi = _{ predicate ~ EOI }
+predicate_eoi = _{ predicate ~ !ANY }
     arity =  @{ ("0") | (ASCII_NONZERO_DIGIT ~ ASCII_DIGIT*) }
 
 atom = { symbol ~ term_tuple? }
-atom_eoi = _{ atom ~ EOI }
+atom_eoi = _{ atom ~ !ANY }
     term_tuple = _{ "(" ~ (term ~ ("," ~ term)*)? ~ ")" }
 
 sign = { negation{0, 2} }
-sign_eoi = _{ sign ~ EOI }
+sign_eoi = _{ sign ~ !ANY }
     negation = @{ "not" ~ &(WHITESPACE | EOI)}
 
 literal = { sign ~ atom }
-literal_eoi = _{ literal ~ EOI }
+literal_eoi = _{ literal ~ !ANY }
 
 relation = _{ equal | not_equal | less_equal | less | greater_equal | greater }
-relation_eoi = _{ relation ~ EOI }
+relation_eoi = _{ relation ~ !ANY }
     equal = { "=" }
     not_equal = { "!=" }
     less = { "<" }
@@ -53,22 +53,22 @@ relation_eoi = _{ relation ~ EOI }
     greater_equal = { ">=" }
 
 comparison = { term ~ relation ~ term }
-comparison_eoi = _{ comparison ~ EOI }
+comparison_eoi = _{ comparison ~ !ANY }
 
 atomic_formula = { comparison | literal }
-atomic_formula_eoi = _{ atomic_formula ~ EOI }
+atomic_formula_eoi = _{ atomic_formula ~ !ANY }
 
 head = { basic_head | choice_head | falsity }
-head_eoi = _{ head ~ EOI }
+head_eoi = _{ head ~ !ANY }
     basic_head = { atom }
     choice_head = { "{" ~ atom ~ "}" }
     falsity = { "#false"? }
 
 body = { (atomic_formula ~ (("," | ";") ~ atomic_formula)*)? }
-body_eoi = _{ body ~ EOI }
+body_eoi = _{ body ~ !ANY }
 
 rule = { (!"." ~ head ~ (":-" ~ body)?) ~ "." }
-rule_eoi = _{ rule ~ EOI }
+rule_eoi = _{ rule ~ !ANY }
 
 program = { rule* }
-program_eoi = _{ program ~ EOI }
+program_eoi = _{ program ~ !ANY }
