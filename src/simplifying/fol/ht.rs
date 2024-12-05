@@ -379,6 +379,7 @@ mod tests {
             ("forall X a", "a"),
             ("X = X and a", "a"),
             ("forall X (X = X)", "#true"),
+            ("exists X (X = 1)", "#true"),
         ] {
             assert_eq!(
                 simplify_formula(src.parse().unwrap()),
