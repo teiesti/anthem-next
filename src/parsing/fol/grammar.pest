@@ -7,7 +7,7 @@ keyword = _{ (primitive | binary_connective | unary_connective | quantifier) ~ !
         supremum = { "#sup" }
 
 sort = { general_sort | integer_sort | symbolic_sort }
-sort_eoi = _{ sort ~ EOI }
+sort_eoi = _{ sort ~ !ANY }
     general_sort = @{ "g" ~ "eneral"? }
     integer_sort = @{ "i" ~ "nteger"? }
     symbolic_sort = @{ "s" ~ "ymbol"? }
@@ -19,47 +19,47 @@ basic_integer_term = _{ numeral | integer_function_constant | integer_variable }
     integer_variable  = ${ (unsorted_variable ~ "$" ~ integer_sort) | !(unsorted_variable ~ "$" ~ sort) ~ (unsorted_variable ~ "$") }
 
 unary_operator = _{ negative }
-unary_operator_eoi = _{ unary_operator ~ EOI }
+unary_operator_eoi = _{ unary_operator ~ !ANY }
     negative = { !numeral ~ "-" }
 
 binary_operator = _{ add | subtract | multiply }
-binary_operator_eoi = _{ binary_operator ~ EOI }
+binary_operator_eoi = _{ binary_operator ~ !ANY }
     add      = { "+" }
     subtract = { "-" }
     multiply = { "*" }
 
 integer_term = { unary_operator* ~ n_primary ~ (binary_operator ~ unary_operator* ~ n_primary)* }
-integer_term_eoi = _{ integer_term ~ EOI }
+integer_term_eoi = _{ integer_term ~ !ANY }
     n_primary = _{ basic_integer_term | "(" ~ integer_term ~ ")" }
 
 symbolic_term = { symbolic_function_constant | symbolic_constant | symbolic_variable }
-symbolic_term_eoi = _{ symbolic_term ~ EOI }
+symbolic_term_eoi = _{ symbolic_term ~ !ANY }
     symbolic_constant = @{ !keyword ~ "_"? ~ ASCII_ALPHA_LOWER ~ (ASCII_ALPHANUMERIC | "_")* }
     symbolic_function_constant = ${ symbolic_constant ~ "$" ~ symbolic_sort }
     symbolic_variable  = ${ (unsorted_variable ~ "$" ~ symbolic_sort) }
 
 general_term = { general_function_constant | integer_term | symbolic_term | general_variable | infimum | supremum }
-general_term_eoi = _{ general_term ~ EOI }
+general_term_eoi = _{ general_term ~ !ANY }
     general_variable  = ${ unsorted_variable ~ ("$" ~ general_sort)? }
     general_function_constant = ${ symbolic_constant ~ "$" ~ general_sort }
 
 function_constant = { integer_function_constant | symbolic_function_constant | general_function_constant }
-function_constant_eoi = _{ function_constant ~ EOI }
+function_constant_eoi = _{ function_constant ~ !ANY }
 
 variable = { integer_variable | symbolic_variable | general_variable }
-variable_eoi = _{ variable ~ EOI }
+variable_eoi = _{ variable ~ !ANY }
 
 predicate = { predicate_symbol ~ "/" ~ arity }
-predicate_eoi = _{ predicate ~ EOI }
+predicate_eoi = _{ predicate ~ !ANY }
     predicate_symbol  = _{ symbolic_constant }
     arity =  @{ ("0") | (ASCII_NONZERO_DIGIT ~ ASCII_DIGIT*) }
 
 atom = { predicate_symbol ~ term_tuple? }
-atom_eoi = _{ atom ~ EOI }
+atom_eoi = _{ atom ~ !ANY }
     term_tuple = _{ "(" ~ (general_term ~ ("," ~ general_term)*)? ~ ")" }
 
 relation = { greater_equal | less_equal | greater | less | not_equal | equal }
-relation_eoi = _{ relation ~ EOI }
+relation_eoi = _{ relation ~ !ANY }
     greater_equal = { ">=" }
     less_equal    = { "<=" }
     greater       = { ">"  }
@@ -68,30 +68,30 @@ relation_eoi = _{ relation ~ EOI }
     equal         = { "="  }
 
 guard = { relation ~ general_term }
-guard_eoi = _{ guard ~ EOI }
+guard_eoi = _{ guard ~ !ANY }
 
 comparison = { general_term ~ guard+ }
-comparison_eoi = _{ comparison ~ EOI }
+comparison_eoi = _{ comparison ~ !ANY }
 
 atomic_formula = { truth | falsity | comparison | atom }
-atomic_formula_eoi = _{ atomic_formula ~ EOI }
+atomic_formula_eoi = _{ atomic_formula ~ !ANY }
     truth      = { "#true" }
     falsity    = { "#false" }
 
 quantifier = _{ forall | exists }
-quantifier_eoi = _{ quantifier ~ EOI }
+quantifier_eoi = _{ quantifier ~ !ANY }
     forall = { "forall" }
     exists = { "exists" }
 
 quantification = { quantifier ~ variable+ }
-quantification_eoi = _{ quantification ~ EOI }
+quantification_eoi = _{ quantification ~ !ANY }
 
 unary_connective = _{ negation }
-unary_connective_eoi = _{ unary_connective ~ EOI }
+unary_connective_eoi = _{ unary_connective ~ !ANY }
     negation = { "not" }
 
 binary_connective = _{ equivalence | implication | reverse_implication | conjunction | disjunction }
-binary_connective_eoi = _{ binary_connective ~ EOI }
+binary_connective_eoi = _{ binary_connective ~ !ANY }
     equivalence         = { "<->" }
     implication         = { "->"  }
     reverse_implication = { "<-"  }
@@ -99,16 +99,15 @@ binary_connective_eoi = _{ binary_connective ~ EOI }
     disjunction         = { "or"  }
 
 formula = { prefix* ~ primary ~ (infix ~ prefix* ~ primary)* }
-formula_eoi = _{ formula ~ EOI }
+formula_eoi = _{ formula ~ !ANY }
     prefix  = _{ quantification | unary_connective }
     infix   = _{ binary_connective }
     primary = _{ "(" ~ formula ~ ")" | atomic_formula }
 
-theory = { (formula ~ ".")* }
-theory_eoi = _{ theory ~ EOI }
+theory = { (formula ~ ".")* ~ !ANY }
 
 role = { assumption | spec | lemma | definition | inductive_lemma }
-role_eoi = _{ role ~ EOI }
+role_eoi = _{ role ~ !ANY }
     assumption  = { "assumption" }
     spec        = { "spec" }
     lemma       = { "lemma" }
@@ -116,22 +115,22 @@ role_eoi = _{ role ~ EOI }
     inductive_lemma  = { "inductive-lemma" }
 
 direction = { universal | forward | backward }
-direction_eoi = _{ direction ~ EOI }
+direction_eoi = _{ direction ~ !ANY }
     universal = { "universal" }
     forward   = { "forward" }
     backward  = { "backward" }
 
 annotated_formula = { role ~ ("(" ~ direction ~ ")")? ~ ("[" ~ symbolic_constant ~ "]")? ~ ":" ~ formula }
-annotated_formula_eoi = _{ annotated_formula ~ EOI }
+annotated_formula_eoi = _{ annotated_formula ~ !ANY }
 
 specification = { (annotated_formula ~ ".")* }
-specification_eoi = _{ specification ~ EOI }
+specification_eoi = _{ specification ~ !ANY }
 
 user_guide_entry = { input_predicate | output_predicate | placeholder_declaration | annotated_formula }
-user_guide_entry_eoi = _{ user_guide_entry ~ EOI }
+user_guide_entry_eoi = _{ user_guide_entry ~ !ANY }
     input_predicate         = { "input" ~ ":" ~ predicate}
     output_predicate        = { "output" ~ ":" ~ predicate}
     placeholder_declaration = { "input" ~ ":" ~ symbolic_constant ~ ("->" ~ sort)? }
 
 user_guide = { (user_guide_entry ~ ".")* }
-user_guide_eoi = _{ user_guide ~ EOI }
+user_guide_eoi = _{ user_guide ~ !ANY }

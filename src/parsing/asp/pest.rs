@@ -430,7 +430,7 @@ impl PestParser for ProgramParser {
 
     type InternalParser = internal::Parser;
     type Rule = internal::Rule;
-    const RULE: Self::Rule = internal::Rule::program_eoi;
+    const RULE: Self::Rule = internal::Rule::program;
 
     fn translate_pair(pair: pest::iterators::Pair<'_, Self::Rule>) -> Self::Node {
         if pair.as_rule() != internal::Rule::program {

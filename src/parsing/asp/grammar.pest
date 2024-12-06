@@ -70,5 +70,4 @@ body_eoi = _{ body ~ !ANY }
 rule = { (!"." ~ head ~ (":-" ~ body)?) ~ "." }
 rule_eoi = _{ rule ~ !ANY }
 
-program = { rule* }
-program_eoi = _{ program ~ !ANY }
+program = { rule* ~ !ANY }
