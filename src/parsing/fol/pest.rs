@@ -597,7 +597,7 @@ impl PestParser for TheoryParser {
 
     type InternalParser = internal::Parser;
     type Rule = internal::Rule;
-    const RULE: Self::Rule = internal::Rule::theory_eoi;
+    const RULE: Self::Rule = internal::Rule::theory;
 
     fn translate_pair(pair: pest::iterators::Pair<'_, Self::Rule>) -> Self::Node {
         if pair.as_rule() != internal::Rule::theory {
