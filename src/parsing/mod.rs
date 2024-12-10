@@ -42,13 +42,12 @@ impl<T: PestParser> Parser for T {
 
     fn parse<S: AsRef<str>>(input: S) -> Result<<T as Parser>::Node, <T as Parser>::Error> {
         use pest::Parser as _;
-        let mut pairs = <Self as PestParser>::InternalParser::parse(Self::RULE, input.as_ref())?;
+        let pairs = <Self as PestParser>::InternalParser::parse(Self::RULE, input.as_ref())?;
         assert_eq!(
             pairs.as_str(),
             input.as_ref(),
             "parts of the input where not parsed"
         );
-        // pairs.next_back(); // remove EOI
         Ok(Self::translate_pairs(pairs))
     }
 }
