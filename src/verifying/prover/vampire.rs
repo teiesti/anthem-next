@@ -7,6 +7,7 @@ use {
         fmt::{self, Display},
         io::Write as _,
         process::{Command, Output, Stdio},
+        time::{Duration, Instant},
     },
     thiserror::Error,
 };
@@ -45,6 +46,7 @@ impl TryFrom<Output> for VampireOutput {
 pub struct VampireReport {
     pub problem: Problem,
     pub output: VampireOutput,
+    pub elapsed_time: Option<Duration>,
 }
 
 impl Report for VampireReport {
@@ -71,8 +73,13 @@ impl Display for VampireReport {
         writeln!(f)?;
 
         match self.status() {
-            Ok(status) => writeln!(f, "status: {status}"),
-            Err(error) => writeln!(f, "error: {error}"),
+            Ok(status) => write!(f, "status: {status}")?,
+            Err(error) => write!(f, "error: {error}")?,
+        }
+
+        match self.elapsed_time {
+            Some(duration) => writeln!(f, "({} ms)", duration.as_millis()),
+            None => writeln!(f),
         }
     }
 }
@@ -80,6 +87,7 @@ impl Display for VampireReport {
 #[derive(Debug, Clone)]
 pub struct Vampire {
     pub time_limit: usize,
+    pub time_execution: bool,
     pub instances: usize,
     pub cores: usize,
 }
@@ -105,6 +113,12 @@ impl Prover for Vampire {
     }
 
     fn prove(&self, problem: Problem) -> Result<Self::Report, Self::Error> {
+        let start_time = if self.time_execution {
+            Some(Instant::now())
+        } else {
+            None
+        };
+
         let mut child = Command::new("vampire")
             .args([
                 "--mode",
@@ -129,6 +143,10 @@ impl Prover for Vampire {
             .map_err(VampireError::UnableToWait)?
             .try_into()?;
 
-        Ok(VampireReport { problem, output })
+        Ok(VampireReport {
+            problem,
+            output,
+            elapsed_time: start_time.map(|start| start.elapsed()),
+        })
     }
 }

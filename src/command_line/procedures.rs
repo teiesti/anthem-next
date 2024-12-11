@@ -150,6 +150,7 @@ pub fn main() -> Result<()> {
             if !no_proof_search {
                 let prover = Vampire {
                     time_limit,
+                    time_execution: !no_timing,
                     instances: prover_instances,
                     cores: prover_cores,
                 };
@@ -177,7 +178,12 @@ pub fn main() -> Result<()> {
                                     "> Proving {} ended with a SZS status",
                                     report.problem.name
                                 );
-                                println!("Status: {status}");
+                                match report.elapsed_time {
+                                    Some(duration) => {
+                                        println!("Status: {status} ({} ms)", duration.as_millis())
+                                    }
+                                    None => println!("Status: {status}"),
+                                };
                                 if !matches!(status, Status::Success(Success::Theorem)) {
                                     success = false;
                                 }
