@@ -1629,6 +1629,34 @@ mod tests {
                     }))],
                 },
             ),
+            (
+                "% comment \nnot a.",
+                Theory {
+                    formulas: vec![Formula::UnaryFormula {
+                        connective: UnaryConnective::Negation,
+                        formula: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                            predicate_symbol: "a".into(),
+                            terms: vec![],
+                        }))
+                        .into(),
+                    }],
+                },
+            ),
+            (
+                "\nforall X (#false).",
+                Theory {
+                    formulas: vec![Formula::QuantifiedFormula {
+                        quantification: Quantification {
+                            quantifier: Quantifier::Forall,
+                            variables: vec![Variable {
+                                name: "X".into(),
+                                sort: Sort::General,
+                            }],
+                        },
+                        formula: Formula::AtomicFormula(AtomicFormula::Falsity).into(),
+                    }],
+                },
+            ),
         ]);
     }
 
@@ -1763,6 +1791,31 @@ mod tests {
                         ],
                     },
                 ),
+                (
+                    "% comment \ninput: n -> integer.",
+                    UserGuide {
+                        entries: vec![UserGuideEntry::PlaceholderDeclaration(
+                            PlaceholderDeclaration {
+                                name: "n".to_string(),
+                                sort: Sort::Integer,
+                            },
+                        )],
+                    },
+                ),
+                (
+                    "\nassumption: p(5).",
+                    UserGuide {
+                        entries: vec![UserGuideEntry::AnnotatedFormula(AnnotatedFormula {
+                            role: Role::Assumption,
+                            direction: Direction::Universal,
+                            name: String::default(),
+                            formula: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                                predicate_symbol: "p".into(),
+                                terms: vec![GeneralTerm::IntegerTerm(IntegerTerm::Numeral(5))],
+                            })),
+                        })],
+                    },
+                ),
             ])
             .should_reject(["conjecture: p(5)."]);
     }
@@ -1815,6 +1868,35 @@ mod tests {
                                         })).into(),
                                     }.into()
                                 },
+                            },
+                        ],
+                    },
+                ),
+                (
+                    "% comment \nspec: not #false.",
+                    Specification {
+                        formulas: vec![
+                            AnnotatedFormula {
+                                role: Role::Spec,
+                                direction: Direction::Universal,
+                                name: String::default(),
+                                formula: Formula::UnaryFormula {
+                                    connective: UnaryConnective::Negation,
+                                    formula: Formula::AtomicFormula(AtomicFormula::Falsity).into(),
+                                }
+                            },
+                        ],
+                    },
+                ),
+                (
+                    "\nassumption: #false.",
+                    Specification {
+                        formulas: vec![
+                            AnnotatedFormula {
+                                role: Role::Assumption,
+                                direction: Direction::Universal,
+                                name: String::default(),
+                                formula: Formula::AtomicFormula(AtomicFormula::Falsity),
                             },
                         ],
                     },
