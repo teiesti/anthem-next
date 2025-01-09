@@ -712,7 +712,7 @@ impl PestParser for SpecificationParser {
 
     type InternalParser = internal::Parser;
     type Rule = internal::Rule;
-    const RULE: internal::Rule = internal::Rule::specification_eoi;
+    const RULE: internal::Rule = internal::Rule::specification;
 
     fn translate_pair(pair: pest::iterators::Pair<'_, Self::Rule>) -> Self::Node {
         if pair.as_rule() != internal::Rule::specification {
@@ -798,7 +798,7 @@ impl PestParser for UserGuideParser {
 
     type InternalParser = internal::Parser;
     type Rule = internal::Rule;
-    const RULE: internal::Rule = internal::Rule::user_guide_eoi;
+    const RULE: internal::Rule = internal::Rule::user_guide;
 
     fn translate_pair(pair: pest::iterators::Pair<'_, Self::Rule>) -> Self::Node {
         if pair.as_rule() != internal::Rule::user_guide {

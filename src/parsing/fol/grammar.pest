@@ -123,8 +123,7 @@ direction_eoi = _{ direction ~ !ANY }
 annotated_formula = { role ~ ("(" ~ direction ~ ")")? ~ ("[" ~ symbolic_constant ~ "]")? ~ ":" ~ formula }
 annotated_formula_eoi = _{ annotated_formula ~ !ANY }
 
-specification = { (annotated_formula ~ ".")* }
-specification_eoi = _{ specification ~ !ANY }
+specification = { (annotated_formula ~ ".")* ~ !ANY }
 
 user_guide_entry = { input_predicate | output_predicate | placeholder_declaration | annotated_formula }
 user_guide_entry_eoi = _{ user_guide_entry ~ !ANY }
@@ -132,5 +131,4 @@ user_guide_entry_eoi = _{ user_guide_entry ~ !ANY }
     output_predicate        = { "output" ~ ":" ~ predicate}
     placeholder_declaration = { "input" ~ ":" ~ symbolic_constant ~ ("->" ~ sort)? }
 
-user_guide = { (user_guide_entry ~ ".")* }
-user_guide_eoi = _{ user_guide ~ !ANY }
+user_guide = { (user_guide_entry ~ ".")* ~ !ANY }
