@@ -440,9 +440,67 @@ mod tests {
             AnnotatedFormula, Atom, AtomicFormula, BinaryConnective, BinaryOperator, Comparison,
             Direction, Formula, GeneralTerm, Guard, IntegerTerm, PlaceholderDeclaration, Predicate,
             Quantification, Quantifier, Relation, Role, Sort, Specification, SymbolicTerm, Theory,
-            UnaryConnective, UserGuide, UserGuideEntry, Variable,
+            UnaryConnective, UnaryOperator, UserGuide, UserGuideEntry, Variable,
         },
     };
+
+    #[test]
+    fn format_unary_operator() {
+        assert_eq!(Format(&UnaryOperator::Negative).to_string(), "-");
+    }
+
+    #[test]
+    fn format_binary_operator() {
+        for (left, right) in [
+            (BinaryOperator::Add, "+"),
+            (BinaryOperator::Subtract, "-"),
+            (BinaryOperator::Multiply, "*"),
+        ] {
+            assert_eq!(Format(&left).to_string(), right);
+        }
+    }
+
+    #[test]
+    fn format_relation() {
+        for (left, right) in [
+            (Relation::Less, "<"),
+            (Relation::Greater, ">"),
+            (Relation::LessEqual, "<="),
+            (Relation::GreaterEqual, ">="),
+            (Relation::Equal, "="),
+            (Relation::NotEqual, "!="),
+        ] {
+            assert_eq!(Format(&left).to_string(), right);
+        }
+    }
+
+    #[test]
+    fn format_unary_connective() {
+        assert_eq!(Format(&UnaryConnective::Negation).to_string(), "not");
+    }
+
+    #[test]
+    fn format_binary_connective() {
+        for (left, right) in [
+            (BinaryConnective::Conjunction, "and"),
+            (BinaryConnective::Disjunction, "or"),
+            (BinaryConnective::Implication, "->"),
+            (BinaryConnective::ReverseImplication, "<-"),
+            (BinaryConnective::Equivalence, "<->"),
+        ] {
+            assert_eq!(Format(&left).to_string(), right);
+        }
+    }
+
+    #[test]
+    fn format_quantifier() {
+        for (left, right) in [
+            (Quantifier::Forall, "forall"),
+            (Quantifier::Exists, "exists"),
+        ] {
+            assert_eq!(Format(&left).to_string(), right);
+        }
+    }
 
     #[test]
     fn format_sort() {
