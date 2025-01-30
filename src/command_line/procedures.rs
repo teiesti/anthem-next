@@ -17,7 +17,7 @@ use {
     },
     anyhow::{anyhow, Context, Result},
     clap::Parser as _,
-    either::Either,
+    either::{Either, Left, Right},
 };
 
 pub fn main() -> Result<()> {
@@ -36,29 +36,49 @@ pub fn main() -> Result<()> {
         }
 
         Command::Translate { with, input } => {
-            match with {
-                Translation::Completion => {
-                    let theory =
-                        input.map_or_else(fol::Theory::from_stdin, fol::Theory::from_file)?;
-                    let completed_theory =
-                        completion(theory).context("the given theory is not completable")?;
-                    print!("{completed_theory}")
-                }
+            let mut data: Either<asp::Program, fol::Theory>;
 
-                Translation::Gamma => {
-                    let theory =
-                        input.map_or_else(fol::Theory::from_stdin, fol::Theory::from_file)?;
-                    let gamma_theory = gamma(theory);
-                    print!("{gamma_theory}")
+            match with[0] {
+                Translation::Completion | Translation::Gamma => {
+                    data =
+                        Right(input.map_or_else(fol::Theory::from_stdin, fol::Theory::from_file)?)
                 }
-
                 Translation::TauStar => {
-                    let program =
-                        input.map_or_else(asp::Program::from_stdin, asp::Program::from_file)?;
-                    let theory = tau_star(program);
-                    print!("{theory}")
+                    data =
+                        Left(input.map_or_else(asp::Program::from_stdin, asp::Program::from_file)?)
                 }
             }
+
+            for translation in with {
+                match translation {
+                    Translation::Completion => {
+                        let completed_theory = completion(
+                            data.right()
+                                .unwrap_or_else(|| panic!("input to completion is not a theory")),
+                        )
+                        .context("the given theory is not completable")?;
+                        data = Right(completed_theory)
+                    }
+
+                    Translation::Gamma => {
+                        let gamma_theory = gamma(
+                            data.right()
+                                .unwrap_or_else(|| panic!("input to gamma is not a theory")),
+                        );
+                        data = Right(gamma_theory)
+                    }
+
+                    Translation::TauStar => {
+                        let theory = tau_star(
+                            data.left()
+                                .unwrap_or_else(|| panic!("input to tau-star in not a program")),
+                        );
+                        data = Right(theory)
+                    }
+                }
+            }
+
+            print!("{data}");
 
             Ok(())
         }

@@ -24,9 +24,9 @@ pub enum Command {
 
     /// Translate a given answer set program or first-order theory
     Translate {
-        /// The translation to use
-        #[arg(long, value_enum)]
-        with: Translation,
+        /// The translation to use, separate multiple values by ","
+        #[arg(long, value_enum, value_delimiter = ',')]
+        with: Vec<Translation>,
 
         /// The file to translate
         input: Option<PathBuf>,
