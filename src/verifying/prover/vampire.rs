@@ -7,6 +7,7 @@ use {
         fmt::{self, Display},
         io::Write as _,
         process::{Command, Output, Stdio},
+        time::{Duration, Instant},
     },
     thiserror::Error,
 };
@@ -45,6 +46,7 @@ impl TryFrom<Output> for VampireOutput {
 pub struct VampireReport {
     pub problem: Problem,
     pub output: VampireOutput,
+    pub elapsed_time: Duration,
 }
 
 impl Report for VampireReport {
@@ -105,6 +107,8 @@ impl Prover for Vampire {
     }
 
     fn prove(&self, problem: Problem) -> Result<Self::Report, Self::Error> {
+        let start_time = Instant::now();
+
         let mut child = Command::new("vampire")
             .args([
                 "--mode",
@@ -129,6 +133,10 @@ impl Prover for Vampire {
             .map_err(VampireError::UnableToWait)?
             .try_into()?;
 
-        Ok(VampireReport { problem, output })
+        Ok(VampireReport {
+            problem,
+            output,
+            elapsed_time: start_time.elapsed(),
+        })
     }
 }

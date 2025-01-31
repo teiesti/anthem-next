@@ -438,10 +438,80 @@ mod tests {
         formatting::fol::default::Format,
         syntax_tree::fol::{
             AnnotatedFormula, Atom, AtomicFormula, BinaryConnective, BinaryOperator, Comparison,
-            Direction, Formula, GeneralTerm, Guard, IntegerTerm, Quantification, Quantifier,
-            Relation, Role, Sort, Specification, SymbolicTerm, UnaryConnective, Variable,
+            Direction, Formula, GeneralTerm, Guard, IntegerTerm, PlaceholderDeclaration, Predicate,
+            Quantification, Quantifier, Relation, Role, Sort, Specification, SymbolicTerm, Theory,
+            UnaryConnective, UnaryOperator, UserGuide, UserGuideEntry, Variable,
         },
     };
+
+    #[test]
+    fn format_unary_operator() {
+        assert_eq!(Format(&UnaryOperator::Negative).to_string(), "-");
+    }
+
+    #[test]
+    fn format_binary_operator() {
+        for (left, right) in [
+            (BinaryOperator::Add, "+"),
+            (BinaryOperator::Subtract, "-"),
+            (BinaryOperator::Multiply, "*"),
+        ] {
+            assert_eq!(Format(&left).to_string(), right);
+        }
+    }
+
+    #[test]
+    fn format_relation() {
+        for (left, right) in [
+            (Relation::Less, "<"),
+            (Relation::Greater, ">"),
+            (Relation::LessEqual, "<="),
+            (Relation::GreaterEqual, ">="),
+            (Relation::Equal, "="),
+            (Relation::NotEqual, "!="),
+        ] {
+            assert_eq!(Format(&left).to_string(), right);
+        }
+    }
+
+    #[test]
+    fn format_unary_connective() {
+        assert_eq!(Format(&UnaryConnective::Negation).to_string(), "not");
+    }
+
+    #[test]
+    fn format_binary_connective() {
+        for (left, right) in [
+            (BinaryConnective::Conjunction, "and"),
+            (BinaryConnective::Disjunction, "or"),
+            (BinaryConnective::Implication, "->"),
+            (BinaryConnective::ReverseImplication, "<-"),
+            (BinaryConnective::Equivalence, "<->"),
+        ] {
+            assert_eq!(Format(&left).to_string(), right);
+        }
+    }
+
+    #[test]
+    fn format_quantifier() {
+        for (left, right) in [
+            (Quantifier::Forall, "forall"),
+            (Quantifier::Exists, "exists"),
+        ] {
+            assert_eq!(Format(&left).to_string(), right);
+        }
+    }
+
+    #[test]
+    fn format_sort() {
+        for (left, right) in [
+            (Sort::General, "g"),
+            (Sort::Integer, "i"),
+            (Sort::Symbol, "s"),
+        ] {
+            assert_eq!(Format(&left).to_string(), right);
+        }
+    }
 
     #[test]
     fn format_integer_term() {
@@ -833,6 +903,89 @@ mod tests {
     }
 
     #[test]
+    fn format_theory() {
+        assert_eq!(
+            Format(&Theory {
+                formulas: vec![
+                    Formula::AtomicFormula(AtomicFormula::Truth).into(),
+                    Formula::BinaryFormula {
+                        connective: BinaryConnective::Equivalence,
+                        lhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                            predicate_symbol: "p".to_string(),
+                            terms: vec![]
+                        }))
+                        .into(),
+                        rhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                            predicate_symbol: "q".to_string(),
+                            terms: vec![]
+                        }))
+                        .into()
+                    }
+                ],
+            })
+            .to_string(),
+            "#true.\np <-> q.\n"
+        );
+    }
+
+    #[test]
+    fn format_role() {
+        for (left, right) in [
+            (Role::Assumption, "assumption"),
+            (Role::Spec, "spec"),
+            (Role::Lemma, "lemma"),
+            (Role::Definition, "definition"),
+            (Role::InductiveLemma, "inductive-lemma"),
+        ] {
+            assert_eq!(Format(&left).to_string(), right);
+        }
+    }
+
+    #[test]
+    fn format_direction() {
+        for (left, right) in [
+            (Direction::Universal, "universal"),
+            (Direction::Forward, "forward"),
+            (Direction::Backward, "backward"),
+        ] {
+            assert_eq!(Format(&left).to_string(), right);
+        }
+    }
+
+    #[test]
+    fn format_annotated_formula() {
+        for (left, right) in [
+            (
+                AnnotatedFormula {
+                    role: Role::Lemma,
+                    direction: Direction::Universal,
+                    name: "lemma_p".to_string(),
+                    formula: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                        predicate_symbol: "p".to_string(),
+                        terms: vec![GeneralTerm::IntegerTerm(IntegerTerm::Numeral(1))],
+                    })),
+                },
+                "lemma[lemma_p]: p(1)",
+            ),
+            (
+                AnnotatedFormula {
+                    role: Role::Assumption,
+                    direction: Direction::Forward,
+                    name: String::default(),
+                    formula: Formula::BinaryFormula {
+                        connective: BinaryConnective::Disjunction,
+                        lhs: Formula::AtomicFormula(AtomicFormula::Truth).into(),
+                        rhs: Formula::AtomicFormula(AtomicFormula::Falsity).into(),
+                    },
+                },
+                "assumption(forward): #true or #false",
+            ),
+        ] {
+            assert_eq!(Format(&left).to_string(), right);
+        }
+    }
+
+    #[test]
     fn format_specification() {
         let left = Format(&Specification {
             formulas: vec![
@@ -900,5 +1053,82 @@ mod tests {
         .to_string();
         let right = "spec(forward)[about_p_0]: not p(0).\nassumption: p(5).\ninductive-lemma(backward)[il1]: forall X (p(X) <-> q(X) or t).\n".to_string();
         assert_eq!(left, right, "\n{left}!=\n{right}");
+    }
+
+    #[test]
+    fn format_placeholder_declaration() {
+        assert_eq!(
+            Format(&PlaceholderDeclaration {
+                name: "n".to_string(),
+                sort: Sort::Integer,
+            })
+            .to_string(),
+            "n -> i"
+        );
+    }
+
+    #[test]
+    fn format_user_guide_entry() {
+        for (left, right) in [
+            (
+                UserGuideEntry::InputPredicate(Predicate {
+                    symbol: "p".to_string(),
+                    arity: 0,
+                }),
+                "input: p/0",
+            ),
+            (
+                UserGuideEntry::OutputPredicate(Predicate {
+                    symbol: "q".to_string(),
+                    arity: 1,
+                }),
+                "output: q/1",
+            ),
+            (
+                UserGuideEntry::PlaceholderDeclaration(PlaceholderDeclaration {
+                    name: "a".to_string(),
+                    sort: Sort::Symbol,
+                }),
+                "input: a -> s",
+            ),
+            (
+                UserGuideEntry::AnnotatedFormula(AnnotatedFormula {
+                    role: Role::Lemma,
+                    direction: Direction::Backward,
+                    name: String::default(),
+                    formula: Formula::UnaryFormula {
+                        connective: UnaryConnective::Negation,
+                        formula: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                            predicate_symbol: "p".to_string(),
+                            terms: vec![GeneralTerm::IntegerTerm(IntegerTerm::Numeral(1))],
+                        }))
+                        .into(),
+                    },
+                }),
+                "lemma(backward): not p(1)",
+            ),
+        ] {
+            assert_eq!(Format(&left).to_string(), right);
+        }
+    }
+
+    #[test]
+    fn format_user_guide() {
+        assert_eq!(
+            Format(&UserGuide {
+                entries: vec![
+                    UserGuideEntry::PlaceholderDeclaration(PlaceholderDeclaration {
+                        name: "n".to_string(),
+                        sort: Sort::Integer,
+                    }),
+                    UserGuideEntry::OutputPredicate(Predicate {
+                        symbol: "q".to_string(),
+                        arity: 2,
+                    }),
+                ],
+            })
+            .to_string(),
+            "input: n -> i.\noutput: q/2.\n",
+        );
     }
 }

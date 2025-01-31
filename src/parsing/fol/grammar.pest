@@ -104,7 +104,7 @@ formula_eoi = _{ formula ~ EOI }
     infix   = _{ binary_connective }
     primary = _{ "(" ~ formula ~ ")" | atomic_formula }
 
-theory = { (formula ~ ".")* }
+theory = { &ANY? ~ (formula ~ ".")* }
 theory_eoi = _{ theory ~ EOI }
 
 role = { assumption | spec | lemma | definition | inductive_lemma }
@@ -124,7 +124,7 @@ direction_eoi = _{ direction ~ EOI }
 annotated_formula = { role ~ ("(" ~ direction ~ ")")? ~ ("[" ~ symbolic_constant ~ "]")? ~ ":" ~ formula }
 annotated_formula_eoi = _{ annotated_formula ~ EOI }
 
-specification = { (annotated_formula ~ ".")* }
+specification = { &ANY? ~ (annotated_formula ~ ".")* }
 specification_eoi = _{ specification ~ EOI }
 
 user_guide_entry = { input_predicate | output_predicate | placeholder_declaration | annotated_formula }
@@ -133,5 +133,5 @@ user_guide_entry_eoi = _{ user_guide_entry ~ EOI }
     output_predicate        = { "output" ~ ":" ~ predicate}
     placeholder_declaration = { "input" ~ ":" ~ symbolic_constant ~ ("->" ~ sort)? }
 
-user_guide = { (user_guide_entry ~ ".")* }
+user_guide = { &ANY? ~ (user_guide_entry ~ ".")* }
 user_guide_eoi = _{ user_guide ~ EOI }
