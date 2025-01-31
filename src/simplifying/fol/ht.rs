@@ -18,7 +18,9 @@ pub fn simplify(theory: Theory) -> Theory {
 fn simplify_formula(formula: Formula) -> Formula {
     formula.apply_all(&mut vec![
         Box::new(evaluate_comparisons),
-        Box::new(apply_definitions),
+        Box::new(apply_negation_definition),
+        Box::new(apply_reverse_implication_definition),
+        Box::new(apply_equivalence_definition),
         Box::new(remove_identities),
         Box::new(remove_annihilations),
         Box::new(remove_idempotences),
@@ -78,11 +80,9 @@ fn evaluate_comparisons(formula: Formula) -> Formula {
     }
 }
 
-fn apply_definitions(formula: Formula) -> Formula {
-    // Apply definitions
+fn apply_negation_definition(formula: Formula) -> Formula {
+    // Apply the definition for negation
     // e.g. not F => F -> #false
-    // e.g. F <- G => G -> F
-    // e.g. F <-> G => (F -> G) and (G -> F)
 
     match formula.unbox() {
         // not F => F -> #false
@@ -95,6 +95,15 @@ fn apply_definitions(formula: Formula) -> Formula {
             rhs: Formula::AtomicFormula(AtomicFormula::Falsity).into(),
         },
 
+        x => x.rebox(),
+    }
+}
+
+fn apply_reverse_implication_definition(formula: Formula) -> Formula {
+    // Apply the definition for reverse implication
+    // e.g. F <- G => G -> F
+
+    match formula.unbox() {
         // F <- G => G -> F
         UnboxedFormula::BinaryFormula {
             connective: BinaryConnective::ReverseImplication,
@@ -106,6 +115,15 @@ fn apply_definitions(formula: Formula) -> Formula {
             rhs: lhs.into(),
         },
 
+        x => x.rebox(),
+    }
+}
+
+fn apply_equivalence_definition(formula: Formula) -> Formula {
+    // Apply the definition for equivalence
+    // e.g. F <-> G => (F -> G) and (G -> F)
+
+    match formula.unbox() {
         // F <-> G => (F -> G) and (G -> F)
         UnboxedFormula::BinaryFormula {
             connective: BinaryConnective::Equivalence,
@@ -123,6 +141,7 @@ fn apply_definitions(formula: Formula) -> Formula {
                 rhs: lhs.into(),
             },
         ]),
+
         x => x.rebox(),
     }
 }
@@ -324,14 +343,12 @@ pub(crate) fn join_nested_quantifiers(formula: Formula) -> Formula {
 mod tests {
     use {
         super::{
+            apply_equivalence_definition, apply_reverse_implication_definition, apply_negation_definition,
             evaluate_comparisons, join_nested_quantifiers, remove_annihilations,
             remove_empty_quantifications, remove_idempotences, remove_identities,
             remove_orphaned_variables, simplify_formula,
         },
-        crate::{
-            convenience::apply::Apply as _, simplifying::fol::ht::apply_definitions,
-            syntax_tree::fol::Formula,
-        },
+        crate::{convenience::apply::Apply as _, syntax_tree::fol::Formula},
     };
 
     #[test]
@@ -381,19 +398,36 @@ mod tests {
     }
 
     #[test]
-    fn test_apply_definitions() {
-        for (src, target) in [
-            ("not f", "f -> #false"),
-            ("f <- g", "g -> f"),
-            ("f <-> g", "(f -> g) and (g -> f)"),
-        ] {
-            assert_eq!(
-                src.parse::<Formula>()
-                    .unwrap()
-                    .apply(&mut apply_definitions),
-                target.parse().unwrap()
-            )
-        }
+    fn test_apply_negation_definitions() {
+        assert_eq!(
+            "not f"
+                .parse::<Formula>()
+                .unwrap()
+                .apply(&mut apply_negation_definition),
+            "f -> #false".parse().unwrap()
+        )
+    }
+
+    #[test]
+    fn test_apply_reverse_implication_definitions() {
+        assert_eq!(
+            "f <- g"
+                .parse::<Formula>()
+                .unwrap()
+                .apply(&mut apply_reverse_implication_definition),
+            "g -> f".parse().unwrap()
+        )
+    }
+
+    #[test]
+    fn test_apply_equivalence_definitions() {
+        assert_eq!(
+            "f <-> g"
+                .parse::<Formula>()
+                .unwrap()
+                .apply(&mut apply_equivalence_definition),
+            "(f -> g) and (g -> f)".parse().unwrap()
+        )
     }
 
     #[test]
