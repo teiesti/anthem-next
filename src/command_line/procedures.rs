@@ -18,6 +18,7 @@ use {
     anyhow::{anyhow, Context, Result},
     clap::Parser as _,
     either::Either,
+    std::time::Instant,
 };
 
 pub fn main() -> Result<()> {
@@ -71,12 +72,15 @@ pub fn main() -> Result<()> {
             no_simplify,
             no_eq_break,
             no_proof_search,
+            no_timing,
             time_limit,
             prover_instances,
             prover_cores,
             save_problems: out_dir,
             files,
         } => {
+            let start_time = Instant::now();
+
             let files =
                 Files::sort(files).context("unable to sort the given files by their function")?;
 
@@ -169,7 +173,11 @@ pub fn main() -> Result<()> {
                                     "> Proving {} ended with a SZS status",
                                     report.problem.name
                                 );
-                                println!("Status: {status}");
+                                print!("Status: {status}");
+                                if !no_timing {
+                                    print!(" ({} ms)", report.elapsed_time.as_millis())
+                                }
+                                println!();
                                 if !matches!(status, Status::Success(Success::Theorem)) {
                                     success = false;
                                 }
@@ -197,10 +205,16 @@ pub fn main() -> Result<()> {
                 }
 
                 if success {
-                    println!("> Success! Anthem found a proof of equivalence.")
+                    print!("> Success! Anthem found a proof of equivalence.")
                 } else {
-                    println!("> Failure! Anthem was unable to find a proof of equivalence.")
+                    print!("> Failure! Anthem was unable to find a proof of equivalence.")
                 }
+
+                if !no_timing {
+                    print!(" ({} ms)", start_time.elapsed().as_millis())
+                }
+
+                println!()
             }
 
             Ok(())
