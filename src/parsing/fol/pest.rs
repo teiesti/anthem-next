@@ -818,10 +818,11 @@ mod tests {
     use {
         super::{
             AnnotatedFormulaParser, AtomParser, AtomicFormulaParser, BinaryConnectiveParser,
-            BinaryOperatorParser, ComparisonParser, FormulaParser, GeneralTermParser, GuardParser,
-            IntegerTermParser, PredicateParser, QuantificationParser, QuantifierParser,
-            RelationParser, SortParser, SpecificationParser, SymbolicTermParser, TheoryParser,
-            UnaryConnectiveParser, UnaryOperatorParser, UserGuideParser, VariableParser,
+            BinaryOperatorParser, ComparisonParser, DirectionParser, FormulaParser,
+            GeneralTermParser, GuardParser, IntegerTermParser, PredicateParser,
+            QuantificationParser, QuantifierParser, RelationParser, RoleParser, SortParser,
+            SpecificationParser, SymbolicTermParser, TheoryParser, UnaryConnectiveParser,
+            UnaryOperatorParser, UserGuideEntryParser, UserGuideParser, VariableParser,
         },
         crate::{
             parsing::TestedParser,
@@ -1661,6 +1662,36 @@ mod tests {
     }
 
     #[test]
+    fn parse_role() {
+        RoleParser
+            .should_parse_into([
+                ("assumption", Role::Assumption),
+                ("spec", Role::Spec),
+                ("lemma", Role::Lemma),
+                ("definition", Role::Definition),
+                ("inductive-lemma", Role::InductiveLemma),
+            ])
+            .should_reject([
+                "assume",
+                "specification",
+                "inductive_lemma",
+                "inductive lemma",
+                "def",
+            ]);
+    }
+
+    #[test]
+    fn parse_direction() {
+        DirectionParser
+            .should_parse_into([
+                ("universal", Direction::Universal),
+                ("forward", Direction::Forward),
+                ("backward", Direction::Backward),
+            ])
+            .should_reject(["backwards", "forwards"]);
+    }
+
+    #[test]
     fn parse_annotated_formula() {
         AnnotatedFormulaParser
             .should_parse_into([
@@ -1764,6 +1795,44 @@ mod tests {
                 ),
             ])
             .should_reject(["lemma: X"]);
+    }
+
+    #[test]
+    fn parse_user_guide_entry() {
+        UserGuideEntryParser
+            .should_parse_into([
+                (
+                    "input: n -> integer",
+                    UserGuideEntry::PlaceholderDeclaration(PlaceholderDeclaration {
+                        name: "n".to_string(),
+                        sort: Sort::Integer,
+                    }),
+                ),
+                (
+                    "input: a/0",
+                    UserGuideEntry::InputPredicate(Predicate {
+                        symbol: "a".to_string(),
+                        arity: 0,
+                    }),
+                ),
+                (
+                    "output: a/1",
+                    UserGuideEntry::OutputPredicate(Predicate {
+                        symbol: "a".to_string(),
+                        arity: 1,
+                    }),
+                ),
+                (
+                    "spec: #true",
+                    UserGuideEntry::AnnotatedFormula(AnnotatedFormula {
+                        role: Role::Spec,
+                        direction: Direction::Universal,
+                        name: String::default(),
+                        formula: Formula::AtomicFormula(AtomicFormula::Truth),
+                    }),
+                ),
+            ])
+            .should_reject(["output: p", "input: p(X)", "#false"]);
     }
 
     #[test]
