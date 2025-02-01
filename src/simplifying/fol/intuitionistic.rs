@@ -1,6 +1,7 @@
 use crate::{
     convenience::{
         apply::Apply as _,
+        compose::Compose as _,
         unbox::{fol::UnboxedFormula, Unbox as _},
     },
     syntax_tree::fol::{
@@ -16,19 +17,21 @@ pub fn simplify(theory: Theory) -> Theory {
 }
 
 pub fn simplify_formula(formula: Formula) -> Formula {
-    formula.apply_all(&mut vec![
-        Box::new(evaluate_comparisons),
-        Box::new(apply_negation_definition),
-        Box::new(apply_reverse_implication_definition),
-        Box::new(apply_equivalence_definition),
-        Box::new(remove_identities),
-        Box::new(remove_annihilations),
-        Box::new(remove_idempotences),
-        Box::new(remove_orphaned_variables),
-        Box::new(remove_empty_quantifications),
-        Box::new(join_nested_quantifiers),
-    ])
+    formula.apply(&mut INTUITIONISTIC.iter().compose())
 }
+
+pub const INTUITIONISTIC: &[fn(Formula) -> Formula] = &[
+    evaluate_comparisons,
+    apply_negation_definition,
+    apply_reverse_implication_definition,
+    apply_equivalence_definition,
+    remove_identities,
+    remove_annihilations,
+    remove_idempotences,
+    remove_orphaned_variables,
+    remove_empty_quantifications,
+    join_nested_quantifiers,
+];
 
 pub fn evaluate_comparisons(formula: Formula) -> Formula {
     // Evaluate comparisons between structurally equal terms
