@@ -99,6 +99,25 @@ fn apply_negation_definition(formula: Formula) -> Formula {
     }
 }
 
+fn apply_negation_definition_inverse(formula: Formula) -> Formula {
+    // Apply the definition for negation in reverse
+    // e.g. F -> #false => not F
+
+    match formula.unbox() {
+        // F -> #false => not F
+        UnboxedFormula::BinaryFormula {
+            connective: BinaryConnective::Implication,
+            lhs,
+            rhs: Formula::AtomicFormula(AtomicFormula::Falsity),
+        } => Formula::UnaryFormula {
+            connective: UnaryConnective::Negation,
+            formula: lhs.into(),
+        },
+
+        x => x.rebox(),
+    }
+}
+
 fn apply_reverse_implication_definition(formula: Formula) -> Formula {
     // Apply the definition for reverse implication
     // e.g. F <- G => G -> F
@@ -111,6 +130,27 @@ fn apply_reverse_implication_definition(formula: Formula) -> Formula {
             rhs,
         } => Formula::BinaryFormula {
             connective: BinaryConnective::Implication,
+            lhs: rhs.into(),
+            rhs: lhs.into(),
+        },
+
+        x => x.rebox(),
+    }
+}
+
+fn apply_reverse_implication_definition_inverse(formula: Formula) -> Formula {
+    // Apply the definition for reverse implication in reverse
+    // Yeah, that sounds terrible -- but is actually what happens here...
+    // e.g. G -> F => F <- G
+
+    match formula.unbox() {
+        // F -> G => G <- F
+        UnboxedFormula::BinaryFormula {
+            connective: BinaryConnective::Implication,
+            lhs,
+            rhs,
+        } => Formula::BinaryFormula {
+            connective: BinaryConnective::ReverseImplication,
             lhs: rhs.into(),
             rhs: lhs.into(),
         },
@@ -141,6 +181,41 @@ fn apply_equivalence_definition(formula: Formula) -> Formula {
                 rhs: lhs.into(),
             },
         ]),
+
+        x => x.rebox(),
+    }
+}
+
+fn apply_equivalence_definition_inverse(formula: Formula) -> Formula {
+    // Apply the definition for equivalence in reverse
+    // e.g. (F -> G) and (G -> F) => F <-> G
+
+    match formula.unbox() {
+        // (F -> G) and (G -> F) => F <-> G
+        UnboxedFormula::BinaryFormula {
+            connective: BinaryConnective::Conjunction,
+            lhs,
+            rhs,
+        } => match (lhs.unbox(), rhs.unbox()) {
+            (
+                UnboxedFormula::BinaryFormula {
+                    connective: BinaryConnective::Implication,
+                    lhs: llhs,
+                    rhs: lrhs,
+                },
+                UnboxedFormula::BinaryFormula {
+                    connective: BinaryConnective::Implication,
+                    lhs: rlhs,
+                    rhs: rrhs,
+                },
+            ) if llhs == rrhs && lrhs == rlhs => Formula::BinaryFormula {
+                connective: BinaryConnective::Equivalence,
+                lhs: llhs.into(),
+                rhs: lrhs.into(),
+            },
+
+            (lhs, rhs) => Formula::conjoin([lhs.rebox(), rhs.rebox()]),
+        },
 
         x => x.rebox(),
     }
@@ -343,7 +418,9 @@ pub(crate) fn join_nested_quantifiers(formula: Formula) -> Formula {
 mod tests {
     use {
         super::{
-            apply_equivalence_definition, apply_reverse_implication_definition, apply_negation_definition,
+            apply_equivalence_definition, apply_equivalence_definition_inverse,
+            apply_negation_definition, apply_negation_definition_inverse,
+            apply_reverse_implication_definition, apply_reverse_implication_definition_inverse,
             evaluate_comparisons, join_nested_quantifiers, remove_annihilations,
             remove_empty_quantifications, remove_idempotences, remove_identities,
             remove_orphaned_variables, simplify_formula,
@@ -409,6 +486,17 @@ mod tests {
     }
 
     #[test]
+    fn test_apply_negation_definitions_inverse() {
+        assert_eq!(
+            "f -> #false"
+                .parse::<Formula>()
+                .unwrap()
+                .apply(&mut apply_negation_definition_inverse),
+            "not f".parse().unwrap()
+        )
+    }
+
+    #[test]
     fn test_apply_reverse_implication_definitions() {
         assert_eq!(
             "f <- g"
@@ -420,6 +508,17 @@ mod tests {
     }
 
     #[test]
+    fn test_apply_reverse_implication_definitions_inverse() {
+        assert_eq!(
+            "g -> f"
+                .parse::<Formula>()
+                .unwrap()
+                .apply(&mut apply_reverse_implication_definition_inverse),
+            "f <- g".parse().unwrap()
+        )
+    }
+
+    #[test]
     fn test_apply_equivalence_definitions() {
         assert_eq!(
             "f <-> g"
@@ -427,6 +526,17 @@ mod tests {
                 .unwrap()
                 .apply(&mut apply_equivalence_definition),
             "(f -> g) and (g -> f)".parse().unwrap()
+        )
+    }
+
+    #[test]
+    fn test_apply_equivalence_definitions_inverse() {
+        assert_eq!(
+            "(f -> g) and (g -> f)"
+                .parse::<Formula>()
+                .unwrap()
+                .apply(&mut apply_equivalence_definition_inverse),
+            "f <-> g".parse().unwrap()
         )
     }
 
