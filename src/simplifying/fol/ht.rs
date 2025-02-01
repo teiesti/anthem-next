@@ -15,7 +15,7 @@ pub fn simplify(theory: Theory) -> Theory {
     }
 }
 
-fn simplify_formula(formula: Formula) -> Formula {
+pub fn simplify_formula(formula: Formula) -> Formula {
     formula.apply_all(&mut vec![
         Box::new(evaluate_comparisons),
         Box::new(apply_negation_definition),
@@ -30,7 +30,7 @@ fn simplify_formula(formula: Formula) -> Formula {
     ])
 }
 
-fn evaluate_comparisons(formula: Formula) -> Formula {
+pub fn evaluate_comparisons(formula: Formula) -> Formula {
     // Evaluate comparisons between structurally equal terms
     // e.g. T  = T => #true
     // e.g. T != T => #false
@@ -80,7 +80,7 @@ fn evaluate_comparisons(formula: Formula) -> Formula {
     }
 }
 
-fn apply_negation_definition(formula: Formula) -> Formula {
+pub fn apply_negation_definition(formula: Formula) -> Formula {
     // Apply the definition for negation
     // e.g. not F => F -> #false
 
@@ -99,7 +99,7 @@ fn apply_negation_definition(formula: Formula) -> Formula {
     }
 }
 
-fn apply_negation_definition_inverse(formula: Formula) -> Formula {
+pub fn apply_negation_definition_inverse(formula: Formula) -> Formula {
     // Apply the definition for negation in reverse
     // e.g. F -> #false => not F
 
@@ -118,7 +118,7 @@ fn apply_negation_definition_inverse(formula: Formula) -> Formula {
     }
 }
 
-fn apply_reverse_implication_definition(formula: Formula) -> Formula {
+pub fn apply_reverse_implication_definition(formula: Formula) -> Formula {
     // Apply the definition for reverse implication
     // e.g. F <- G => G -> F
 
@@ -138,7 +138,7 @@ fn apply_reverse_implication_definition(formula: Formula) -> Formula {
     }
 }
 
-fn apply_reverse_implication_definition_inverse(formula: Formula) -> Formula {
+pub fn apply_reverse_implication_definition_inverse(formula: Formula) -> Formula {
     // Apply the definition for reverse implication in reverse
     // Yeah, that sounds terrible -- but is actually what happens here...
     // e.g. G -> F => F <- G
@@ -159,7 +159,7 @@ fn apply_reverse_implication_definition_inverse(formula: Formula) -> Formula {
     }
 }
 
-fn apply_equivalence_definition(formula: Formula) -> Formula {
+pub fn apply_equivalence_definition(formula: Formula) -> Formula {
     // Apply the definition for equivalence
     // e.g. F <-> G => (F -> G) and (G -> F)
 
@@ -186,7 +186,7 @@ fn apply_equivalence_definition(formula: Formula) -> Formula {
     }
 }
 
-fn apply_equivalence_definition_inverse(formula: Formula) -> Formula {
+pub fn apply_equivalence_definition_inverse(formula: Formula) -> Formula {
     // Apply the definition for equivalence in reverse
     // e.g. (F -> G) and (G -> F) => F <-> G
 
@@ -221,7 +221,7 @@ fn apply_equivalence_definition_inverse(formula: Formula) -> Formula {
     }
 }
 
-fn remove_identities(formula: Formula) -> Formula {
+pub fn remove_identities(formula: Formula) -> Formula {
     // Remove identities
     // e.g. F op E => F
 
@@ -265,7 +265,7 @@ fn remove_identities(formula: Formula) -> Formula {
     }
 }
 
-fn remove_annihilations(formula: Formula) -> Formula {
+pub fn remove_annihilations(formula: Formula) -> Formula {
     // Remove annihilations
     // e.g. F op E => E
 
@@ -323,7 +323,7 @@ fn remove_annihilations(formula: Formula) -> Formula {
     }
 }
 
-fn remove_idempotences(formula: Formula) -> Formula {
+pub fn remove_idempotences(formula: Formula) -> Formula {
     // Remove idempotences
     // e.g. F op F => F
 
@@ -340,7 +340,7 @@ fn remove_idempotences(formula: Formula) -> Formula {
     }
 }
 
-fn remove_orphaned_variables(formula: Formula) -> Formula {
+pub fn remove_orphaned_variables(formula: Formula) -> Formula {
     // Remove orphaned variables in quantification
     // e.g. q X Y F(X) => q X F(X)
 
@@ -373,7 +373,7 @@ fn remove_orphaned_variables(formula: Formula) -> Formula {
     }
 }
 
-fn remove_empty_quantifications(formula: Formula) -> Formula {
+pub fn remove_empty_quantifications(formula: Formula) -> Formula {
     // Remove empty quantifiers
     // e.g. q F => F
 
@@ -388,7 +388,7 @@ fn remove_empty_quantifications(formula: Formula) -> Formula {
     }
 }
 
-pub(crate) fn join_nested_quantifiers(formula: Formula) -> Formula {
+pub fn join_nested_quantifiers(formula: Formula) -> Formula {
     // Remove nested quantifiers
     // e.g. q X ( q Y F(X,Y) ) => q X Y F(X,Y)
 
