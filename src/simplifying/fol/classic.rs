@@ -1,12 +1,24 @@
 use crate::{
-    convenience::unbox::{fol::UnboxedFormula, Unbox as _},
+    convenience::{
+        apply::Apply as _,
+        compose::Compose as _,
+        unbox::{fol::UnboxedFormula, Unbox as _},
+    },
+    simplifying::fol::{ht::HT, intuitionistic::INTUITIONISTIC},
     syntax_tree::fol::{Formula, Theory, UnaryConnective},
 };
 
 pub fn simplify(theory: Theory) -> Theory {
-    crate::simplifying::fol::ht::simplify(theory)
-    // TODO: Apply classic simplifications
+    Theory {
+        formulas: theory.formulas.into_iter().map(simplify_formula).collect(),
+    }
 }
+
+pub fn simplify_formula(formula: Formula) -> Formula {
+    formula.apply(&mut INTUITIONISTIC.iter().chain(HT).chain(CLASSIC).compose())
+}
+
+pub const CLASSIC: &[fn(Formula) -> Formula] = &[remove_double_negation];
 
 pub fn remove_double_negation(formula: Formula) -> Formula {
     // Remove double negation
