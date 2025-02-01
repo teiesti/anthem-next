@@ -66,8 +66,8 @@ impl Task for StrongEquivalenceTask {
         let mut right = tau_star(self.right);
 
         if self.simplify {
-            left = crate::simplifying::fol::ht::simplify(left);
-            right = crate::simplifying::fol::ht::simplify(right);
+            left = crate::simplifying::fol::intuitionistic::simplify(left);
+            right = crate::simplifying::fol::intuitionistic::simplify(right);
         }
 
         left = gamma(left);
