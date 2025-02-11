@@ -1,0 +1,4 @@
+input: n -> integer.
+output: h/2.
+output: v/2.
+output: place/3.
