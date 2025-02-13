@@ -12,6 +12,12 @@ pub struct Arguments {
 
 #[derive(Debug, Subcommand)]
 pub enum Command {
+    // Test {
+    //     /// The TPTP-style name for the problem files
+    //     #[arg(long)]
+    //     problem_name: Option<String>,
+    // },
+
     /// Analyze a property of a given answer set program or first-order theory
     Analyze {
         /// The property to analyze
@@ -81,6 +87,10 @@ pub enum Command {
         /// The destination directory for the problem files
         #[arg(long)]
         save_problems: Option<PathBuf>,
+
+        /// The TPTP-style name for the problem files
+        #[arg(long)]
+        problem_name: Option<String>,
 
         /// A set of files from which to construct the claim, including
         ///

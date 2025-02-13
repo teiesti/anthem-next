@@ -8,7 +8,7 @@ use {
             tau_star::tau_star,
         },
         verifying::{
-            problem::{AnnotatedFormula, Problem, Role},
+            problem::{AnnotatedFormula, Problem, ProblemNameTPTP, Role},
             task::Task,
         },
     },
@@ -25,6 +25,7 @@ pub struct StrongEquivalenceTask {
     pub decomposition: Decomposition,
     pub direction: fol::Direction,
     pub simplify: bool,
+    pub problem_name: Option<ProblemNameTPTP>,
     pub break_equivalences: bool,
 }
 
@@ -88,8 +89,16 @@ impl Task for StrongEquivalenceTask {
             self.direction,
             fol::Direction::Universal | fol::Direction::Forward
         ) {
+            let name = match self.problem_name.clone() {
+                Some(name) => name,
+                None => ProblemNameTPTP {
+                    domain: "forward".to_string(),
+                    number: vec![0, 0, 0],
+                },
+            };
+
             problems.push(
-                Problem::with_name("forward")
+                Problem::with_name(name)
                     .add_theory(transition_axioms.clone(), |i, formula| AnnotatedFormula {
                         name: format!("transition_axiom_{i}"),
                         role: Role::Axiom,
@@ -113,8 +122,16 @@ impl Task for StrongEquivalenceTask {
             self.direction,
             fol::Direction::Universal | fol::Direction::Backward
         ) {
+            let name = match self.problem_name {
+                Some(name) => name,
+                None => ProblemNameTPTP {
+                    domain: "backward".to_string(),
+                    number: vec![0, 0, 0],
+                },
+            };
+
             problems.push(
-                Problem::with_name("backward")
+                Problem::with_name(name)
                     .add_theory(transition_axioms, |i, formula| AnnotatedFormula {
                         name: format!("transition_axiom_{i}"),
                         role: Role::Axiom,

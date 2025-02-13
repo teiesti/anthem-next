@@ -8,6 +8,7 @@ use {
         syntax_tree::{asp, fol, Node as _},
         translating::{completion::completion, gamma::gamma, tau_star::tau_star},
         verifying::{
+            problem::{increment_problem_name, ProblemNameTPTP},
             prover::{vampire::Vampire, Prover, Report, Status, Success},
             task::{
                 external_equivalence::ExternalEquivalenceTask,
@@ -18,8 +19,14 @@ use {
     anyhow::{anyhow, Context, Result},
     clap::Parser as _,
     either::Either,
+    lazy_static::lazy_static,
+    regex::Regex,
     std::time::Instant,
 };
+
+lazy_static! {
+    static ref RE: Regex = Regex::new(r"^([A-Z]{3})([0-9])([0-9])([0-9])$").unwrap();
+}
 
 pub fn main() -> Result<()> {
     match Arguments::parse().command {
@@ -78,11 +85,27 @@ pub fn main() -> Result<()> {
             prover_cores,
             save_problems: out_dir,
             files,
+            problem_name,
         } => {
             let start_time = Instant::now();
 
             let files =
                 Files::sort(files).context("unable to sort the given files by their function")?;
+
+            let problem_name = match problem_name {
+                Some(s) => {
+                    let captive = RE.captures(&s).ok_or(anyhow!("invalid tptp name"))?;
+                    Some(ProblemNameTPTP {
+                        domain: captive.get(1).unwrap().as_str().to_string(),
+                        number: vec![
+                            captive.get(2).unwrap().as_str().parse().unwrap(),
+                            captive.get(3).unwrap().as_str().parse().unwrap(),
+                            captive.get(4).unwrap().as_str().parse().unwrap(),
+                        ],
+                    })
+                }
+                None => None,
+            };
 
             let problems = match equivalence {
                 Equivalence::Strong => StrongEquivalenceTask {
@@ -98,6 +121,7 @@ pub fn main() -> Result<()> {
                     )?,
                     decomposition,
                     direction,
+                    problem_name,
                     simplify: !no_simplify,
                     break_equivalences: !no_eq_break,
                 }
@@ -128,6 +152,7 @@ pub fn main() -> Result<()> {
                     decomposition,
                     direction,
                     bypass_tightness,
+                    problem_name,
                     simplify: !no_simplify,
                     break_equivalences: !no_eq_break,
                 }
@@ -138,7 +163,11 @@ pub fn main() -> Result<()> {
             if let Some(out_dir) = out_dir {
                 for problem in &problems {
                     let mut path = out_dir.clone();
-                    path.push(format!("{}.p", problem.name));
+                    if no_simplify {
+                        path.push(format!("{}=2.p", problem.name));
+                    } else {
+                        path.push(format!("{}=1.p", problem.name));
+                    }
                     problem.to_file(path)?;
                 }
             }
@@ -219,5 +248,33 @@ pub fn main() -> Result<()> {
 
             Ok(())
         }
+    
+        // Command::Test { problem_name } => {
+        //     let problem_name = match problem_name {
+        //         Some(s) => {
+        //             let captive = RE.captures(&s).ok_or(anyhow!("invalid tptp name"))?;
+                    
+        //             let temp = captive.get(1).unwrap().as_str().to_string();
+
+        //             Some(ProblemNameTPTP {
+        //                 domain: temp,
+        //                 number: vec![
+        //                     captive.get(2).unwrap().as_str().parse().unwrap(),
+        //                     captive.get(3).unwrap().as_str().parse().unwrap(),
+        //                     captive.get(4).unwrap().as_str().parse().unwrap(),
+        //                 ],
+        //             })
+        //         }
+        //         None => None,
+        //     };
+
+        //     //println!("{}", problem_name.unwrap());
+
+        //     let newname = increment_problem_name(&problem_name.unwrap(), 5);
+
+        //     println!("{}", newname);
+
+        //     Ok(())
+        // }
     }
 }

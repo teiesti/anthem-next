@@ -9,6 +9,37 @@ use {
     std::{fmt, fs::File, io::Write as _, iter::repeat, path::Path},
 };
 
+// Increase problem number by counter
+pub fn increment_problem_name(name: &ProblemNameTPTP, counter: usize) -> ProblemNameTPTP {
+    let counter: i16 = counter.try_into().unwrap();
+    let n: i16 = (100 * name.number[0]) + (10 * name.number[1]) + (name.number[2]) + counter;
+    let d1: i16 = (n / 100).try_into().unwrap();
+    let r1: i16 = (n % 100).try_into().unwrap();
+    let d2: i16 = (r1 / 10).try_into().unwrap();
+    let d3: i16 = (r1 % 10).try_into().unwrap();
+
+    ProblemNameTPTP {
+        domain: name.domain.clone(),
+        number: vec![d1, d2, d3],
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+pub struct ProblemNameTPTP {
+    pub domain: String,
+    pub number: Vec<i16>,
+}
+
+impl fmt::Display for ProblemNameTPTP {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}{}{}{}",
+            self.domain, self.number[0], self.number[1], self.number[2]
+        )
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub enum Interpretation {
     Standard,
@@ -75,15 +106,15 @@ impl fmt::Display for AnnotatedFormula {
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Problem {
-    pub name: String,
+    pub name: ProblemNameTPTP,
     pub interpretation: Interpretation,
     pub formulas: Vec<AnnotatedFormula>,
 }
 
 impl Problem {
-    pub fn with_name<S: Into<String>>(name: S) -> Problem {
+    pub fn with_name(name: ProblemNameTPTP) -> Problem {
         Problem {
-            name: name.into(),
+            name,
             interpretation: Interpretation::Standard,
             formulas: vec![],
         }
@@ -206,7 +237,7 @@ impl Problem {
                 let mut formulas = axioms.clone();
                 formulas.push(c);
                 Problem {
-                    name: format!("{}_{i}", self.name),
+                    name: increment_problem_name(&self.name, i),
                     interpretation: self.interpretation.clone(),
                     formulas,
                 }
@@ -227,7 +258,7 @@ impl Problem {
                 formulas.push(c);
 
                 Problem {
-                    name: format!("{}_{i}", self.name),
+                    name: increment_problem_name(&self.name, i),
                     interpretation: self.interpretation.clone(),
                     formulas: formulas.clone(),
                 }
@@ -297,14 +328,46 @@ impl fmt::Display for Problem {
 #[cfg(test)]
 mod tests {
     use {
-        super::{AnnotatedFormula, Interpretation, Problem, Role},
+        super::{AnnotatedFormula, Interpretation, Problem, ProblemNameTPTP, Role, increment_problem_name},
         std::vec,
     };
 
     #[test]
+    fn test_increment_problem_number() {
+        let name = ProblemNameTPTP {
+            domain: "SWV".into(),
+            number: vec![0, 3, 5],
+        };
+        assert_eq!(
+            increment_problem_name(&name, 1),
+            ProblemNameTPTP {
+                domain: "SWV".into(),
+                number: vec![0, 3, 6],
+            }
+        );
+        assert_eq!(
+            increment_problem_name(&name, 5),
+            ProblemNameTPTP {
+                domain: "SWV".into(),
+                number: vec![0, 4, 0],
+            }
+        );
+        assert_eq!(
+            increment_problem_name(&name, 182),
+            ProblemNameTPTP {
+                domain: "SWV".into(),
+                number: vec![2, 1, 7],
+            }
+        );
+    }
+
+    #[test]
     fn test_decomposition() {
         let problem = Problem {
-            name: "problem".into(),
+            name: ProblemNameTPTP {
+                domain: "SWV".into(),
+                number: vec![0, 0, 0],
+            },
             interpretation: Interpretation::Standard,
             formulas: vec![
                 AnnotatedFormula {
@@ -334,7 +397,10 @@ mod tests {
             problem.decompose_independent(),
             vec![
                 Problem {
-                    name: "problem_0".into(),
+                    name: ProblemNameTPTP {
+                        domain: "SWV".into(),
+                        number: vec![0, 0, 0],
+                    },
                     interpretation: Interpretation::Standard,
                     formulas: vec![
                         AnnotatedFormula {
@@ -355,7 +421,10 @@ mod tests {
                     ],
                 },
                 Problem {
-                    name: "problem_1".into(),
+                    name: ProblemNameTPTP {
+                        domain: "SWV".into(),
+                        number: vec![0, 0, 1],
+                    },
                     interpretation: Interpretation::Standard,
                     formulas: vec![
                         AnnotatedFormula {
@@ -382,7 +451,10 @@ mod tests {
             problem.decompose_sequential(),
             vec![
                 Problem {
-                    name: "problem_0".into(),
+                    name: ProblemNameTPTP {
+                        domain: "SWV".into(),
+                        number: vec![0, 0, 0],
+                    },
                     interpretation: Interpretation::Standard,
                     formulas: vec![
                         AnnotatedFormula {
@@ -403,7 +475,10 @@ mod tests {
                     ],
                 },
                 Problem {
-                    name: "problem_1".into(),
+                    name: ProblemNameTPTP {
+                        domain: "SWV".into(),
+                        number: vec![0, 0, 1],
+                    },
                     interpretation: Interpretation::Standard,
                     formulas: vec![
                         AnnotatedFormula {

@@ -11,7 +11,7 @@ use {
         translating::{completion::completion, tau_star::tau_star},
         verifying::{
             outline::{GeneralLemma, ProofOutline, ProofOutlineError, ProofOutlineWarning},
-            problem::{self, Problem},
+            problem::{self, increment_problem_name, Problem, ProblemNameTPTP},
             task::Task,
         },
     },
@@ -219,6 +219,7 @@ pub struct ExternalEquivalenceTask {
     pub direction: fol::Direction,
     pub bypass_tightness: bool,
     pub simplify: bool,
+    pub problem_name: Option<ProblemNameTPTP>,
     pub break_equivalences: bool,
 }
 
@@ -559,6 +560,7 @@ impl Task for ExternalEquivalenceTask {
             decomposition: self.decomposition,
             direction: self.direction,
             break_equivalences: self.break_equivalences,
+            problem_name: self.problem_name,
         }
         .decompose()?
         .preface_warnings(warnings))
@@ -573,6 +575,7 @@ struct ValidatedExternalEquivalenceTask {
     pub decomposition: Decomposition,
     pub direction: fol::Direction,
     pub break_equivalences: bool,
+    pub problem_name: Option<ProblemNameTPTP>,
 }
 
 impl Task for ValidatedExternalEquivalenceTask {
@@ -661,6 +664,7 @@ impl Task for ValidatedExternalEquivalenceTask {
             proof_outline: self.proof_outline,
             decomposition: self.decomposition,
             direction: self.direction,
+            problem_name: self.problem_name,
         }
         .decompose()?
         .preface_warnings(warnings))
@@ -676,6 +680,7 @@ struct AssembledExternalEquivalenceTask {
     pub proof_outline: ProofOutline,
     pub decomposition: Decomposition,
     pub direction: fol::Direction,
+    pub problem_name: Option<ProblemNameTPTP>,
 }
 
 impl Task for AssembledExternalEquivalenceTask {
@@ -684,6 +689,14 @@ impl Task for AssembledExternalEquivalenceTask {
 
     fn decompose(self) -> Result<Vec<Problem>, Self::Warning, Self::Error> {
         let mut problems = Vec::new();
+
+        let mut name = match self.problem_name {
+            Some(name) => name,
+            None => ProblemNameTPTP {
+                domain: "forward".to_string(),
+                number: vec![0, 0, 0],
+            },
+        };
 
         if matches!(
             self.direction,
@@ -698,10 +711,11 @@ impl Task for AssembledExternalEquivalenceTask {
                     .map(|f| f.into_problem_formula(problem::Role::Axiom)),
             );
 
-            for (i, lemma) in self.proof_outline.forward_lemmas.iter().enumerate() {
-                for (j, conjecture) in lemma.conjectures.iter().enumerate() {
+            for lemma in self.proof_outline.forward_lemmas.iter() {
+                for conjecture in lemma.conjectures.iter() {
+                    name = increment_problem_name(&name, 1);
                     problems.push(
-                        Problem::with_name(format!("forward_outline_{i}_{j}"))
+                        Problem::with_name(name.clone())
                             .add_annotated_formulas(axioms.clone())
                             .add_annotated_formulas(std::iter::once(conjecture.clone()))
                             .rename_conflicting_symbols()
@@ -712,7 +726,7 @@ impl Task for AssembledExternalEquivalenceTask {
             }
 
             problems.append(
-                &mut Problem::with_name("forward_problem")
+                &mut Problem::with_name(name.clone())
                     .add_annotated_formulas(self.stable_premises.clone())
                     .add_annotated_formulas(self.forward_premises)
                     .add_annotated_formulas(
@@ -741,10 +755,16 @@ impl Task for AssembledExternalEquivalenceTask {
                     .map(|f| f.into_problem_formula(problem::Role::Axiom)),
             );
 
-            for (i, lemma) in self.proof_outline.backward_lemmas.iter().enumerate() {
-                for (j, conjecture) in lemma.conjectures.iter().enumerate() {
+            let frwrd = "forward".to_string();
+            if name.clone().domain == frwrd {
+                name.domain = "backward".to_string();
+            }
+
+            for lemma in self.proof_outline.backward_lemmas.iter() {
+                for conjecture in lemma.conjectures.iter() {
+                    name = increment_problem_name(&name, 1);
                     problems.push(
-                        Problem::with_name(format!("backward_outline_{i}_{j}"))
+                        Problem::with_name(name.clone())
                             .add_annotated_formulas(axioms.clone())
                             .add_annotated_formulas(std::iter::once(conjecture.clone()))
                             .rename_conflicting_symbols()
@@ -755,7 +775,7 @@ impl Task for AssembledExternalEquivalenceTask {
             }
 
             problems.append(
-                &mut Problem::with_name("backward_problem")
+                &mut Problem::with_name(name)
                     .add_annotated_formulas(self.stable_premises)
                     .add_annotated_formulas(self.backward_premises)
                     .add_annotated_formulas(
