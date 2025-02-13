@@ -774,6 +774,7 @@ impl Task for AssembledExternalEquivalenceTask {
                 axioms.append(&mut lemma.consequences.clone());
             }
 
+            name = increment_problem_name(&name, 1);
             problems.append(
                 &mut Problem::with_name(name)
                     .add_annotated_formulas(self.stable_premises)

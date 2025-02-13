@@ -8,7 +8,7 @@ use {
             tau_star::tau_star,
         },
         verifying::{
-            problem::{AnnotatedFormula, Problem, ProblemNameTPTP, Role},
+            problem::{AnnotatedFormula, Problem, ProblemNameTPTP, Role, increment_problem_name},
             task::Task,
         },
     },
@@ -84,21 +84,21 @@ impl Task for StrongEquivalenceTask {
             right = crate::breaking::fol::ht::break_equivalences_theory(right);
         }
 
+        let mut name = match self.problem_name.clone() {
+            Some(name) => name,
+            None => ProblemNameTPTP {
+                domain: "forward".to_string(),
+                number: vec![0, 0, 0],
+            },
+        };
+
         let mut problems = Vec::new();
         if matches!(
             self.direction,
             fol::Direction::Universal | fol::Direction::Forward
         ) {
-            let name = match self.problem_name.clone() {
-                Some(name) => name,
-                None => ProblemNameTPTP {
-                    domain: "forward".to_string(),
-                    number: vec![0, 0, 0],
-                },
-            };
-
             problems.push(
-                Problem::with_name(name)
+                Problem::with_name(name.clone())
                     .add_theory(transition_axioms.clone(), |i, formula| AnnotatedFormula {
                         name: format!("transition_axiom_{i}"),
                         role: Role::Axiom,
@@ -122,13 +122,11 @@ impl Task for StrongEquivalenceTask {
             self.direction,
             fol::Direction::Universal | fol::Direction::Backward
         ) {
-            let name = match self.problem_name {
-                Some(name) => name,
-                None => ProblemNameTPTP {
-                    domain: "backward".to_string(),
-                    number: vec![0, 0, 0],
-                },
-            };
+            let frwrd = "forward".to_string();
+            if name.clone().domain == frwrd {
+                name.domain = "backward".to_string();
+            }
+            name = increment_problem_name(&name, 1);
 
             problems.push(
                 Problem::with_name(name)
