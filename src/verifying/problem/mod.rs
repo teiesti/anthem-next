@@ -276,7 +276,7 @@ impl Problem {
 
 impl fmt::Display for Problem {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, "include(standard_preamble.p).")?;
+        writeln!(f, "include('standard_preamble.ax').")?;
 
         for (i, predicate) in self.predicates().into_iter().enumerate() {
             let symbol = predicate.symbol;
