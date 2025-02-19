@@ -117,10 +117,11 @@ pub enum SimplificationPortfolio {
     Intuitionistic,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 pub enum SimplificationStrategy {
     Shallow,
     Recursive,
+    #[default]
     Fixpoint,
 }
 
