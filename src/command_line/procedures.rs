@@ -61,7 +61,7 @@ pub fn main() -> Result<()> {
                 .map(|formula| match strategy {
                     SimplificationStrategy::Shallow => simplification(formula),
                     SimplificationStrategy::Recursive => formula.apply(&mut simplification),
-                    SimplificationStrategy::Fixpoint => todo!(),
+                    SimplificationStrategy::Fixpoint => formula.apply_fixpoint(&mut simplification),
                 })
                 .collect();
 
