@@ -2,9 +2,14 @@ use {
     crate::{
         analyzing::tightness::Tightness,
         command_line::{
-            arguments::{Arguments, Command, Equivalence, Property, Translation},
+            arguments::{
+                Arguments, Command, Equivalence, Property, SimplificationPortfolio,
+                SimplificationStrategy, Translation,
+            },
             files::Files,
         },
+        convenience::{apply::Apply, compose::Compose},
+        simplifying::fol::{classic::CLASSIC, ht::HT, intuitionistic::INTUITIONISTIC},
         syntax_tree::{asp, fol, Node as _},
         translating::{completion::completion, gamma::gamma, tau_star::tau_star},
         verifying::{
@@ -32,6 +37,35 @@ pub fn main() -> Result<()> {
                     println!("{is_tight}");
                 }
             }
+
+            Ok(())
+        }
+
+        Command::Simplify {
+            portfolio,
+            strategy,
+            input,
+        } => {
+            let mut simplification = match portfolio {
+                SimplificationPortfolio::Classic => [INTUITIONISTIC, HT, CLASSIC].concat(),
+                SimplificationPortfolio::Ht => [INTUITIONISTIC, HT].concat(),
+                SimplificationPortfolio::Intuitionistic => [INTUITIONISTIC].concat(),
+            }
+            .into_iter()
+            .compose();
+
+            let theory = input.map_or_else(fol::Theory::from_stdin, fol::Theory::from_file)?;
+
+            let simplified_theory: fol::Theory = theory
+                .into_iter()
+                .map(|formula| match strategy {
+                    SimplificationStrategy::Shallow => simplification(formula),
+                    SimplificationStrategy::Recursive => formula.apply(&mut simplification),
+                    SimplificationStrategy::Fixpoint => todo!(),
+                })
+                .collect();
+
+            print!("{simplified_theory}");
 
             Ok(())
         }
