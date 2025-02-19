@@ -22,6 +22,19 @@ pub enum Command {
         input: Option<PathBuf>,
     },
 
+    Simplify {
+        /// The simplification portfolio to use
+        #[arg(long, value_enum)]
+        portfolio: SimplificationPortfolio,
+
+        /// The simplification strategy to use
+        #[arg(long, value_enum)]
+        strategy: SimplificationStrategy,
+
+        /// The file to simplify
+        input: Option<PathBuf>,
+    },
+
     /// Translate a given answer set program or first-order theory
     Translate {
         /// The translation to use
@@ -95,6 +108,20 @@ pub enum Command {
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 pub enum Property {
     Tightness,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
+pub enum SimplificationPortfolio {
+    Classic,
+    Ht,
+    Intuitionistic,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
+pub enum SimplificationStrategy {
+    Shallow,
+    Recursive,
+    Fixpoint,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
