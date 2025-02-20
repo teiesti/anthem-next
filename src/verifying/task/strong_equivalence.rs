@@ -1,7 +1,12 @@
 use {
     crate::{
         command_line::arguments::Decomposition,
-        convenience::with_warnings::{Result, WithWarnings},
+        convenience::{
+            apply::Apply as _,
+            compose::Compose as _,
+            with_warnings::{Result, WithWarnings},
+        },
+        simplifying::fol::{classic::CLASSIC, ht::HT, intuitionistic::INTUITIONISTIC},
         syntax_tree::{asp, fol},
         translating::{
             gamma::{self, gamma},
@@ -66,16 +71,30 @@ impl Task for StrongEquivalenceTask {
         let mut right = tau_star(self.right);
 
         if self.simplify {
-            left = crate::simplifying::fol::intuitionistic::simplify(left);
-            right = crate::simplifying::fol::intuitionistic::simplify(right);
+            let mut portfolio = [INTUITIONISTIC, HT].concat().into_iter().compose();
+            left = left
+                .into_iter()
+                .map(|f| f.apply_fixpoint(&mut portfolio))
+                .collect();
+            right = right
+                .into_iter()
+                .map(|f| f.apply_fixpoint(&mut portfolio))
+                .collect();
         }
 
         left = gamma(left);
         right = gamma(right);
 
         if self.simplify {
-            left = crate::simplifying::fol::classic::simplify(left);
-            right = crate::simplifying::fol::classic::simplify(right);
+            let mut portfolio = [INTUITIONISTIC, HT, CLASSIC].concat().into_iter().compose();
+            left = left
+                .into_iter()
+                .map(|f| f.apply_fixpoint(&mut portfolio))
+                .collect();
+            right = right
+                .into_iter()
+                .map(|f| f.apply_fixpoint(&mut portfolio))
+                .collect();
         }
 
         if self.break_equivalences {
