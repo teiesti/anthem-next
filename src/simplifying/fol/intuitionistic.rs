@@ -1,24 +1,10 @@
 use crate::{
-    convenience::{
-        apply::Apply as _,
-        compose::Compose as _,
-        unbox::{fol::UnboxedFormula, Unbox as _},
-    },
+    convenience::unbox::{fol::UnboxedFormula, Unbox as _},
     syntax_tree::fol::{
         AtomicFormula, BinaryConnective, Comparison, Formula, Guard, Quantification, Relation,
-        Theory, UnaryConnective,
+        UnaryConnective,
     },
 };
-
-pub fn simplify(theory: Theory) -> Theory {
-    Theory {
-        formulas: theory.formulas.into_iter().map(simplify_formula).collect(),
-    }
-}
-
-pub fn simplify_formula(formula: Formula) -> Formula {
-    formula.apply(&mut INTUITIONISTIC.iter().compose())
-}
 
 pub const INTUITIONISTIC: &[fn(Formula) -> Formula] = &[
     evaluate_comparisons,
@@ -426,13 +412,16 @@ mod tests {
             apply_reverse_implication_definition, apply_reverse_implication_definition_inverse,
             evaluate_comparisons, join_nested_quantifiers, remove_annihilations,
             remove_empty_quantifications, remove_idempotences, remove_identities,
-            remove_orphaned_variables, simplify_formula,
+            remove_orphaned_variables, INTUITIONISTIC,
         },
-        crate::{convenience::apply::Apply as _, syntax_tree::fol::Formula},
+        crate::{
+            convenience::{apply::Apply as _, compose::Compose as _},
+            syntax_tree::fol::Formula,
+        },
     };
 
     #[test]
-    fn test_simplify() {
+    fn test_portfolio() {
         for (src, target) in [
             ("#true and #true and a", "a"),
             ("#true and (#true and a)", "a"),
@@ -441,7 +430,9 @@ mod tests {
             ("forall X (X = X)", "#true"),
         ] {
             assert_eq!(
-                simplify_formula(src.parse().unwrap()),
+                src.parse::<Formula>()
+                    .unwrap()
+                    .apply(&mut INTUITIONISTIC.iter().compose()),
                 target.parse().unwrap()
             )
         }
